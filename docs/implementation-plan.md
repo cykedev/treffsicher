@@ -480,9 +480,11 @@ Folgende Punkte manuell prüfen:
 ### Schritt 2.1 — Erweiterte Ergebniserfassung
 
 - **Einzelschuss-Eingabe**: Optional aktivierbar pro Einheit
-  - Bei Aktivierung: pro Schuss ein Eingabefeld (Anzahl kommt aus Disziplin)
+  - Bei Aktivierung: pro Schuss ein Eingabefeld (Anzahl kommt aus Disziplin, kann aber pro Serie angepasst werden)
   - Seriensumme wird automatisch berechnet
   - Werte werden in `Series.shots` (Json-Feld) gespeichert
+- **Flexible Serienanzahl**: Die Disziplin definiert Standardwerte — im Formular kann die Anzahl der Serien frei erhöht oder verringert werden (min. 1). Serien werden per Button hinzugefügt oder entfernt.
+- **Flexible Schussanzahl pro Serie**: Im Einzelschuss-Modus kann die Schussanzahl pro Serie abweichend vom Disziplin-Standard gesetzt werden (1–99). Statistiken und Gesamtergebnisse basieren immer auf den tatsächlich erfassten Rohwerten — keine falschen Berechnungen durch abweichende Schusszahlen.
 - **Zehntelwertung**: Dezimal-Input, `Decimal(5,1)` in DB
 - **Probeschuss-Serien**: Separat erfassbar, fliessen nicht ins Gesamtergebnis
 - **Ausführungsqualität** je Serie: optionaler Schieberegler 1–5

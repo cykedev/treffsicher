@@ -41,6 +41,7 @@ const typesWithDiscipline = ["TRAINING", "WETTKAMPF"]
 
 // Formular für neue Einheit.
 // Bei Auswahl von Typ und Disziplin werden die Serienfelder dynamisch generiert.
+// Die Serienanzahl und Schussanzahl pro Serie kann vom Disziplin-Standard abweichen.
 // Optional: Einzelschüsse erfassen (Toggle) und Ausführungsqualität pro Serie.
 export function EinheitForm({ disciplines }: Props) {
   const router = useRouter()
@@ -50,6 +51,10 @@ export function EinheitForm({ disciplines }: Props) {
   const [showShots, setShowShots] = useState(false)
   // Einzelschuss-Werte: shots[serienIndex][schussIndex] = string
   const [shots, setShots] = useState<string[][]>([])
+  // Serienanzahl als State — Nutzer kann vom Disziplin-Standard abweichen
+  const [totalSeries, setTotalSeries] = useState<number>(0)
+  // Schussanzahl pro Serie — nur relevant wenn showShots = true
+  const [shotCounts, setShotCounts] = useState<number[]>([])
 
   // Initialwert einmalig beim Mount berechnen — nicht bei jedem Re-Render.
   // useState-Initialisierungsfunktion wird nur einmal aufgerufen (kein impure-render-Problem)
@@ -62,19 +67,30 @@ export function EinheitForm({ disciplines }: Props) {
   // Gewählte Disziplin aus der Liste suchen
   const selectedDiscipline = disciplines.find((d) => d.id === disciplineId)
 
-  // Anzahl Serien: Probeschuss-Serien + Wertungsserien
-  const totalSeries = selectedDiscipline
-    ? selectedDiscipline.practiceSeries + selectedDiscipline.seriesCount
-    : 0
+  // Disziplinwechsel: Serien-State auf Disziplin-Standardwerte zurücksetzen
+  function handleDisciplineChange(id: string) {
+    setDisciplineId(id)
+    const disc = disciplines.find((d) => d.id === id)
+    if (disc) {
+      const newTotal = disc.practiceSeries + disc.seriesCount
+      setTotalSeries(newTotal)
+      setShotCounts(Array(newTotal).fill(disc.shotsPerSeries))
+      setShowShots(false)
+      setShots([])
+    } else {
+      setTotalSeries(0)
+      setShotCounts([])
+      setShowShots(false)
+      setShots([])
+    }
+  }
 
-  // Shots-Array initialisieren wenn Toggle aktiviert wird
+  // Shots-Array initialisieren wenn Toggle aktiviert wird.
+  // Nutzt shotCounts statt festem shotsPerSeries — berücksichtigt individuelle Anpassungen.
   function handleShotToggle(enabled: boolean) {
     setShowShots(enabled)
-    if (enabled && selectedDiscipline) {
-      // Leere Felder für alle Serien und Schüsse anlegen
-      setShots(
-        Array.from({ length: totalSeries }, () => Array(selectedDiscipline.shotsPerSeries).fill(""))
-      )
+    if (enabled) {
+      setShots(shotCounts.map((count) => Array(count).fill("")))
     }
   }
 
@@ -85,6 +101,45 @@ export function EinheitForm({ disciplines }: Props) {
       next[seriesIndex][shotIndex] = value
       return next
     })
+  }
+
+  // Serie hinzufügen — immer am Ende, immer als Wertungsserie
+  function handleAddSeries() {
+    const defaultCount = selectedDiscipline?.shotsPerSeries ?? 10
+    setTotalSeries((n) => n + 1)
+    setShotCounts((prev) => [...prev, defaultCount])
+    if (showShots) {
+      setShots((prev) => [...prev, Array(defaultCount).fill("")])
+    }
+  }
+
+  // Serie entfernen — mindestens 1 Serie bleibt erhalten
+  function handleRemoveSeries(index: number) {
+    if (totalSeries <= 1) return
+    setTotalSeries((n) => n - 1)
+    setShotCounts((prev) => prev.filter((_, i) => i !== index))
+    if (showShots) {
+      setShots((prev) => prev.filter((_, i) => i !== index))
+    }
+  }
+
+  // Schussanzahl für eine Serie ändern und shots-Array entsprechend anpassen
+  function handleShotCountChange(seriesIndex: number, newCount: number) {
+    const count = Math.max(1, Math.min(99, newCount))
+    setShotCounts((prev) => prev.map((c, i) => (i === seriesIndex ? count : c)))
+    if (showShots) {
+      setShots((prev) =>
+        prev.map((serieShots, i) => {
+          if (i !== seriesIndex) return serieShots
+          if (count > serieShots.length) {
+            // Neue Felder anhängen
+            return [...serieShots, ...Array(count - serieShots.length).fill("")]
+          }
+          // Überzählige Felder abschneiden
+          return serieShots.slice(0, count)
+        })
+      )
+    }
   }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -124,6 +179,10 @@ export function EinheitForm({ disciplines }: Props) {
                   // Disziplin zurücksetzen wenn kein Schiessen
                   if (!typesWithDiscipline.includes(v)) {
                     setDisciplineId("")
+                    setTotalSeries(0)
+                    setShotCounts([])
+                    setShowShots(false)
+                    setShots([])
                   }
                 }}
               >
@@ -161,12 +220,7 @@ export function EinheitForm({ disciplines }: Props) {
               <Select
                 name="disciplineId"
                 required={needsDiscipline}
-                onValueChange={(v) => {
-                  setDisciplineId(v)
-                  // Shots zurücksetzen wenn Disziplin wechselt
-                  setShowShots(false)
-                  setShots([])
-                }}
+                onValueChange={handleDisciplineChange}
               >
                 <SelectTrigger id="disciplineId">
                   <SelectValue placeholder="Disziplin wählen" />
@@ -222,9 +276,16 @@ export function EinheitForm({ disciplines }: Props) {
                 ? `Probeschuss-Serie ${i + 1}`
                 : `Serie ${i - selectedDiscipline.practiceSeries + 1}`
 
+              // Schussanzahl dieser Serie (ggf. vom Nutzer angepasst)
+              const currentShotCount = shotCounts[i] ?? selectedDiscipline.shotsPerSeries
               // Berechnete Seriensumme aus Einzelschüssen (nur im Shot-Modus)
               const shotsForSeries = shots[i] ?? []
               const computedTotal = showShots ? calculateSumFromShots(shotsForSeries) : null
+              // Maximale Ringe basierend auf aktueller Schussanzahl
+              const maxScore =
+                selectedDiscipline.scoringType === "TENTH"
+                  ? currentShotCount * 10.9
+                  : currentShotCount * 10
 
               return (
                 <Card key={i}>
@@ -236,21 +297,49 @@ export function EinheitForm({ disciplines }: Props) {
                       value={isPractice ? "true" : "false"}
                     />
 
-                    <div className="space-y-2">
-                      <Label htmlFor={`series-${i}`}>
+                    {/* Serien-Header mit Label und Entfernen-Button */}
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor={`series-${i}`} className="leading-none">
                         {seriesLabel}
                         {isPractice && (
-                          <span className="ml-2 text-xs text-muted-foreground">
-                            (Probeschuss — zählt nicht)
+                          <span className="ml-2 text-xs font-normal text-muted-foreground">
+                            (zählt nicht)
                           </span>
                         )}
                       </Label>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveSeries(i)}
+                        disabled={pending || totalSeries <= 1}
+                        aria-label={`${seriesLabel} entfernen`}
+                        className="h-5 w-5 rounded text-xs text-muted-foreground hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-30"
+                      >
+                        ×
+                      </button>
+                    </div>
 
+                    <div className="space-y-2">
                       {showShots ? (
-                        // Einzelschuss-Modus: N Eingabefelder + berechnete Summe
+                        // Einzelschuss-Modus: Schussanzahl-Selector + N Eingabefelder + Summe
                         <div className="space-y-2">
+                          {/* Schussanzahl anpassbar — Disziplin-Wert ist nur Standardwert */}
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-muted-foreground">Schüsse:</span>
+                            <Input
+                              type="number"
+                              min="1"
+                              max="99"
+                              value={currentShotCount}
+                              onChange={(e) =>
+                                handleShotCountChange(i, parseInt(e.target.value, 10) || 1)
+                              }
+                              disabled={pending}
+                              className="h-7 w-16 px-2 text-center text-xs"
+                              aria-label={`Schussanzahl Serie ${i + 1}`}
+                            />
+                          </div>
                           <div className="grid grid-cols-5 gap-1">
-                            {Array.from({ length: selectedDiscipline.shotsPerSeries }, (_, j) => (
+                            {Array.from({ length: currentShotCount }, (_, j) => (
                               <Input
                                 key={j}
                                 type="number"
@@ -273,7 +362,10 @@ export function EinheitForm({ disciplines }: Props) {
                               {computedTotal !== null ? computedTotal : "–"}
                             </span>
                             <span className="text-sm text-muted-foreground">
-                              / {selectedDiscipline.shotsPerSeries * 10}
+                              /{" "}
+                              {selectedDiscipline.scoringType === "TENTH"
+                                ? maxScore.toFixed(1)
+                                : maxScore}
                             </span>
                             {/* Berechnete Summe als Hidden-Field für den Server */}
                             <input
@@ -291,18 +383,12 @@ export function EinheitForm({ disciplines }: Props) {
                             name={`series[${i}][scoreTotal]`}
                             type="number"
                             min="0"
-                            max={
-                              selectedDiscipline.scoringType === "WHOLE"
-                                ? selectedDiscipline.shotsPerSeries * 10
-                                : selectedDiscipline.shotsPerSeries * 10.9
-                            }
                             step={selectedDiscipline.scoringType === "TENTH" ? "0.1" : "1"}
                             placeholder="Ringe"
                             className="w-28"
                             disabled={pending}
                           />
                           <span className="text-sm text-muted-foreground">
-                            / {selectedDiscipline.shotsPerSeries * 10}{" "}
                             {selectedDiscipline.scoringType === "TENTH" ? "Zehntel" : "Ringe"}
                           </span>
                         </div>
@@ -333,6 +419,17 @@ export function EinheitForm({ disciplines }: Props) {
               )
             })}
           </div>
+
+          {/* Serie hinzufügen — immer als Wertungsserie am Ende */}
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={handleAddSeries}
+            disabled={pending}
+          >
+            + Serie hinzufügen
+          </Button>
         </div>
       )}
 
