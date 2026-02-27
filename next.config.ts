@@ -1,7 +1,9 @@
-import type { NextConfig } from "next";
+import type { NextConfig } from "next"
 
 const nextConfig: NextConfig = {
-  /* config options here */
-};
+  // Standalone-Output bündelt alle Abhängigkeiten für minimale Docker-Images
+  // Ermöglicht `node server.js` statt `npm start` im Container
+  output: "standalone",
+}
 
-export default nextConfig;
+export default nextConfig

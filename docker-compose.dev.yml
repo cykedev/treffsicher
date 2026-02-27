@@ -1,0 +1,46 @@
+services:
+  app:
+    build:
+      context: .
+      # Nur die deps-Stufe bauen — kein vollständiger Build für Entwicklung
+      target: deps
+    command: npm run dev
+    ports:
+      - "3000:3000"
+    volumes:
+      # Quellcode live einbinden für Hot-Reload
+      - .:/app
+      # node_modules aus dem Container nicht überschreiben (verhindert Plattform-Konflikte)
+      - /app/node_modules
+      - uploads_data:/app/uploads
+    environment:
+      - DATABASE_URL=postgresql://treffsicher:treffsicher@db:5432/treffsicher
+      - NEXTAUTH_SECRET=dev-secret-fuer-lokale-entwicklung-min32z
+      - NEXTAUTH_URL=http://localhost:3000
+      - UPLOAD_DIR=/app/uploads
+      - ADMIN_EMAIL=admin@example.com
+      - ADMIN_PASSWORD=admin-passwort-12
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: treffsicher
+      POSTGRES_PASSWORD: treffsicher
+      POSTGRES_DB: treffsicher
+    ports:
+      # Port nach aussen freigeben für lokale DB-Tools (z.B. Prisma Studio)
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U treffsicher"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  postgres_data:
+  uploads_data:
