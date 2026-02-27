@@ -164,6 +164,7 @@ if (process.env.NODE_ENV !== "production") {
 Zod v4 hat breaking changes gegenüber v3:
 
 - `invalid_type_error` entfernt — stattdessen `message` verwenden:
+
   ```typescript
   // RICHTIG (v4)
   z.number({ message: "Muss eine Zahl sein" })
@@ -171,6 +172,7 @@ Zod v4 hat breaking changes gegenüber v3:
   // FALSCH (v3-Syntax, funktioniert nicht mehr)
   z.number({ invalid_type_error: "Muss eine Zahl sein" })
   ```
+
 - `z.enum()` erwartet `as const` für korrekte Typisierung:
   ```typescript
   z.enum(["WHOLE", "TENTH"] as const)

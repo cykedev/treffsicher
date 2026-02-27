@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest"
-import { calculateTotalScore, calculateAverage } from "./calculateScore"
+import { calculateTotalScore, calculateAverage, calculateSumFromShots } from "./calculateScore"
 
 describe("calculateTotalScore", () => {
   it("addiert alle Wertungsserien korrekt", () => {
@@ -87,5 +87,44 @@ describe("calculateAverage", () => {
 
   it("gibt null zurück wenn alle Werte null sind", () => {
     expect(calculateAverage([null, null])).toBeNull()
+  })
+})
+
+describe("calculateSumFromShots", () => {
+  it("addiert Einzelschüsse korrekt", () => {
+    // Arrange: 10 Schüsse einer typischen Luftpistolen-Serie
+    const shots = ["9", "10", "9", "8", "10", "9", "10", "9", "8", "9"]
+
+    // Act
+    const result = calculateSumFromShots(shots)
+
+    // Assert
+    expect(result).toBe(91)
+  })
+
+  it("addiert Zehntelwertungen korrekt ohne Floating-Point-Fehler", () => {
+    // Arrange: Typische Zehntelwertung
+    const shots = ["9.5", "10.1", "9.8", "10.4", "9.7"]
+
+    // Act
+    const result = calculateSumFromShots(shots)
+
+    // Assert: 9.5 + 10.1 + 9.8 + 10.4 + 9.7 = 49.5
+    expect(result).toBe(49.5)
+  })
+
+  it("behandelt leere Strings als 0", () => {
+    // Arrange: Noch nicht ausgefüllte Felder liefern leere Strings
+    const shots = ["9", "", "10", ""]
+
+    // Act
+    const result = calculateSumFromShots(shots)
+
+    // Assert: Nur valide Werte summiert
+    expect(result).toBe(19)
+  })
+
+  it("gibt 0 zurück für leeres Array", () => {
+    expect(calculateSumFromShots([])).toBe(0)
   })
 })

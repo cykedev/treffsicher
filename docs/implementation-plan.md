@@ -547,9 +547,37 @@ Pakete: `npm install recharts`
 
 ## Phase 3 — Mentaltraining
 
-**Ziel**: Befinden-Tracking, Reflexion, Prognose/Feedback, Schuss-Ablauf.
+**Ziel**: Einheiten bearbeiten & löschen, Befinden-Tracking, Reflexion, Prognose/Feedback, Schuss-Ablauf.
 
-### Schritt 3.1 — Befinden-Tracking
+### Schritt 3.1 — Einheit bearbeiten & löschen
+
+**Ziel**: Bestehende Einheiten korrigieren und bei Bedarf löschen können.
+
+**Server Actions** in `src/lib/sessions/actions.ts`:
+
+- `updateSession(id, formData)` — Basisdaten (Typ, Datum, Ort, Disziplin) und Serien aktualisieren.
+  Serien werden vollständig ersetzt (alle alten löschen, neue anlegen) — einfacher als Diff.
+  Auth-Check + `userId`-Filter (nur eigene Einheiten).
+- `deleteSession(id)` — Einheit inkl. aller Serien und Attachments löschen.
+  Attachment-Dateien vom Disk entfernen (wie in `deleteAttachment`).
+  Auth-Check + `userId`-Filter.
+
+**Neue Route**: `src/app/(app)/einheiten/[id]/bearbeiten/page.tsx`
+
+Server Component — lädt die Einheit via `getSessionById`, zeigt vorausgefülltes Formular.
+`notFound()` wenn Einheit nicht gefunden.
+
+**Formular**: Wiederverwendung von `EinheitForm` mit neuem `initialData`-Prop.
+Vorausgefüllte Werte: Typ, Disziplin, Datum, Ort, Serien (inkl. Einzelschüsse und Ausführungsqualität).
+
+**Löschen**: Button in der Detailansicht (`/einheiten/[id]`), mit Bestätigungsdialog (native `confirm` oder einfaches Inline-Confirm-Pattern ohne externe Abhängigkeit).
+Nach dem Löschen: Redirect zu `/einheiten`.
+
+**Detailansicht erweitern**: Link "Bearbeiten" → `/einheiten/[id]/bearbeiten`.
+
+---
+
+### Schritt 3.3 — Befinden-Tracking
 
 Optional vor jeder Einheit, 4 Schieberegler (0–10):
 
@@ -558,7 +586,7 @@ Optional vor jeder Einheit, 4 Schieberegler (0–10):
 **Modell**: `Wellbeing` (1:1 mit TrainingSession, optional)
 Wird beim Anlegen der Einheit oder danach erfasst.
 
-### Schritt 3.2 — Reflexion nach der Einheit
+### Schritt 3.4 — Reflexion nach der Einheit
 
 Optional nach jeder Einheit:
 
@@ -569,7 +597,7 @@ Optional nach jeder Einheit:
 
 **UI**: Eigener Tab / Abschnitt in der Einheit-Detailansicht.
 
-### Schritt 3.3 — Prognose & Feedback
+### Schritt 3.5 — Prognose & Feedback
 
 Gilt für Wettkampf und fokussiertes Training (aus requirements.md).
 
@@ -588,7 +616,7 @@ Gilt für Wettkampf und fokussiertes Training (aus requirements.md).
 
 **Automatischer Vergleich**: Prognose vs. tatsächlicher Stand wird angezeigt.
 
-### Schritt 3.4 — Schuss-Ablauf
+### Schritt 3.6 — Schuss-Ablauf
 
 `src/app/(app)/schuss-ablauf/page.tsx`
 
@@ -602,17 +630,19 @@ Editierbares Dokument (kein Versionsverlauf — bewusste Entscheidung):
 
 **Daten**: `ShotRoutine.steps` als Json-Array, kein Versionsverlauf.
 
-### Schritt 3.5 — Statistiken erweitern
+### Schritt 3.7 — Statistiken erweitern
 
 - **Befinden-Korrelation**: Schlafdauer / Energie vs. Ergebnisse (ScatterChart)
 - **Schussqualität vs. Ringe**: Ausführungsqualität (1–5) vs. Serienergebnis
 
 ### Verifikation Phase 3
 
-1. Befinden vor einer Einheit erfassen, in Statistik sichtbar
-2. Reflexion nach einer Einheit ausfüllen, gespeichert und lesbar
-3. Prognose + Feedback für eine Einheit durchspielen, Vergleich angezeigt
-4. Schuss-Ablauf anlegen, Schritte ordnen, speichern
+1. Einheit bearbeiten: Typ, Datum, Serien ändern → gespeichert und in Detailansicht sichtbar
+2. Einheit löschen: Bestätigung → Einheit weg, Attachments vom Disk entfernt
+3. Befinden vor einer Einheit erfassen, in Statistik sichtbar
+4. Reflexion nach einer Einheit ausfüllen, gespeichert und lesbar
+5. Prognose + Feedback für eine Einheit durchspielen, Vergleich angezeigt
+6. Schuss-Ablauf anlegen, Schritte ordnen, speichern
 
 ---
 
