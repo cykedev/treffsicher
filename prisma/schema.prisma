@@ -1,0 +1,304 @@
+// Prisma 7: Client wird lokal generiert (nicht mehr in node_modules/@prisma/client)
+// Import im Code: import { ... } from "@/generated/prisma"
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+// Prisma 7: url wird nicht mehr im Schema definiert.
+// Die Verbindung wird über @prisma/adapter-pg im PrismaClient-Konstruktor aufgebaut.
+// Siehe src/lib/db.ts
+datasource db {
+  provider = "postgresql"
+}
+
+// ─────────────────────────────────────────────
+// Enums
+// ─────────────────────────────────────────────
+
+enum UserRole {
+  ADMIN
+  USER
+}
+
+enum SessionType {
+  TRAINING
+  WETTKAMPF
+  TROCKENTRAINING
+  MENTAL
+}
+
+enum ScoringType {
+  // Ganzringe: 0-10 pro Schuss, ganzzahlig
+  WHOLE
+  // Zehntelringe: 0.0-10.9 pro Schuss, eine Dezimalstelle (ISSF-Standard)
+  TENTH
+}
+
+enum AttachmentType {
+  IMAGE
+  PDF
+}
+
+// ─────────────────────────────────────────────
+// User
+// ─────────────────────────────────────────────
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  role         UserRole @default(USER)
+  // Nutzer werden deaktiviert statt gelöscht — bestehende Daten bleiben erhalten
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  sessions     TrainingSession[]
+  disciplines  Discipline[]
+  shotRoutines ShotRoutine[]
+  goals        Goal[]
+}
+
+// ─────────────────────────────────────────────
+// Discipline (Disziplin)
+// ─────────────────────────────────────────────
+
+model Discipline {
+  id             String      @id @default(cuid())
+  name           String
+  seriesCount    Int
+  shotsPerSeries Int
+  // Anzahl Probeschuss-Serien die vor der Wertung geschossen werden (Standard: 0)
+  practiceSeries Int         @default(0)
+  scoringType    ScoringType @default(WHOLE)
+  // System-Disziplinen gehören keinem Nutzer und sind für alle sichtbar
+  isSystem       Boolean     @default(false)
+  // Archiviert statt gelöscht — bestehende Einheiten bleiben lesbar
+  isArchived     Boolean     @default(false)
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  // Null bei System-Disziplinen, gesetzt bei nutzereigenen Disziplinen
+  ownerId  String?
+  owner    User?             @relation(fields: [ownerId], references: [id])
+
+  sessions     TrainingSession[]
+  shotRoutines ShotRoutine[]
+}
+
+// ─────────────────────────────────────────────
+// TrainingSession (Einheit)
+// ─────────────────────────────────────────────
+
+model TrainingSession {
+  id        String      @id @default(cuid())
+  userId    String
+  user      User        @relation(fields: [userId], references: [id])
+  type      SessionType
+  date      DateTime
+  location  String?
+  // Disziplin nur bei TRAINING und WETTKAMPF gesetzt
+  disciplineId String?
+  discipline   Discipline? @relation(fields: [disciplineId], references: [id])
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  series      Series[]
+  wellbeing   Wellbeing?
+  reflection  Reflection?
+  prognosis   Prognosis?
+  feedback    Feedback?
+  attachments Attachment[]
+  goals       SessionGoal[]
+}
+
+// ─────────────────────────────────────────────
+// Series (Schussserie)
+// ─────────────────────────────────────────────
+
+model Series {
+  id        String          @id @default(cuid())
+  sessionId String
+  session   TrainingSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  // Reihenfolge der Serien innerhalb einer Einheit (1, 2, 3, ...)
+  position  Int
+  // Probeschüsse fliessen nicht in die Gesamtwertung ein
+  isPractice Boolean        @default(false)
+  // Decimal für Zehntelwertung (z.B. 94.7), null wenn noch nicht erfasst
+  scoreTotal Decimal?       @db.Decimal(5, 1)
+  // Einzelschuss-Werte als JSON-Array von Strings (z.B. ["9.5", "10.1"])
+  // Strings statt Floats für exakte Dezimaldarstellung ohne Rundungsfehler
+  shots     Json?
+  // Subjektive Bewertung der technischen Ausführung (1=schlecht, 5=sehr gut)
+  executionQuality Int?
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+}
+
+// ─────────────────────────────────────────────
+// Wellbeing (Befinden vor der Einheit)
+// ─────────────────────────────────────────────
+
+model Wellbeing {
+  id        String          @id @default(cuid())
+  sessionId String          @unique
+  session   TrainingSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  // Alle Werte auf einer Skala von 0-10
+  sleep      Int
+  energy     Int
+  stress     Int
+  motivation Int
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+}
+
+// ─────────────────────────────────────────────
+// Reflection (Reflexion nach der Einheit)
+// ─────────────────────────────────────────────
+
+model Reflection {
+  id        String          @id @default(cuid())
+  sessionId String          @unique
+  session   TrainingSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  // Freie Beobachtungen zur Einheit
+  observations     String?
+  // Erfolgsmonitoring: "Heute ist mir klargeworden, dass ..."
+  insight          String?
+  // Lernfrage: "Was kann ich tun, um ...?"
+  learningQuestion String?
+  // Wurde der Schuss-Ablauf eingehalten?
+  routineFollowed  Boolean?
+  // Wenn nicht: was war anders?
+  routineDeviation String?
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+}
+
+// ─────────────────────────────────────────────
+// Prognosis (Prognose vor Wettkampf/Training)
+// ─────────────────────────────────────────────
+
+model Prognosis {
+  id        String          @id @default(cuid())
+  sessionId String          @unique
+  session   TrainingSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  // Selbsteinschätzung in 7 Dimensionen (je 0-100)
+  fitness       Int
+  nutrition     Int
+  technique     Int
+  tactics       Int
+  mentalStrength Int
+  environment   Int
+  equipment     Int
+  // Ergebnisprognose
+  expectedScore       Decimal? @db.Decimal(5, 1)
+  expectedCleanShots  Int?
+  performanceGoal     String?
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+}
+
+// ─────────────────────────────────────────────
+// Feedback (Feedback nach Wettkampf/Training)
+// ─────────────────────────────────────────────
+
+model Feedback {
+  id        String          @id @default(cuid())
+  sessionId String          @unique
+  session   TrainingSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  // Tatsächlicher Stand in den gleichen 7 Dimensionen wie Prognose
+  fitness       Int
+  nutrition     Int
+  technique     Int
+  tactics       Int
+  mentalStrength Int
+  environment   Int
+  equipment     Int
+  // Erklärung der Abweichungen zur Prognose
+  explanation      String?
+  goalAchieved     Boolean?
+  goalAchievedNote String?
+  progress         String?
+  fiveBestShots    String?
+  wentWell         String?
+  insights         String?
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+}
+
+// ─────────────────────────────────────────────
+// Attachment (Datei-Upload)
+// ─────────────────────────────────────────────
+
+model Attachment {
+  id        String          @id @default(cuid())
+  sessionId String
+  session   TrainingSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  // Relativer Pfad im Upload-Volume (kein absoluter Pfad, kein URL)
+  filePath     String
+  fileType     AttachmentType
+  // Originalname zur Anzeige (der Dateiname im Filesystem ist eine UUID)
+  originalName String
+  label        String?
+  createdAt DateTime        @default(now())
+}
+
+// ─────────────────────────────────────────────
+// ShotRoutine (Schuss-Ablauf)
+// ─────────────────────────────────────────────
+
+model ShotRoutine {
+  id   String @id @default(cuid())
+  // Pflichtfeld: jeder Ablauf gehört einem Nutzer — verhindert Datenlecks
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+  name   String
+  // Optional: einem Ablauf kann eine Disziplin zugeordnet sein
+  disciplineId String?
+  discipline   Discipline? @relation(fields: [disciplineId], references: [id])
+  // Schritte als JSON-Array: [{order: Int, title: String, description?: String}]
+  // Kein Versionsverlauf — nur der aktuelle Stand wird gespeichert
+  steps    Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ─────────────────────────────────────────────
+// Goal (Saisonziel)
+// ─────────────────────────────────────────────
+
+model Goal {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  title       String
+  description String?
+  // RESULT: Ergebnisziel (z.B. "380 Ringe schiessen")
+  // PROCESS: Prozessziel (z.B. "Abzug gleichmässig durchziehen")
+  type        GoalType
+  dateFrom    DateTime
+  dateTo      DateTime
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  sessions    SessionGoal[]
+}
+
+enum GoalType {
+  RESULT
+  PROCESS
+}
+
+// ─────────────────────────────────────────────
+// SessionGoal (Many-to-Many Verknüpfung)
+// ─────────────────────────────────────────────
+
+model SessionGoal {
+  sessionId String
+  session   TrainingSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  goalId    String
+  goal      Goal            @relation(fields: [goalId], references: [id], onDelete: Cascade)
+
+  @@id([sessionId, goalId])
+}

@@ -1,5 +1,7 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
+/.idea/
+
 # dependencies
 /node_modules
 /.pnp
@@ -24,6 +26,9 @@
 .DS_Store
 *.pem
 
+# uploads — Dateien nur im Docker-Volume, nie im Repository
+/uploads/
+
 # debug
 npm-debug.log*
 yarn-debug.log*
@@ -39,3 +44,5 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+/src/generated/prisma
