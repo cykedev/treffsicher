@@ -4,6 +4,7 @@ import Link from "next/link"
 import { getDisciplines } from "@/lib/disciplines/actions"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
+import { ArchiveDisciplineButton } from "@/components/app/ArchiveDisciplineButton"
 
 const scoringTypeLabel: Record<string, string> = {
   WHOLE: "Ganzringe",
@@ -48,6 +49,15 @@ export default async function DisziplinenPage() {
                     {d.practiceSeries > 0 && ` — ${d.practiceSeries} Probeschuss-Serie(n)`}
                   </p>
                 </div>
+                {/* Aktionen nur bei eigenen Disziplinen */}
+                {!d.isSystem && (
+                  <div className="flex items-center gap-2">
+                    <Button variant="outline" size="sm" asChild>
+                      <Link href={`/disziplinen/${d.id}/bearbeiten`}>Bearbeiten</Link>
+                    </Button>
+                    <ArchiveDisciplineButton disciplineId={d.id} />
+                  </div>
+                )}
               </CardContent>
             </Card>
           ))}

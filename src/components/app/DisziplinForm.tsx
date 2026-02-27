@@ -3,7 +3,11 @@
 import { useActionState } from "react"
 import { useRouter } from "next/navigation"
 import { useEffect } from "react"
-import { createDiscipline, type ActionResult } from "@/lib/disciplines/actions"
+import {
+  createDiscipline,
+  updateDiscipline,
+  type ActionResult,
+} from "@/lib/disciplines/actions"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -15,13 +19,26 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Card, CardContent } from "@/components/ui/card"
+import type { Discipline } from "@/generated/prisma/client"
 
-// Formularer für neue Disziplin.
-// useActionState verbindet das Formular mit der Server Action und zeigt Fehler an.
-export function DisziplinForm() {
+interface Props {
+  // Wenn gesetzt: Bearbeiten-Modus
+  initialData?: Discipline
+  disciplineId?: string
+}
+
+// Formular für neue oder bestehende Disziplin.
+// Im Bearbeiten-Modus (disciplineId gesetzt) wird updateDiscipline mit bind verwendet.
+export function DisziplinForm({ initialData, disciplineId }: Props) {
   const router = useRouter()
+
+  // Im Bearbeiten-Modus die action via bind an die ID binden
+  const action = disciplineId
+    ? updateDiscipline.bind(null, disciplineId)
+    : createDiscipline
+
   const [state, formAction, pending] = useActionState<ActionResult | null, FormData>(
-    createDiscipline,
+    action,
     null
   )
 
@@ -56,6 +73,7 @@ export function DisziplinForm() {
               placeholder="z.B. Luftpistole 40"
               required
               disabled={pending}
+              defaultValue={initialData?.name ?? ""}
             />
             {fieldError("name") && <p className="text-sm text-destructive">{fieldError("name")}</p>}
           </div>
@@ -69,7 +87,7 @@ export function DisziplinForm() {
                 type="number"
                 min="1"
                 max="20"
-                defaultValue="4"
+                defaultValue={initialData?.seriesCount ?? 4}
                 required
                 disabled={pending}
               />
@@ -86,7 +104,7 @@ export function DisziplinForm() {
                 type="number"
                 min="1"
                 max="60"
-                defaultValue="10"
+                defaultValue={initialData?.shotsPerSeries ?? 10}
                 required
                 disabled={pending}
               />
@@ -104,7 +122,7 @@ export function DisziplinForm() {
               type="number"
               min="0"
               max="5"
-              defaultValue="0"
+              defaultValue={initialData?.practiceSeries ?? 0}
               disabled={pending}
             />
             <p className="text-xs text-muted-foreground">
@@ -114,7 +132,11 @@ export function DisziplinForm() {
 
           <div className="space-y-2">
             <Label htmlFor="scoringType">Wertungsart</Label>
-            <Select name="scoringType" defaultValue="WHOLE" disabled={pending}>
+            <Select
+              name="scoringType"
+              defaultValue={initialData?.scoringType ?? "WHOLE"}
+              disabled={pending}
+            >
               <SelectTrigger id="scoringType">
                 <SelectValue />
               </SelectTrigger>
@@ -127,7 +149,11 @@ export function DisziplinForm() {
 
           <div className="flex gap-3">
             <Button type="submit" disabled={pending}>
-              {pending ? "Speichern..." : "Disziplin speichern"}
+              {pending
+                ? "Speichern..."
+                : disciplineId
+                  ? "Änderungen speichern"
+                  : "Disziplin speichern"}
             </Button>
             <Button
               type="button"

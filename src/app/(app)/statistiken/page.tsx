@@ -1,23 +1,31 @@
 import { redirect } from "next/navigation"
 import { getAuthSession } from "@/lib/auth-helpers"
-import { getStatsData } from "@/lib/stats/actions"
+import {
+  getStatsData,
+  getWellbeingCorrelationData,
+  getQualityVsScoreData,
+} from "@/lib/stats/actions"
 import { StatistikCharts } from "@/components/app/StatistikCharts"
 
 export default async function StatistikenPage() {
   const session = await getAuthSession()
   if (!session) redirect("/login")
 
-  // Alle Einheiten laden — Client-Komponente filtert in Memory
-  const sessions = await getStatsData({})
+  // Alle Daten parallel laden — Client-Komponente filtert Ergebnisse in Memory
+  const [sessions, wellbeingData, qualityData] = await Promise.all([
+    getStatsData({}),
+    getWellbeingCorrelationData({}),
+    getQualityVsScoreData({}),
+  ])
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Statistiken</h1>
-        <p className="text-muted-foreground">Ergebnisverlauf und Serienanalyse</p>
+        <p className="text-muted-foreground">Ergebnisverlauf, Serienanalyse und Befinden-Korrelation</p>
       </div>
 
-      <StatistikCharts sessions={sessions} />
+      <StatistikCharts sessions={sessions} wellbeingData={wellbeingData} qualityData={qualityData} />
     </div>
   )
 }
