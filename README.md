@@ -53,10 +53,10 @@ Die App läuft unter [http://localhost:3000](http://localhost:3000).
 Beim ersten Start wird automatisch ein Admin-Account angelegt (via `src/lib/startup.ts`).
 Die Credentials kommen aus den Umgebungsvariablen in `docker-compose.dev.yml`:
 
-| Variable         | Wert in dev            |
-| ---------------- | ---------------------- |
-| `ADMIN_EMAIL`    | `admin@example.com`    |
-| `ADMIN_PASSWORD` | `admin-passwort-12`    |
+| Variable         | Wert in dev         |
+| ---------------- | ------------------- |
+| `ADMIN_EMAIL`    | `admin@example.com` |
+| `ADMIN_PASSWORD` | `admin-passwort-12` |
 
 Mit diesen Daten unter [http://localhost:3000/login](http://localhost:3000/login) einloggen.
 
@@ -119,14 +119,14 @@ npm run format
 
 Alle Konfiguration erfolgt über Umgebungsvariablen. Die Vorlage liegt in `.env.example`.
 
-| Variable          | Beschreibung                                              | Beispiel                                          |
-| ----------------- | --------------------------------------------------------- | ------------------------------------------------- |
-| `DATABASE_URL`    | PostgreSQL Connection String                              | `postgresql://user:pass@db:5432/treffsicher`      |
-| `NEXTAUTH_SECRET` | Zufälliger Secret für Session-Verschlüsselung (min. 32 Zeichen) | `openssl rand -base64 32`                  |
-| `NEXTAUTH_URL`    | Öffentliche URL der App                                   | `https://training.example.com`                    |
-| `UPLOAD_DIR`      | Pfad zum Upload-Verzeichnis im Container                  | `/app/uploads`                                    |
-| `ADMIN_EMAIL`     | E-Mail des ersten Admin-Accounts                          | `admin@example.com`                               |
-| `ADMIN_PASSWORD`  | Passwort des ersten Admin-Accounts (min. 12 Zeichen)      | sicheres Passwort                                 |
+| Variable          | Beschreibung                                                    | Beispiel                                     |
+| ----------------- | --------------------------------------------------------------- | -------------------------------------------- |
+| `DATABASE_URL`    | PostgreSQL Connection String                                    | `postgresql://user:pass@db:5432/treffsicher` |
+| `NEXTAUTH_SECRET` | Zufälliger Secret für Session-Verschlüsselung (min. 32 Zeichen) | `openssl rand -base64 32`                    |
+| `NEXTAUTH_URL`    | Öffentliche URL der App                                         | `https://training.example.com`               |
+| `UPLOAD_DIR`      | Pfad zum Upload-Verzeichnis im Container                        | `/app/uploads`                               |
+| `ADMIN_EMAIL`     | E-Mail des ersten Admin-Accounts                                | `admin@example.com`                          |
+| `ADMIN_PASSWORD`  | Passwort des ersten Admin-Accounts (min. 12 Zeichen)            | sicheres Passwort                            |
 
 **Entwicklung**: Werte sind direkt in `docker-compose.dev.yml` gesetzt — keine `.env` nötig (ausser `DATABASE_URL` für Prisma-CLI-Befehle, die lokal ausgeführt werden).
 
@@ -177,11 +177,11 @@ docs/                  # Anforderungen und technische Dokumentation
 
 ## Tech Stack
 
-| Bereich    | Technologie                |
-| ---------- | -------------------------- |
-| Framework  | Next.js 16 (App Router)    |
-| Datenbank  | PostgreSQL 15 + Prisma 7   |
-| Auth       | NextAuth.js v4             |
-| UI         | shadcn/ui + Tailwind CSS 4 |
-| Tests      | Vitest                     |
-| Container  | Docker + Docker Compose    |
+| Bereich   | Technologie                |
+| --------- | -------------------------- |
+| Framework | Next.js 16 (App Router)    |
+| Datenbank | PostgreSQL 15 + Prisma 7   |
+| Auth      | NextAuth.js v4             |
+| UI        | shadcn/ui + Tailwind CSS 4 |
+| Tests     | Vitest                     |
+| Container | Docker + Docker Compose    |

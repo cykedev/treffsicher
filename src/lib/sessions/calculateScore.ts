@@ -15,6 +15,24 @@ export function calculateTotalScore(
 }
 
 /**
+ * Berechnet die Seriensumme aus Einzelschuss-Werten.
+ * Wird im Client zur Live-Berechnung der Seriensumme verwendet wenn
+ * der Einzelschuss-Modus aktiv ist.
+ *
+ * @param shots - Array von Einzelschuss-Werten als Strings (z.B. ["9.5", "10.1"])
+ * @returns Seriensumme, gerundet auf eine Dezimalstelle
+ */
+export function calculateSumFromShots(shots: string[]): number {
+  const sum = shots.reduce((acc, shot) => {
+    const value = parseFloat(shot)
+    // Ungültige Werte (leer, NaN) als 0 behandeln
+    return acc + (isNaN(value) ? 0 : value)
+  }, 0)
+  // Auf eine Dezimalstelle runden — verhindert Floating-Point-Artefakte (z.B. 9.5 + 0.4 = 9.899...)
+  return Math.round(sum * 10) / 10
+}
+
+/**
  * Berechnet den Durchschnittswert einer Serie über mehrere Einheiten.
  * Nützlich für Trend-Anzeigen.
  *

@@ -65,32 +65,37 @@ export default async function EinheitenPage() {
             const scoringType = s.discipline?.scoringType
 
             return (
-              <Card key={s.id}>
-                <CardContent className="flex items-center justify-between py-4">
-                  <div className="space-y-0.5">
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium">{sessionTypeLabels[s.type] ?? s.type}</span>
-                      {s.discipline && (
-                        <span className="text-sm text-muted-foreground">— {s.discipline.name}</span>
-                      )}
+              // Ganzer Card ist klickbar — führt zur Detailansicht
+              <Link key={s.id} href={`/einheiten/${s.id}`} className="block">
+                <Card className="transition-colors hover:bg-muted/50">
+                  <CardContent className="flex items-center justify-between py-4">
+                    <div className="space-y-0.5">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">{sessionTypeLabels[s.type] ?? s.type}</span>
+                        {s.discipline && (
+                          <span className="text-sm text-muted-foreground">
+                            — {s.discipline.name}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        {formatDate(s.date)}
+                        {s.location && ` · ${s.location}`}
+                      </p>
                     </div>
-                    <p className="text-sm text-muted-foreground">
-                      {formatDate(s.date)}
-                      {s.location && ` · ${s.location}`}
-                    </p>
-                  </div>
 
-                  {/* Gesamtergebnis rechts */}
-                  {hasSeries && totalScore > 0 && (
-                    <div className="text-right">
-                      <span className="text-lg font-bold">
-                        {scoringType === "TENTH" ? totalScore.toFixed(1) : totalScore}
-                      </span>
-                      <p className="text-xs text-muted-foreground">Ringe gesamt</p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
+                    {/* Gesamtergebnis rechts */}
+                    {hasSeries && totalScore > 0 && (
+                      <div className="text-right">
+                        <span className="text-lg font-bold">
+                          {scoringType === "TENTH" ? totalScore.toFixed(1) : totalScore}
+                        </span>
+                        <p className="text-xs text-muted-foreground">Ringe gesamt</p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </Link>
             )
           })}
         </div>

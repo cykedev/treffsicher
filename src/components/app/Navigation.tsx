@@ -7,6 +7,7 @@ import { signOut } from "next-auth/react"
 const navLinks = [
   { href: "/dashboard", label: "Dashboard" },
   { href: "/einheiten", label: "Tagebuch" },
+  { href: "/statistiken", label: "Statistiken" },
   { href: "/disziplinen", label: "Disziplinen" },
 ]
 
