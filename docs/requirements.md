@@ -67,7 +67,9 @@ Gilt für Einheitentypen "Training" und "Wettkampf".
 
 ### Serien
 
-- Die Anzahl und Struktur der Serien ergibt sich aus der gewählten Disziplin
+- Die Anzahl und Struktur der Serien ergibt sich aus der gewählten Disziplin — diese Werte sind **Standardvorgaben, keine fixen Limits**
+- Im Training (und allen Typen ausser Wettkampf) kann die Serienanzahl und die Schussanzahl pro Serie **frei angepasst** werden (z.B. nur 2 statt 4 Serien schiessen, oder eine Serie mit 5 statt 10 Schuss)
+- Serien mit abweichender Schussanzahl erzeugen **keine falschen Berechnungen**: Statistiken und Gesamtergebnisse basieren auf den tatsächlich erfassten Rohwerten
 - Erfassung der Ringe je Serie (Summe oder Einzelschuss — je nach Präferenz)
 - Wertung in ganzen Ringen oder Zehntelringen (gemäss Disziplin)
 - Probeschuss-Serien können optional separat erfasst werden (fliessen nicht in die Wertung ein)
