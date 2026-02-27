@@ -579,6 +579,30 @@ Nach dem Löschen: Redirect zu `/einheiten`.
 
 ---
 
+### Schritt 3.2 — Disziplin bearbeiten
+
+**Ziel**: Bestehende Disziplinen korrigieren können (Name, Serien, Schuss/Serie, Wertungsart).
+
+**Einschränkungen**:
+
+- System-Disziplinen (`isSystem: true`) können **nicht** bearbeitet werden (nur eigene Disziplinen)
+- Die Wertungsart (`scoringType`) einer Disziplin, die bereits in Einheiten verwendet wird, kann nicht mehr geändert werden — sonst würden gespeicherte Werte falsch interpretiert
+
+**Server Action** in `src/lib/disciplines/actions.ts`:
+
+- `updateDiscipline(id, formData)` — Name, `seriesCount`, `shotsPerSeries`, `practiceSeries`, `scoringType` aktualisieren
+  Auth-Check + `userId`-Filter (nur eigene, nicht-archivierte Disziplinen)
+  Falls Disziplin bereits in Sessions verwendet: `scoringType`-Änderung ablehnen (Fehlermeldung)
+
+**Neue Route**: `src/app/(app)/disziplinen/[id]/bearbeiten/page.tsx`
+
+Server Component — lädt die Disziplin via `getDisciplineById`, zeigt vorausgefülltes Formular.
+`notFound()` wenn Disziplin nicht gefunden oder nicht dem Nutzer gehört.
+
+**Disziplinenliste erweitern**: Link/Button "Bearbeiten" bei eigenen Disziplinen (bei System-Disziplinen ausgeblendet).
+
+---
+
 ### Schritt 3.3 — Befinden-Tracking
 
 Optional vor jeder Einheit, 4 Schieberegler (0–10):
@@ -641,6 +665,9 @@ Editierbares Dokument (kein Versionsverlauf — bewusste Entscheidung):
 
 1. Einheit bearbeiten: Typ, Datum, Serien ändern → gespeichert und in Detailansicht sichtbar
 2. Einheit löschen: Bestätigung → Einheit weg, Attachments vom Disk entfernt
+3. Disziplin bearbeiten: Name und Serienkonfiguration ändern → gespeichert und in Liste sichtbar
+4. System-Disziplinen haben keinen Bearbeiten-Button
+5. Wertungsart-Änderung bei verwendeter Disziplin → Fehlermeldung
 3. Befinden vor einer Einheit erfassen, in Statistik sichtbar
 4. Reflexion nach einer Einheit ausfüllen, gespeichert und lesbar
 5. Prognose + Feedback für eine Einheit durchspielen, Vergleich angezeigt

@@ -4,6 +4,11 @@ import { getAuthSession } from "@/lib/auth-helpers"
 import { getSessionById } from "@/lib/sessions/actions"
 import { calculateTotalScore } from "@/lib/sessions/calculateScore"
 import { AttachmentSection } from "@/components/app/AttachmentSection"
+import { DeleteSessionButton } from "@/components/app/DeleteSessionButton"
+import { WellbeingForm } from "@/components/app/WellbeingForm"
+import { ReflectionForm } from "@/components/app/ReflectionForm"
+import { PrognosisForm } from "@/components/app/PrognosisForm"
+import { FeedbackForm } from "@/components/app/FeedbackForm"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { Button } from "@/components/ui/button"
@@ -63,6 +68,8 @@ export default async function EinheitDetailPage({ params }: { params: Promise<{ 
 
   const hasScoring = einheit.type === "TRAINING" || einheit.type === "WETTKAMPF"
   const isDecimal = einheit.discipline?.scoringType === "TENTH"
+  // Prognose und Feedback nur bei TRAINING und WETTKAMPF anzeigen
+  const hasPrognosisFeedback = hasScoring
 
   return (
     <div className="space-y-6">
@@ -78,9 +85,15 @@ export default async function EinheitDetailPage({ params }: { params: Promise<{ 
           <h1 className="text-2xl font-bold">{formatDate(einheit.date)}</h1>
           {einheit.location && <p className="text-sm text-muted-foreground">{einheit.location}</p>}
         </div>
-        <Button variant="outline" size="sm" asChild>
-          <Link href="/einheiten">Zurück</Link>
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" asChild>
+            <Link href={`/einheiten/${einheit.id}/bearbeiten`}>Bearbeiten</Link>
+          </Button>
+          <DeleteSessionButton sessionId={einheit.id} />
+          <Button variant="outline" size="sm" asChild>
+            <Link href="/einheiten">Zurück</Link>
+          </Button>
+        </div>
       </div>
 
       <Separator />
@@ -181,6 +194,105 @@ export default async function EinheitDetailPage({ params }: { params: Promise<{ 
               label: a.label,
             }))}
           />
+        </CardContent>
+      </Card>
+
+      {/* Befinden */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Befinden</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <WellbeingForm sessionId={einheit.id} initialData={einheit.wellbeing} />
+        </CardContent>
+      </Card>
+
+      {/* Prognose — nur bei Training und Wettkampf */}
+      {hasPrognosisFeedback && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Prognose</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <PrognosisForm sessionId={einheit.id} initialData={einheit.prognosis} />
+            {/* Vergleich Prognose vs. Feedback wenn beide vorhanden */}
+            {einheit.prognosis && einheit.feedback && (
+              <div className="mt-6 border-t pt-4">
+                <p className="mb-3 text-sm font-medium text-muted-foreground">
+                  Vergleich Prognose vs. Feedback
+                </p>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b text-left text-muted-foreground">
+                        <th className="pb-2 pr-4 font-medium">Dimension</th>
+                        <th className="pb-2 pr-4 font-medium">Prognose</th>
+                        <th className="pb-2 pr-4 font-medium">Tatsächlich</th>
+                        <th className="pb-2 font-medium">Differenz</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y">
+                      {(
+                        [
+                          { key: "fitness", label: "Kondition" },
+                          { key: "nutrition", label: "Ernährung" },
+                          { key: "technique", label: "Technik" },
+                          { key: "tactics", label: "Taktik" },
+                          { key: "mentalStrength", label: "Mentale Stärke" },
+                          { key: "environment", label: "Umfeld" },
+                          { key: "equipment", label: "Material" },
+                        ] as const
+                      ).map(({ key, label }) => {
+                        const prog = einheit.prognosis![key]
+                        const feed = einheit.feedback![key]
+                        const diff = feed - prog
+                        return (
+                          <tr key={key}>
+                            <td className="py-1.5 pr-4">{label}</td>
+                            <td className="py-1.5 pr-4">{prog}</td>
+                            <td className="py-1.5 pr-4">{feed}</td>
+                            <td
+                              className={`py-1.5 font-medium ${
+                                diff > 0
+                                  ? "text-green-600"
+                                  : diff < 0
+                                    ? "text-destructive"
+                                    : "text-muted-foreground"
+                              }`}
+                            >
+                              {diff > 0 ? `+${diff}` : diff}
+                            </td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Feedback — nur bei Training und Wettkampf */}
+      {hasPrognosisFeedback && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Feedback</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <FeedbackForm sessionId={einheit.id} initialData={einheit.feedback} />
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Reflexion */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Reflexion</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ReflectionForm sessionId={einheit.id} initialData={einheit.reflection} />
         </CardContent>
       </Card>
     </div>

@@ -9,6 +9,7 @@ const navLinks = [
   { href: "/einheiten", label: "Tagebuch" },
   { href: "/statistiken", label: "Statistiken" },
   { href: "/disziplinen", label: "Disziplinen" },
+  { href: "/schuss-ablauf", label: "Ablauf" },
 ]
 
 // Haupt-Navigation der App.

@@ -6,6 +6,8 @@ import {
   Line,
   BarChart,
   Bar,
+  ScatterChart,
+  Scatter,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -19,10 +21,16 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import type { StatsSession } from "@/lib/stats/actions"
+import type {
+  StatsSession,
+  WellbeingCorrelationPoint,
+  QualityVsScorePoint,
+} from "@/lib/stats/actions"
 
 interface Props {
   sessions: StatsSession[]
+  wellbeingData: WellbeingCorrelationPoint[]
+  qualityData: QualityVsScorePoint[]
 }
 
 type TypeFilter = "all" | "TRAINING" | "WETTKAMPF"
@@ -42,7 +50,7 @@ function today(): string {
  * Statistik-Charts-Komponente.
  * Empfängt alle Einheiten und filtert client-seitig — ausreichend für kleine Nutzerzahl.
  */
-export function StatistikCharts({ sessions }: Props) {
+export function StatistikCharts({ sessions, wellbeingData, qualityData }: Props) {
   const [typeFilter, setTypeFilter] = useState<TypeFilter>("all")
   const [from, setFrom] = useState("")
   const [to, setTo] = useState("")
@@ -251,6 +259,93 @@ export function StatistikCharts({ sessions }: Props) {
             </Card>
           )}
         </>
+      )}
+
+      {/* Befinden-Korrelation */}
+      {wellbeingData.length > 1 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Befinden vs. Ergebnis</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {(
+              [
+                { key: "sleep" as const, label: "Schlaf" },
+                { key: "energy" as const, label: "Energie" },
+                { key: "stress" as const, label: "Stress" },
+                { key: "motivation" as const, label: "Motivation" },
+              ] as const
+            ).map(({ key, label }) => (
+              <div key={key}>
+                <p className="mb-2 text-sm font-medium text-muted-foreground">{label}</p>
+                <ResponsiveContainer width="100%" height={180}>
+                  <ScatterChart margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                    <XAxis
+                      dataKey={key}
+                      type="number"
+                      domain={[0, 10]}
+                      label={{ value: label, position: "insideBottom", offset: -2, fontSize: 11 }}
+                      tick={{ fontSize: 11 }}
+                    />
+                    <YAxis
+                      dataKey="totalScore"
+                      type="number"
+                      domain={["auto", "auto"]}
+                      tick={{ fontSize: 11 }}
+                    />
+                    <Tooltip
+                      cursor={{ strokeDasharray: "3 3" }}
+                      formatter={(value, name) => [
+                        value,
+                        name === "totalScore" ? "Ergebnis" : label,
+                      ]}
+                    />
+                    <Scatter data={wellbeingData} fill="var(--chart-1)" opacity={0.7} />
+                  </ScatterChart>
+                </ResponsiveContainer>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Schussqualität vs. Serienergebnis */}
+      {qualityData.length > 1 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Ausführungsqualität vs. Serienergebnis</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={240}>
+              <ScatterChart margin={{ top: 5, right: 20, bottom: 15, left: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                <XAxis
+                  dataKey="quality"
+                  type="number"
+                  domain={[0.5, 5.5]}
+                  ticks={[1, 2, 3, 4, 5]}
+                  tickFormatter={(v) => ["", "Schlecht", "Mässig", "Mittel", "Gut", "Sehr gut"][v] ?? v}
+                  tick={{ fontSize: 10 }}
+                  label={{ value: "Ausführung", position: "insideBottom", offset: -8, fontSize: 11 }}
+                />
+                <YAxis
+                  dataKey="score"
+                  type="number"
+                  domain={["auto", "auto"]}
+                  tick={{ fontSize: 11 }}
+                />
+                <Tooltip
+                  formatter={(value, name) => [
+                    value,
+                    name === "score" ? "Serie-Ringe" : "Ausführung",
+                  ]}
+                />
+                <Scatter data={qualityData} fill="var(--chart-2)" opacity={0.7} />
+              </ScatterChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
       )}
     </div>
   )

@@ -2,7 +2,8 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { createSession } from "@/lib/sessions/actions"
+import { createSession, updateSession } from "@/lib/sessions/actions"
+import type { SessionDetail } from "@/lib/sessions/actions"
 import { calculateSumFromShots } from "@/lib/sessions/calculateScore"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -19,6 +20,9 @@ import type { Discipline } from "@/generated/prisma/client"
 
 interface Props {
   disciplines: Discipline[]
+  // Wenn gesetzt: Bearbeiten-Modus — Formular wird mit bestehender Einheit vorbelegt
+  initialData?: SessionDetail
+  sessionId?: string
 }
 
 const sessionTypeLabels: Record<string, string> = {
@@ -39,29 +43,54 @@ const executionQualityLabels: Record<number, string> = {
 // Einheitentypen die eine Disziplin erfordern
 const typesWithDiscipline = ["TRAINING", "WETTKAMPF"]
 
-// Formular für neue Einheit.
+// Formular für neue oder bestehende Einheit.
+// Im Bearbeiten-Modus (sessionId gesetzt) wird initialData zur Vorbelegen verwendet.
 // Bei Auswahl von Typ und Disziplin werden die Serienfelder dynamisch generiert.
 // Die Serienanzahl und Schussanzahl pro Serie kann vom Disziplin-Standard abweichen.
 // Optional: Einzelschüsse erfassen (Toggle) und Ausführungsqualität pro Serie.
-export function EinheitForm({ disciplines }: Props) {
+export function EinheitForm({ disciplines, initialData, sessionId }: Props) {
   const router = useRouter()
   const [pending, setPending] = useState(false)
-  const [type, setType] = useState<string>("")
-  const [disciplineId, setDisciplineId] = useState<string>("")
-  const [showShots, setShowShots] = useState(false)
-  // Einzelschuss-Werte: shots[serienIndex][schussIndex] = string
-  const [shots, setShots] = useState<string[][]>([])
-  // Serienanzahl als State — Nutzer kann vom Disziplin-Standard abweichen
-  const [totalSeries, setTotalSeries] = useState<number>(0)
-  // Schussanzahl pro Serie — nur relevant wenn showShots = true
-  const [shotCounts, setShotCounts] = useState<number[]>([])
 
-  // Initialwert einmalig beim Mount berechnen — nicht bei jedem Re-Render.
-  // useState-Initialisierungsfunktion wird nur einmal aufgerufen (kein impure-render-Problem)
+  // Lazy initializer: Werte aus initialData (Bearbeiten) oder Leerwerte (Neu)
+  const [type, setType] = useState<string>(() => initialData?.type ?? "")
+  const [disciplineId, setDisciplineId] = useState<string>(() => initialData?.disciplineId ?? "")
+
+  // Einzelschuss-Modus: aktiv wenn mindestens eine Serie shots-Daten hat
+  const [showShots, setShowShots] = useState<boolean>(() => {
+    if (!initialData) return false
+    return initialData.series.some((s) => Array.isArray(s.shots) && (s.shots as string[]).length > 0)
+  })
+
+  // shots vorbelegen aus initialData (falls vorhanden)
+  const [shots, setShots] = useState<string[][]>(() => {
+    if (!initialData || !initialData.series.some((s) => Array.isArray(s.shots) && (s.shots as string[]).length > 0)) return []
+    return initialData.series.map((s) =>
+      Array.isArray(s.shots) ? (s.shots as string[]) : []
+    )
+  })
+
+  // Serienanzahl aus initialData oder 0
+  const [totalSeries, setTotalSeries] = useState<number>(() => initialData?.series.length ?? 0)
+
+  // Schussanzahl pro Serie: aus shots-Array-Länge ableiten (falls shots vorhanden),
+  // sonst Disziplin-Standard (aus disciplines-Array nachschlagen) oder 10
+  const [shotCounts, setShotCounts] = useState<number[]>(() => {
+    if (!initialData) return []
+    const disc = disciplines.find((d) => d.id === initialData.disciplineId)
+    return initialData.series.map((s) => {
+      if (Array.isArray(s.shots) && (s.shots as string[]).length > 0) {
+        return (s.shots as string[]).length
+      }
+      return disc?.shotsPerSeries ?? 10
+    })
+  })
+
+  // Datum vorbelegen: aus initialData oder aktuelle Zeit
   const [defaultDate] = useState(() => {
-    const now = new Date()
-    now.setMinutes(now.getMinutes() - now.getTimezoneOffset())
-    return now.toISOString().slice(0, 16)
+    const base = initialData?.date ? new Date(initialData.date) : new Date()
+    base.setMinutes(base.getMinutes() - base.getTimezoneOffset())
+    return base.toISOString().slice(0, 16)
   })
 
   // Gewählte Disziplin aus der Liste suchen
@@ -156,8 +185,14 @@ export function EinheitForm({ disciplines }: Props) {
       })
     }
 
-    await createSession(formData)
-    // createSession führt intern redirect() durch bei Erfolg
+    if (sessionId) {
+      // Bearbeiten-Modus: bestehende Einheit aktualisieren
+      await updateSession(sessionId, formData)
+    } else {
+      // Neu-Modus: neue Einheit anlegen
+      await createSession(formData)
+    }
+    // Actions führen intern redirect() durch bei Erfolg
     setPending(false)
   }
 
@@ -174,6 +209,7 @@ export function EinheitForm({ disciplines }: Props) {
               <Select
                 name="type"
                 required
+                value={type}
                 onValueChange={(v) => {
                   setType(v)
                   // Disziplin zurücksetzen wenn kein Schiessen
@@ -220,6 +256,7 @@ export function EinheitForm({ disciplines }: Props) {
               <Select
                 name="disciplineId"
                 required={needsDiscipline}
+                value={disciplineId}
                 onValueChange={handleDisciplineChange}
               >
                 <SelectTrigger id="disciplineId">
@@ -244,6 +281,7 @@ export function EinheitForm({ disciplines }: Props) {
               id="location"
               name="location"
               placeholder="z.B. Schützenhaus Muster"
+              defaultValue={initialData?.location ?? ""}
               disabled={pending}
             />
           </div>
@@ -387,6 +425,11 @@ export function EinheitForm({ disciplines }: Props) {
                             placeholder="Ringe"
                             className="w-28"
                             disabled={pending}
+                            defaultValue={
+                              initialData?.series[i]?.scoreTotal != null
+                                ? String(initialData.series[i].scoreTotal)
+                                : ""
+                            }
                           />
                           <span className="text-sm text-muted-foreground">
                             {selectedDiscipline.scoringType === "TENTH" ? "Zehntel" : "Ringe"}
@@ -401,7 +444,14 @@ export function EinheitForm({ disciplines }: Props) {
                       <Label htmlFor={`quality-${i}`} className="text-xs text-muted-foreground">
                         Ausführung (optional)
                       </Label>
-                      <Select name={`series[${i}][executionQuality]`}>
+                      <Select
+                        name={`series[${i}][executionQuality]`}
+                        defaultValue={
+                          initialData?.series[i]?.executionQuality != null
+                            ? String(initialData.series[i].executionQuality)
+                            : undefined
+                        }
+                      >
                         <SelectTrigger id={`quality-${i}`} className="h-8 text-xs">
                           <SelectValue placeholder="Bewertung wählen" />
                         </SelectTrigger>
@@ -435,13 +485,13 @@ export function EinheitForm({ disciplines }: Props) {
 
       <div className="flex gap-3">
         <Button type="submit" disabled={pending || !type}>
-          {pending ? "Speichern..." : "Einheit speichern"}
+          {pending ? "Speichern..." : sessionId ? "Änderungen speichern" : "Einheit speichern"}
         </Button>
         <Button
           type="button"
           variant="outline"
           disabled={pending}
-          onClick={() => router.push("/einheiten")}
+          onClick={() => router.push(sessionId ? `/einheiten/${sessionId}` : "/einheiten")}
         >
           Abbrechen
         </Button>

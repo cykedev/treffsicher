@@ -102,6 +102,75 @@ export async function createDiscipline(
 }
 
 /**
+ * Gibt eine einzelne Disziplin zurück — nur eigene (nicht System) und nicht archivierte.
+ * Wird für die Bearbeiten-Seite verwendet.
+ */
+export async function getDisciplineById(id: string): Promise<Discipline | null> {
+  const session = await getAuthSession()
+  if (!session) return null
+
+  return db.discipline.findFirst({
+    where: {
+      id,
+      ownerId: session.user.id,
+      isSystem: false,
+      isArchived: false,
+    },
+  })
+}
+
+/**
+ * Aktualisiert eine benutzerdefinierte Disziplin.
+ * Die Wertungsart kann nicht geändert werden wenn die Disziplin bereits in Einheiten verwendet wird —
+ * sonst würden gespeicherte Ringwerte falsch interpretiert.
+ */
+export async function updateDiscipline(
+  id: string,
+  _prevState: ActionResult | null,
+  formData: FormData
+): Promise<ActionResult> {
+  const session = await getAuthSession()
+  if (!session) return { error: "Nicht angemeldet" }
+
+  // Sicherstellen dass die Disziplin dem Nutzer gehört und nicht System ist
+  const discipline = await db.discipline.findFirst({
+    where: { id, ownerId: session.user.id, isSystem: false },
+  })
+  if (!discipline) return { error: "Disziplin nicht gefunden oder keine Berechtigung." }
+
+  const parsed = CreateDisciplineSchema.safeParse({
+    name: formData.get("name"),
+    seriesCount: Number(formData.get("seriesCount")),
+    shotsPerSeries: Number(formData.get("shotsPerSeries")),
+    practiceSeries: Number(formData.get("practiceSeries") ?? 0),
+    scoringType: formData.get("scoringType"),
+  })
+
+  if (!parsed.success) {
+    return { error: parsed.error.flatten().fieldErrors as Record<string, string[]> }
+  }
+
+  // Wertungsart-Änderung verhindern wenn Disziplin bereits in Einheiten verwendet wird
+  if (parsed.data.scoringType !== discipline.scoringType) {
+    const usedInSessions = await db.trainingSession.count({ where: { disciplineId: id } })
+    if (usedInSessions > 0) {
+      return {
+        error:
+          "Wertungsart kann nicht geändert werden — die Disziplin wird bereits in Einheiten verwendet.",
+      }
+    }
+  }
+
+  await db.discipline.update({
+    where: { id },
+    data: parsed.data,
+  })
+
+  revalidatePath("/disziplinen")
+  return { success: true }
+}
+
+/**
  * Archiviert eine Disziplin.
  * Archivierte Disziplinen erscheinen nicht mehr in der Auswahl für neue Einheiten,
  * aber bestehende Einheiten bleiben lesbar (keine Datenlöschung).
