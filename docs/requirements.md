@@ -73,6 +73,8 @@ Gilt für Einheitentypen "Training" und "Wettkampf".
 - Erfassung der Ringe je Serie (Summe oder Einzelschuss — je nach Präferenz)
 - Wertung in ganzen Ringen oder Zehntelringen (gemäss Disziplin)
 - Probeschuss-Serien können optional separat erfasst werden (fliessen nicht in die Wertung ein)
+- Probeschuss-Serien können im Formular jederzeit manuell hinzugefügt werden, unabhängig vom Disziplin-Standard
+- Probeschuss-Serien werden in der Erfassung visuell hervorgehoben (abgeschnittene obere rechte Ecke, analog zur physischen Probescheibe) und stehen immer vor den Wertungsserien
 - Optionale Bewertung der Ausführungsqualität je Serie (Skala 1–5, subjektiv): Erlaubt die Unterscheidung zwischen "gutes Ergebnis trotz schlechter Technik" und umgekehrt
 
 ### Gesamtergebnis
@@ -217,6 +219,15 @@ Wenn Einzelschüsse für eine Einheit erfasst wurden, wird ein Histogramm der Tr
 - Ringwert 10 links, 0 rechts (beste Werte links)
 - Alle 11 Ringwerte immer vollständig dargestellt (stabile Achse), auch bei Anzahl 0
 - Bei Zehntelwertung: Schusswerte werden auf den nächsttieferen ganzen Ring gefloort (9.5 und 9.1 → Bucket 9)
+- Nur Wertungsschüsse werden dargestellt — Probeschüsse sind nicht Teil der Auswertung
+
+### Einheiten-Übersicht (Tagebuch) — Schussanzahl
+
+In der Einheitenliste wird bei Einheiten mit erfasstem Ergebnis neben der Ringzahl auch die Schussanzahl angezeigt:
+
+- Format: "352 Ringe · 40 Sch."
+- Berechnung: Anzahl Wertungsserien × Schuss pro Serie (Näherungswert gemäss Disziplin)
+- Nur sichtbar wenn ein Ergebnis vorhanden und die Schussanzahl grösser als 0 ist
 
 ### Farbschema Schussverteilung (Histogramm und Zeitverlauf)
 

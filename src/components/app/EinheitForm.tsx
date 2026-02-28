@@ -56,35 +56,57 @@ export function EinheitForm({ disciplines, initialData, sessionId }: Props) {
   const [type, setType] = useState<string>(() => initialData?.type ?? "")
   const [disciplineId, setDisciplineId] = useState<string>(() => initialData?.disciplineId ?? "")
 
+  // Serien sortiert: Probeschüsse immer zuerst — wird einmalig beim Mount berechnet
+  // und als Referenz für alle State-Initialisierungen verwendet
+  const [sortedInitialSeries] = useState(() => {
+    if (!initialData) return []
+    return [...initialData.series].sort((a, b) => {
+      if (a.isPractice === b.isPractice) return 0
+      return a.isPractice ? -1 : 1
+    })
+  })
+
   // Einzelschuss-Modus: aktiv wenn mindestens eine Serie shots-Daten hat
   const [showShots, setShowShots] = useState<boolean>(() => {
     if (!initialData) return false
-    return initialData.series.some((s) => Array.isArray(s.shots) && (s.shots as string[]).length > 0)
+    return sortedInitialSeries.some((s) => Array.isArray(s.shots) && (s.shots as string[]).length > 0)
   })
 
   // shots vorbelegen aus initialData (falls vorhanden)
   const [shots, setShots] = useState<string[][]>(() => {
-    if (!initialData || !initialData.series.some((s) => Array.isArray(s.shots) && (s.shots as string[]).length > 0)) return []
-    return initialData.series.map((s) =>
+    if (!initialData || !sortedInitialSeries.some((s) => Array.isArray(s.shots) && (s.shots as string[]).length > 0)) return []
+    return sortedInitialSeries.map((s) =>
       Array.isArray(s.shots) ? (s.shots as string[]) : []
     )
   })
 
   // Serienanzahl aus initialData oder 0
-  const [totalSeries, setTotalSeries] = useState<number>(() => initialData?.series.length ?? 0)
+  const [totalSeries, setTotalSeries] = useState<number>(() => sortedInitialSeries.length)
 
   // Schussanzahl pro Serie: aus shots-Array-Länge ableiten (falls shots vorhanden),
   // sonst Disziplin-Standard (aus disciplines-Array nachschlagen) oder 10
   const [shotCounts, setShotCounts] = useState<number[]>(() => {
     if (!initialData) return []
     const disc = disciplines.find((d) => d.id === initialData.disciplineId)
-    return initialData.series.map((s) => {
+    return sortedInitialSeries.map((s) => {
       if (Array.isArray(s.shots) && (s.shots as string[]).length > 0) {
         return (s.shots as string[]).length
       }
       return disc?.shotsPerSeries ?? 10
     })
   })
+
+  // isPractice-Flag pro Serie — ermöglicht manuelles Hinzufügen von Probeschuss-Serien,
+  // unabhängig von der Anzahl in der Disziplin-Konfiguration
+  const [seriesIsPractice, setSeriesIsPractice] = useState<boolean[]>(() =>
+    sortedInitialSeries.map((s) => s.isPractice)
+  )
+
+  // Stabile Keys pro Serie: verhindert ungewollte Re-Renders (und Wertverlust in unkontrollierten
+  // Inputs) wenn Serien eingefügt oder verschoben werden — neue Serien erhalten generierte IDs
+  const [seriesKeys, setSeriesKeys] = useState<string[]>(() =>
+    sortedInitialSeries.map((s) => s.id)
+  )
 
   // Datum vorbelegen: aus initialData oder aktuelle Zeit
   const [defaultDate] = useState(() => {
@@ -104,11 +126,22 @@ export function EinheitForm({ disciplines, initialData, sessionId }: Props) {
       const newTotal = disc.practiceSeries + disc.seriesCount
       setTotalSeries(newTotal)
       setShotCounts(Array(newTotal).fill(disc.shotsPerSeries))
+      // Probeschuss-Flags: erste practiceSeries Serien sind Probeschüsse
+      setSeriesIsPractice([
+        ...Array(disc.practiceSeries).fill(true),
+        ...Array(disc.seriesCount).fill(false),
+      ])
+      setSeriesKeys([
+        ...Array.from({ length: disc.practiceSeries }, (_, i) => `d-p-${i}-${Date.now()}`),
+        ...Array.from({ length: disc.seriesCount }, (_, i) => `d-r-${i}-${Date.now()}`),
+      ])
       setShowShots(false)
       setShots([])
     } else {
       setTotalSeries(0)
       setShotCounts([])
+      setSeriesIsPractice([])
+      setSeriesKeys([])
       setShowShots(false)
       setShots([])
     }
@@ -132,13 +165,54 @@ export function EinheitForm({ disciplines, initialData, sessionId }: Props) {
     })
   }
 
-  // Serie hinzufügen — immer am Ende, immer als Wertungsserie
+  // Serientyp umschalten: Probe ↔ Wertung
+  // Nach dem Umschalten werden alle parallelen Arrays stabil neu sortiert:
+  // Probeschuss-Serien stehen immer vor Wertungsserien (relative Reihenfolge bleibt erhalten)
+  function handleTogglePractice(index: number) {
+    // 1. Flag an der gewünschten Position invertieren
+    const newIsPractice = seriesIsPractice.map((v, i) => (i === index ? !v : v))
+
+    // 2. Stabile Permutation berechnen: practice = true zuerst, Reihenfolge innerhalb jeder Gruppe bleibt
+    const perm = Array.from({ length: newIsPractice.length }, (_, i) => i)
+    perm.sort((a, b) => {
+      if (newIsPractice[a] === newIsPractice[b]) return 0
+      return newIsPractice[a] ? -1 : 1
+    })
+
+    // 3. Permutation auf alle parallelen Arrays anwenden (React batcht die Updates)
+    setSeriesIsPractice(perm.map((i) => newIsPractice[i]))
+    setSeriesKeys(perm.map((i) => seriesKeys[i]))
+    setShotCounts(perm.map((i) => shotCounts[i]))
+    if (showShots) {
+      setShots(perm.map((i) => shots[i] ?? []))
+    }
+  }
+
+  // Wertungsserie hinzufügen — immer am Ende
   function handleAddSeries() {
     const defaultCount = selectedDiscipline?.shotsPerSeries ?? 10
     setTotalSeries((n) => n + 1)
     setShotCounts((prev) => [...prev, defaultCount])
+    setSeriesIsPractice((prev) => [...prev, false])
+    setSeriesKeys((prev) => [...prev, `r-${Date.now()}`])
     if (showShots) {
       setShots((prev) => [...prev, Array(defaultCount).fill("")])
+    }
+  }
+
+  // Probeschuss-Serie hinzufügen — vor der ersten Wertungsserie einfügen
+  function handleAddPracticeSeries() {
+    const defaultCount = selectedDiscipline?.shotsPerSeries ?? 10
+    // Erste Wertungsserie finden — dort einfügen (Probeschüsse stehen immer zuerst)
+    const firstRegular = seriesIsPractice.findIndex((p) => !p)
+    const idx = firstRegular === -1 ? seriesIsPractice.length : firstRegular
+    const newKey = `p-${Date.now()}`
+    setTotalSeries((n) => n + 1)
+    setShotCounts((prev) => [...prev.slice(0, idx), defaultCount, ...prev.slice(idx)])
+    setSeriesIsPractice((prev) => [...prev.slice(0, idx), true, ...prev.slice(idx)])
+    setSeriesKeys((prev) => [...prev.slice(0, idx), newKey, ...prev.slice(idx)])
+    if (showShots) {
+      setShots((prev) => [...prev.slice(0, idx), Array(defaultCount).fill(""), ...prev.slice(idx)])
     }
   }
 
@@ -147,6 +221,8 @@ export function EinheitForm({ disciplines, initialData, sessionId }: Props) {
     if (totalSeries <= 1) return
     setTotalSeries((n) => n - 1)
     setShotCounts((prev) => prev.filter((_, i) => i !== index))
+    setSeriesIsPractice((prev) => prev.filter((_, i) => i !== index))
+    setSeriesKeys((prev) => prev.filter((_, i) => i !== index))
     if (showShots) {
       setShots((prev) => prev.filter((_, i) => i !== index))
     }
@@ -217,6 +293,8 @@ export function EinheitForm({ disciplines, initialData, sessionId }: Props) {
                     setDisciplineId("")
                     setTotalSeries(0)
                     setShotCounts([])
+                    setSeriesIsPractice([])
+                    setSeriesKeys([])
                     setShowShots(false)
                     setShots([])
                   }
@@ -308,11 +386,14 @@ export function EinheitForm({ disciplines, initialData, sessionId }: Props) {
 
           <div className="grid gap-3 sm:grid-cols-2">
             {Array.from({ length: totalSeries }, (_, i) => {
-              // Probeschüsse kommen zuerst (wenn practiceSeries > 0)
-              const isPractice = i < selectedDiscipline.practiceSeries
+              // isPractice aus State — unabhängig von Position und Disziplin-Konfiguration
+              const isPractice = seriesIsPractice[i] ?? false
+              // Laufende Nummerierung je Serientyp
+              const practicesBefore = seriesIsPractice.slice(0, i).filter(Boolean).length
+              const regularsBefore = i - practicesBefore
               const seriesLabel = isPractice
-                ? `Probeschuss-Serie ${i + 1}`
-                : `Serie ${i - selectedDiscipline.practiceSeries + 1}`
+                ? `Probeschuss-Serie ${practicesBefore + 1}`
+                : `Serie ${regularsBefore + 1}`
 
               // Schussanzahl dieser Serie (ggf. vom Nutzer angepasst)
               const currentShotCount = shotCounts[i] ?? selectedDiscipline.shotsPerSeries
@@ -326,7 +407,32 @@ export function EinheitForm({ disciplines, initialData, sessionId }: Props) {
                   : currentShotCount * 10
 
               return (
-                <Card key={i}>
+                // Wrapper hat stabilen key und trägt das dunkle Dreieck als CSS-Gradient —
+                // es scheint durch die abgeschnittene Ecke der Card hindurch
+                <div
+                  key={seriesKeys[i] ?? i}
+                  className="relative"
+                  style={
+                    isPractice
+                      ? {
+                          // Gradient 28×28px oben-rechts: dunkle Hälfte = Dreieck oben-rechts
+                          backgroundImage: "linear-gradient(225deg, #374151 50%, transparent 50%)",
+                          backgroundSize: "28px 28px",
+                          backgroundPosition: "top right",
+                          backgroundRepeat: "no-repeat",
+                        }
+                      : undefined
+                  }
+                >
+                  <Card
+                    className={isPractice ? "bg-slate-50" : ""}
+                    style={
+                      isPractice
+                        ? // Abgeschnittene obere rechte Ecke — gibt Dreieck des Wrappers frei
+                          { clipPath: "polygon(0 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 0 100%)" }
+                        : undefined
+                    }
+                  >
                   <CardContent className="space-y-3 pt-4">
                     {/* Verstecktes Feld für isPractice */}
                     <input
@@ -335,8 +441,8 @@ export function EinheitForm({ disciplines, initialData, sessionId }: Props) {
                       value={isPractice ? "true" : "false"}
                     />
 
-                    {/* Serien-Header mit Label und Entfernen-Button */}
-                    <div className="flex items-center justify-between">
+                    {/* Serien-Header mit Label, Typ-Toggle und Entfernen-Button */}
+                    <div className="flex items-center justify-between gap-2">
                       <Label htmlFor={`series-${i}`} className="leading-none">
                         {seriesLabel}
                         {isPractice && (
@@ -345,15 +451,27 @@ export function EinheitForm({ disciplines, initialData, sessionId }: Props) {
                           </span>
                         )}
                       </Label>
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveSeries(i)}
-                        disabled={pending || totalSeries <= 1}
-                        aria-label={`${seriesLabel} entfernen`}
-                        className="h-5 w-5 rounded text-xs text-muted-foreground hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-30"
-                      >
-                        ×
-                      </button>
+                      <div className="flex items-center gap-1">
+                        {/* Typ umschalten: Probe ↔ Wertung */}
+                        <button
+                          type="button"
+                          onClick={() => handleTogglePractice(i)}
+                          disabled={pending}
+                          aria-label={isPractice ? "Als Wertungsserie markieren" : "Als Probeschuss-Serie markieren"}
+                          className="rounded border border-border px-1.5 py-0.5 text-xs text-muted-foreground hover:border-foreground hover:text-foreground disabled:cursor-not-allowed disabled:opacity-30"
+                        >
+                          {isPractice ? "→ Wertung" : "→ Probe"}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveSeries(i)}
+                          disabled={pending || totalSeries <= 1}
+                          aria-label={`${seriesLabel} entfernen`}
+                          className="h-5 w-5 rounded text-xs text-muted-foreground hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-30"
+                        >
+                          ×
+                        </button>
+                      </div>
                     </div>
 
                     <div className="space-y-2">
@@ -426,8 +544,8 @@ export function EinheitForm({ disciplines, initialData, sessionId }: Props) {
                             className="w-28"
                             disabled={pending}
                             defaultValue={
-                              initialData?.series[i]?.scoreTotal != null
-                                ? String(initialData.series[i].scoreTotal)
+                              sortedInitialSeries[i]?.scoreTotal != null
+                                ? String(sortedInitialSeries[i].scoreTotal)
                                 : ""
                             }
                           />
@@ -447,8 +565,8 @@ export function EinheitForm({ disciplines, initialData, sessionId }: Props) {
                       <Select
                         name={`series[${i}][executionQuality]`}
                         defaultValue={
-                          initialData?.series[i]?.executionQuality != null
-                            ? String(initialData.series[i].executionQuality)
+                          sortedInitialSeries[i]?.executionQuality != null
+                            ? String(sortedInitialSeries[i].executionQuality)
                             : undefined
                         }
                       >
@@ -465,21 +583,34 @@ export function EinheitForm({ disciplines, initialData, sessionId }: Props) {
                       </Select>
                     </div>
                   </CardContent>
-                </Card>
+                  </Card>
+                </div>
               )
             })}
           </div>
 
-          {/* Serie hinzufügen — immer als Wertungsserie am Ende */}
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={handleAddSeries}
-            disabled={pending}
-          >
-            + Serie hinzufügen
-          </Button>
+          <div className="flex gap-2">
+            {/* Wertungsserie hinzufügen */}
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleAddSeries}
+              disabled={pending}
+            >
+              + Wertungsserie
+            </Button>
+            {/* Probeschuss-Serie hinzufügen — zählt nicht in die Gesamtwertung */}
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleAddPracticeSeries}
+              disabled={pending}
+            >
+              + Probeschuss-Serie
+            </Button>
+          </div>
         </div>
       )}
 

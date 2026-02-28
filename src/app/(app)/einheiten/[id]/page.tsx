@@ -83,8 +83,17 @@ export default async function EinheitDetailPage({ params }: { params: Promise<{ 
   // Prognose und Feedback nur bei TRAINING und WETTKAMPF anzeigen
   const hasPrognosisFeedback = hasScoring
 
-  // Alle Schüsse aller Serien sammeln — für Histogramm (nur wenn vorhanden)
-  const allShots = einheit.series.flatMap((serie) => parseShotsJson(serie.shots) ?? [])
+  // Serien für die Anzeige sortiert: Probeschüsse zuerst, dann Wertungsserien.
+  // Relative Reihenfolge innerhalb jeder Gruppe bleibt erhalten.
+  const sortedSeries = [...einheit.series].sort((a, b) => {
+    if (a.isPractice === b.isPractice) return 0
+    return a.isPractice ? -1 : 1
+  })
+
+  // Nur Wertungsschüsse für das Histogramm — Probeschüsse sind nicht Teil der Auswertung
+  const allShots = einheit.series
+    .filter((serie) => !serie.isPractice)
+    .flatMap((serie) => parseShotsJson(serie.shots) ?? [])
   const hasShots = allShots.length > 0
 
   return (
@@ -138,19 +147,24 @@ export default async function EinheitDetailPage({ params }: { params: Promise<{ 
                   </tr>
                 </thead>
                 <tbody className="divide-y">
-                  {einheit.series.map((serie, idx) => {
+                  {sortedSeries.map((serie, idx) => {
                     const shotsArray = parseShotsJson(serie.shots)
                     const scoreValue =
                       serie.scoreTotal !== null && serie.scoreTotal !== undefined
                         ? parseFloat(String(serie.scoreTotal))
                         : null
 
+                    // Laufende Nummerierung je Serientyp — unabhängig von der Position
+                    const practicesBefore = sortedSeries.slice(0, idx).filter((s) => s.isPractice).length
+                    const regularsBefore = idx - practicesBefore
+                    const seriesLabel = serie.isPractice
+                      ? `Probe ${practicesBefore + 1}`
+                      : `Serie ${regularsBefore + 1}`
+
                     return (
                       <tr key={serie.id} className={serie.isPractice ? "opacity-60" : ""}>
                         <td className="py-2 pr-4">
-                          {serie.isPractice
-                            ? `Probe ${idx + 1}`
-                            : `Serie ${idx - (einheit.discipline?.practiceSeries ?? 0) + 1}`}
+                          {seriesLabel}
                           {serie.isPractice && (
                             <span className="ml-1 text-xs text-muted-foreground">(P)</span>
                           )}
