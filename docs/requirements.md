@@ -93,6 +93,16 @@ Vor jeder Einheit kann das aktuelle Befinden erfasst werden (Schieberegler 0–1
 
 Diese Daten werden in Statistiken mit Ergebnissen korreliert, um persönliche Muster sichtbar zu machen.
 
+### UI-Verhalten (Befinden, Reflexion, Prognose, Feedback)
+
+Alle mentalen Begleitinformationen einer Einheit folgen einem einheitlichen Interaktionsmuster:
+
+- **Noch nicht erfasst**: Leerer Zustand mit "Erfassen"-Button — kein offenes Formular
+- **Erfasst**: Kompakte Leseanzeige der gespeicherten Inhalte + "Bearbeiten"-Button
+- **Bearbeitungsmodus**: Formular inline mit "Speichern"- und "Abbrechen"-Button
+
+Dieses Muster ist konsistent mit dem Verhalten der Einheit selbst und hält die Ansicht übersichtlich, wenn Felder nicht gepflegt werden.
+
 ---
 
 ## Reflexion nach der Einheit
@@ -181,15 +191,22 @@ An jede Einheit können Dateien angehängt werden:
 ### Filter
 
 - Training, Wettkampf oder beides kombiniert
-- Disziplin-Filter
+- **Disziplin-Filter**: Statistiken vermischen nie unterschiedliche Disziplinen — bei gesetztem Disziplin-Filter werden ausschliesslich Einheiten dieser Disziplin ausgewertet
+
+### Normalisierung
+
+Da Einheiten mit unterschiedlicher Schussanzahl (z.B. 2 statt 4 Serien) vorkommen können, werden Statistiken **normalisiert** dargestellt:
+
+- **Ringe/Schuss** (Standardmodus): Durchschnitt pro Schuss über alle Wertungsserien (ohne Probeschüsse), auf 2 Nachkommastellen gerundet — direkt vergleichbar auch bei abweichender Serienzahl
+- **Hochrechnung** (optionaler Modus, nur bei gewählter Disziplin): Projektion auf die volle Schusszahl der gewählten Disziplin. Beispiel: 8.75 Ringe/Schuss × 40 Schuss = 350 Ringe. Zehntelwertung wird korrekt berücksichtigt.
 
 ### Auswertungsansichten
 
-- **Ergebnisverlauf**: Gesamtringe über Zeit mit gleitendem Trend
+- **Ergebnisverlauf**: Ringe/Schuss (oder Hochrechnung) über Zeit mit gleitendem Trend
 - **Serienwertungen**: Minimum, Maximum, Durchschnitt je Serienposition
-- **Befinden-Korrelation**: Schlaf / Energie / Stress vs. Ergebnis
+- **Befinden-Korrelation**: Schlaf / Energie / Stress / Motivation vs. normalisiertem Ergebnis (Ringe/Schuss)
 - **Selbsteinschätzung (7 Dimensionen)**: Radarchart über Zeit (Prognose vs. Feedback)
-- **Schussqualität vs. Ringe**: Visualisierung ob Technikqualität und Ergebnis übereinstimmen
+- **Schussqualität vs. Ringe**: Ausführungsqualität (1–5) vs. normalisiertem Serienergebnis (Ringe/Schuss)
 
 ---
 

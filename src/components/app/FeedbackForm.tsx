@@ -1,6 +1,6 @@
 "use client"
 
-import { useActionState, useState } from "react"
+import { useActionState, useState, useEffect } from "react"
 import { saveFeedback, type ActionResult } from "@/lib/sessions/actions"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
@@ -10,6 +10,9 @@ import type { Feedback } from "@/generated/prisma/client"
 interface Props {
   sessionId: string
   initialData?: Feedback | null
+  // Callbacks für den Einsatz im Section-Wrapper (view/edit-Modus)
+  onSuccess?: () => void
+  onCancel?: () => void
 }
 
 const dimensions = [
@@ -26,7 +29,8 @@ type DimensionKey = (typeof dimensions)[number]["name"]
 
 // Erfasst den tatsächlichen Stand nach einer Trainings- oder Wettkampfeinheit.
 // Gleiche 7 Dimensionen wie die Prognose — ermöglicht automatischen Vergleich.
-export function FeedbackForm({ sessionId, initialData }: Props) {
+// Unterstützt Standalone-Nutzung (ohne Callbacks) und eingebettet im Section-Wrapper.
+export function FeedbackForm({ sessionId, initialData, onCancel, onSuccess }: Props) {
   const action = saveFeedback.bind(null, sessionId)
   const [state, formAction, pending] = useActionState<ActionResult | null, FormData>(action, null)
 
@@ -41,10 +45,18 @@ export function FeedbackForm({ sessionId, initialData }: Props) {
   })
   const [goalAchieved, setGoalAchieved] = useState(initialData?.goalAchieved ?? false)
 
+  // Nach erfolgreichem Speichern Callback aufrufen (für Section-Wrapper)
+  useEffect(() => {
+    if (state?.success) {
+      onSuccess?.()
+    }
+  }, [state?.success, onSuccess])
+
   return (
     <form action={formAction} className="space-y-4">
       {state?.error && <p className="text-sm text-destructive">{state.error}</p>}
-      {state?.success && (
+      {/* Erfolgsmeldung nur ohne Callback — Wrapper übernimmt sonst die Navigation */}
+      {state?.success && !onSuccess && (
         <p className="text-sm text-green-600">Feedback gespeichert.</p>
       )}
 
@@ -161,9 +173,16 @@ export function FeedbackForm({ sessionId, initialData }: Props) {
         />
       </div>
 
-      <Button type="submit" size="sm" disabled={pending}>
-        {pending ? "Speichern..." : "Feedback speichern"}
-      </Button>
+      <div className="flex gap-2">
+        <Button type="submit" size="sm" disabled={pending}>
+          {pending ? "Speichern..." : "Feedback speichern"}
+        </Button>
+        {onCancel && (
+          <Button type="button" variant="outline" size="sm" onClick={onCancel} disabled={pending}>
+            Abbrechen
+          </Button>
+        )}
+      </div>
     </form>
   )
 }

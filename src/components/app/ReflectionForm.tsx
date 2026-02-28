@@ -1,6 +1,6 @@
 "use client"
 
-import { useActionState, useState } from "react"
+import { useActionState, useState, useEffect } from "react"
 import { saveReflection, type ActionResult } from "@/lib/sessions/actions"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
@@ -10,11 +10,15 @@ import type { Reflection } from "@/generated/prisma/client"
 interface Props {
   sessionId: string
   initialData?: Reflection | null
+  // Callbacks für den Einsatz im Section-Wrapper (view/edit-Modus)
+  onSuccess?: () => void
+  onCancel?: () => void
 }
 
 // Erfasst die Reflexion nach einer Einheit.
 // Alle Felder sind optional — auch nur ein einzelnes ausgefülltes Feld ist sinnvoll.
-export function ReflectionForm({ sessionId, initialData }: Props) {
+// Unterstützt Standalone-Nutzung (ohne Callbacks) und eingebettet im Section-Wrapper.
+export function ReflectionForm({ sessionId, initialData, onSuccess, onCancel }: Props) {
   const action = saveReflection.bind(null, sessionId)
   const [state, formAction, pending] = useActionState<ActionResult | null, FormData>(action, null)
 
@@ -23,10 +27,18 @@ export function ReflectionForm({ sessionId, initialData }: Props) {
     initialData?.routineFollowed ?? true
   )
 
+  // Nach erfolgreichem Speichern Callback aufrufen (für Section-Wrapper)
+  useEffect(() => {
+    if (state?.success) {
+      onSuccess?.()
+    }
+  }, [state?.success, onSuccess])
+
   return (
     <form action={formAction} className="space-y-4">
       {state?.error && <p className="text-sm text-destructive">{state.error}</p>}
-      {state?.success && (
+      {/* Erfolgsmeldung nur ohne Callback — Wrapper übernimmt sonst die Navigation */}
+      {state?.success && !onSuccess && (
         <p className="text-sm text-green-600">Reflexion gespeichert.</p>
       )}
 
@@ -97,9 +109,16 @@ export function ReflectionForm({ sessionId, initialData }: Props) {
         )}
       </div>
 
-      <Button type="submit" size="sm" disabled={pending}>
-        {pending ? "Speichern..." : "Reflexion speichern"}
-      </Button>
+      <div className="flex gap-2">
+        <Button type="submit" size="sm" disabled={pending}>
+          {pending ? "Speichern..." : "Reflexion speichern"}
+        </Button>
+        {onCancel && (
+          <Button type="button" variant="outline" size="sm" onClick={onCancel} disabled={pending}>
+            Abbrechen
+          </Button>
+        )}
+      </div>
     </form>
   )
 }

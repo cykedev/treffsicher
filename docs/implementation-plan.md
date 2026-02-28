@@ -551,6 +551,16 @@ Pakete: `npm install recharts`
 
 **Ziel**: Einheiten bearbeiten & löschen, Befinden-Tracking, Reflexion, Prognose/Feedback, Schuss-Ablauf.
 
+### Schritt 3.0 — Disziplinen: revalidatePath für Einheit-Seiten
+
+**Problem**: Nach dem Anlegen/Bearbeiten/Archivieren einer Disziplin kann der Next.js Router Cache
+dazu führen, dass `/einheiten/neu` und `/einheiten/[id]/bearbeiten` veraltete Disziplin-Listen anzeigen.
+
+**Lösung**: In allen Disziplin-CRUD-Actions (`createDiscipline`, `updateDiscipline`, `archiveDiscipline`)
+zusätzlich `revalidatePath("/einheiten", "layout")` aufrufen — invalidiert alle Einheit-Seiten.
+
+---
+
 ### Schritt 3.1 — Einheit bearbeiten & löschen
 
 **Ziel**: Bestehende Einheiten korrigieren und bei Bedarf löschen können.
@@ -612,6 +622,12 @@ Optional vor jeder Einheit, 4 Schieberegler (0–10):
 **Modell**: `Wellbeing` (1:1 mit TrainingSession, optional)
 Wird beim Anlegen der Einheit oder danach erfasst.
 
+**UI-Pattern (view/edit)**: `WellbeingSection` ist ein Client Component das den Zustand verwaltet:
+- Kein Datensatz: Leerzustand + "Befinden erfassen"-Button
+- Datensatz vorhanden: Leseanzeige (4 Balken mit Werten) + "Bearbeiten"-Button
+- Bearbeitungsmodus: `WellbeingForm` inline + "Abbrechen"-Button
+- Nach Speichern: `router.refresh()` synchronisiert Server-Zustand, Rückkehr zur Leseanzeige
+
 ### Schritt 3.4 — Reflexion nach der Einheit
 
 Optional nach jeder Einheit:
@@ -621,7 +637,8 @@ Optional nach jeder Einheit:
 - Lernfrage: "Was kann ich tun, um …?"
 - Schuss-Ablauf eingehalten? (Boolean + optionale Notiz)
 
-**UI**: Eigener Tab / Abschnitt in der Einheit-Detailansicht.
+**UI-Pattern (view/edit)**: `ReflectionSection` — analoges Muster wie `WellbeingSection`.
+Lesemodus zeigt nur ausgefüllte Felder + Ablauf-Status.
 
 ### Schritt 3.5 — Prognose & Feedback
 
@@ -640,7 +657,9 @@ Gilt für Wettkampf und fokussiertes Training (aus requirements.md).
 - Leistungsziel erreicht? (Boolean + Text)
 - Fortschritte, Five Best Shots, Was lief gut, Aha-Erlebnisse
 
-**Automatischer Vergleich**: Prognose vs. tatsächlicher Stand wird angezeigt.
+**Automatischer Vergleich**: Prognose vs. tatsächlicher Stand als eigene Card, nur wenn beide vorhanden. Wird vom Server Component gerendert und nach `router.refresh()` aktualisiert.
+
+**UI-Pattern (view/edit)**: `PrognosisSection` und `FeedbackSection` — analoges Muster wie `WellbeingSection`. Lesemodus zeigt 7-Dimensionen-Übersicht als Balkenchart + optionale Textfelder.
 
 ### Schritt 3.6 — Schuss-Ablauf
 
@@ -658,8 +677,20 @@ Editierbares Dokument (kein Versionsverlauf — bewusste Entscheidung):
 
 ### Schritt 3.7 — Statistiken erweitern
 
-- **Befinden-Korrelation**: Schlafdauer / Energie vs. Ergebnisse (ScatterChart)
-- **Schussqualität vs. Ringe**: Ausführungsqualität (1–5) vs. Serienergebnis
+**Normalisierung**: Alle Ergebnis-Statistiken basieren auf `avgPerShot` (Ringe pro Schuss), nicht auf absoluten Gesamtringen. Grund: Einheiten mit abweichender Serienzahl sollen fair verglichen werden können.
+
+- `avgPerShot = Summe aller Wertungsserien-Ergebnisse / Gesamtschusszahl` (Probeschüsse ausgeschlossen)
+- Schusszahl pro Serie: aus `shots`-Array (wenn Einzelschüsse erfasst), sonst Disziplin-Standard
+
+**Hochrechnung** (optionaler Anzeigemodus, nur bei gewählter Disziplin):
+- `Hochrechnung = avgPerShot × shotsPerSeries × seriesCount`
+- Zehntelwertung: 1 Dezimalstelle; Ganzringwertung: ganzzahlig gerundet
+
+**Disziplin-Filter**: Client-seitiger Filter — verhindert das Mischen unterschiedlicher Disziplinen in Charts. `availableDisciplines` wird aus den geladenen Sessions abgeleitet (kein separater DB-Query).
+
+**Neue Statistik-Ansichten**:
+- **Befinden-Korrelation**: `avgPerShot` vs. Befinden-Dimensionen (ScatterChart)
+- **Schussqualität vs. Ringe**: `scorePerShot` (Ringe/Schuss je Serie) vs. Ausführungsqualität (ScatterChart)
 
 ### Verifikation Phase 3
 
