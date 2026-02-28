@@ -692,6 +692,31 @@ Editierbares Dokument (kein Versionsverlauf — bewusste Entscheidung):
 - **Befinden-Korrelation**: `avgPerShot` vs. Befinden-Dimensionen (ScatterChart)
 - **Schussqualität vs. Ringe**: `scorePerShot` (Ringe/Schuss je Serie) vs. Ausführungsqualität (ScatterChart)
 
+### Schritt 3.8 — Schuss-Histogramm (Detailansicht + Statistik)
+
+**Neue Komponente `src/components/app/ShotHistogram.tsx`** (Client Component):
+- Props: `shots: string[]`, `isDecimal: boolean`
+- Recharts `BarChart`, X-Achse: 10 links → 0 rechts, alle 11 Buckets immer sichtbar
+- Balkenfarbe grün (10) bis rot (0) via `Cell`-Komponente, Buckets mit 0 Treffern transparent
+
+**`src/app/(app)/einheiten/[id]/page.tsx`**:
+- `allShots` aus allen Serien sammeln (nutzt bestehende `parseShotsJson`)
+- Card "Schussverteilung" unterhalb Ergebnis-Card, nur wenn `hasScoring && hasShots`
+
+**`getShotDistributionData(filters)` + `ShotDistributionPoint`** in `src/lib/stats/actions.ts`:
+- Pro Einheit: Schüsse aller Wertungsserien sammeln, in Buckets zählen, auf Prozent normalisieren
+- Einheiten ohne Einzelschüsse werden übersprungen
+- Gibt `ShotDistributionPoint[]` mit Feldern `r0`–`r10` (Prozentsatz) zurück
+
+**`StatistikCharts.tsx`** — neue Card "Schussverteilung im Zeitverlauf":
+- Recharts `AreaChart` mit 11 gestapelten `Area`-Komponenten (`stackId="rings"`)
+- Farben: rot (r0) bis grün (r10); X-Achse: Datum, Y-Achse: 0–100 %
+- Tooltip zeigt nur Buckets mit Wert > 0
+
+**Betroffene Dateien**: `ShotHistogram.tsx` (neu), `einheiten/[id]/page.tsx`, `lib/stats/actions.ts`, `StatistikCharts.tsx`, `StatistikChartsWrapper.tsx`, `statistiken/page.tsx`
+
+**Schema-Migration**: Keine — `Series.shots` (Json) bereits vorhanden.
+
 ### Verifikation Phase 3
 
 1. Einheit bearbeiten: Typ, Datum, Serien ändern → gespeichert und in Detailansicht sichtbar

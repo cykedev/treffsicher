@@ -9,6 +9,7 @@ import { WellbeingSection } from "@/components/app/WellbeingSection"
 import { ReflectionSection } from "@/components/app/ReflectionSection"
 import { PrognosisSection } from "@/components/app/PrognosisSection"
 import { FeedbackSection } from "@/components/app/FeedbackSection"
+import { ShotHistogram } from "@/components/app/ShotHistogram"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { Button } from "@/components/ui/button"
@@ -81,6 +82,10 @@ export default async function EinheitDetailPage({ params }: { params: Promise<{ 
   const isDecimal = einheit.discipline?.scoringType === "TENTH"
   // Prognose und Feedback nur bei TRAINING und WETTKAMPF anzeigen
   const hasPrognosisFeedback = hasScoring
+
+  // Alle Schüsse aller Serien sammeln — für Histogramm (nur wenn vorhanden)
+  const allShots = einheit.series.flatMap((serie) => parseShotsJson(serie.shots) ?? [])
+  const hasShots = allShots.length > 0
 
   return (
     <div className="space-y-6">
@@ -178,6 +183,18 @@ export default async function EinheitDetailPage({ params }: { params: Promise<{ 
                 </tbody>
               </table>
             </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Schussverteilung — nur wenn Einzelschüsse erfasst wurden */}
+      {hasScoring && hasShots && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Schussverteilung</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ShotHistogram shots={allShots} isDecimal={isDecimal} />
           </CardContent>
         </Card>
       )}

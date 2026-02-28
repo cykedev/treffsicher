@@ -6,6 +6,8 @@ import {
   Line,
   BarChart,
   Bar,
+  AreaChart,
+  Area,
   ScatterChart,
   Scatter,
   XAxis,
@@ -33,12 +35,14 @@ import type {
   DisciplineForStats,
   WellbeingCorrelationPoint,
   QualityVsScorePoint,
+  ShotDistributionPoint,
 } from "@/lib/stats/actions"
 
 interface Props {
   sessions: StatsSession[]
   wellbeingData: WellbeingCorrelationPoint[]
   qualityData: QualityVsScorePoint[]
+  shotDistributionData: ShotDistributionPoint[]
 }
 
 type TypeFilter = "all" | "TRAINING" | "WETTKAMPF"
@@ -81,7 +85,12 @@ function computeDisplayValue(
  * Zeigt Ringe/Schuss statt absolute Summe — damit sind Einheiten mit unterschiedlicher
  * Schussanzahl direkt vergleichbar. Optional: Hochrechnung auf Disziplin-Gesamtschuss.
  */
-export function StatistikCharts({ sessions, wellbeingData, qualityData }: Props) {
+export function StatistikCharts({
+  sessions,
+  wellbeingData,
+  qualityData,
+  shotDistributionData,
+}: Props) {
   const [typeFilter, setTypeFilter] = useState<TypeFilter>("all")
   const [from, setFrom] = useState("")
   const [to, setTo] = useState("")
@@ -138,6 +147,12 @@ export function StatistikCharts({ sessions, wellbeingData, qualityData }: Props)
     if (disciplineFilter === "all") return qualityData
     return qualityData.filter((p) => p.disciplineId === disciplineFilter)
   }, [qualityData, disciplineFilter])
+
+  // Schussverteilungs-Daten nach Disziplin filtern
+  const filteredShotDistribution = useMemo(() => {
+    if (disciplineFilter === "all") return shotDistributionData
+    return shotDistributionData.filter((p) => p.disciplineId === disciplineFilter)
+  }, [shotDistributionData, disciplineFilter])
 
   // Befinden-Anzeigedaten: bei Hochrechnung auf Gesamtschusszahl der Disziplin projizieren
   const wellbeingDisplayData = useMemo(() => {
@@ -576,6 +591,163 @@ export function StatistikCharts({ sessions, wellbeingData, qualityData }: Props)
                 />
                 <Scatter data={qualityDisplayData} fill="var(--chart-2)" opacity={0.7} />
               </ScatterChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Schussverteilung im Zeitverlauf — normalisiert auf Prozent (Einheiten mit Einzelschüssen) */}
+      {filteredShotDistribution.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-baseline gap-2">
+              Schussverteilung im Zeitverlauf
+              <span className="text-base font-normal text-muted-foreground">
+                Anteil je Ringwert in %
+              </span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={300}>
+              <AreaChart
+                data={filteredShotDistribution}
+                margin={{ top: 5, right: 20, bottom: 5, left: 0 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                <XAxis
+                  dataKey="date"
+                  tickFormatter={(d: Date) =>
+                    new Intl.DateTimeFormat("de-CH", {
+                      day: "2-digit",
+                      month: "2-digit",
+                    }).format(new Date(d))
+                  }
+                  tick={{ fontSize: 11 }}
+                />
+                <YAxis
+                  domain={[0, 100]}
+                  tickFormatter={(v: number) => `${v}%`}
+                  tick={{ fontSize: 11 }}
+                  width={38}
+                />
+                {/* Custom Tooltip: Payload ist r0→r10 (Stack-Reihenfolge) —
+                    umkehren damit r10 oben steht; Buckets mit 0 % ausblenden */}
+                <Tooltip
+                  content={(props) => {
+                    const { active, payload, label } = props as {
+                      active?: boolean
+                      payload?: Array<{ name: string; value: number; color: string }>
+                      label?: unknown
+                    }
+                    if (!active || !payload || payload.length === 0) return null
+                    const date = new Intl.DateTimeFormat("de-CH", {
+                      day: "2-digit",
+                      month: "2-digit",
+                      year: "numeric",
+                    }).format(new Date(label as Date))
+                    // Recharts sortiert Payload alphabetisch (r0, r1, r10, r2 ...) —
+                    // numerisch absteigend sortieren damit r10 zuerst steht
+                    const items = [...payload]
+                      .sort((a, b) => {
+                        const nA = parseInt(a.name.replace("r", ""), 10)
+                        const nB = parseInt(b.name.replace("r", ""), 10)
+                        return nB - nA
+                      })
+                      .filter((p) => p.value > 0)
+                    return (
+                      <div
+                        style={{
+                          background: "white",
+                          border: "1px solid #e5e7eb",
+                          padding: "8px 12px",
+                          borderRadius: 6,
+                          fontSize: 12,
+                          minWidth: 120,
+                        }}
+                      >
+                        <p style={{ fontWeight: 600, marginBottom: 6 }}>{date}</p>
+                        {items.map((p) => (
+                          <div
+                            key={p.name}
+                            style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}
+                          >
+                            <div
+                              style={{
+                                width: 8,
+                                height: 8,
+                                background: p.color,
+                                borderRadius: 2,
+                                flexShrink: 0,
+                              }}
+                            />
+                            <span style={{ color: "#6b7280" }}>{p.name.replace("r", "")}er</span>
+                            <span style={{ marginLeft: "auto", paddingLeft: 16, fontWeight: 500 }}>
+                              {p.value.toFixed(1)} %
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )
+                  }}
+                />
+                {/* Custom Legend: Payload umkehren → r10 links, r0 rechts */}
+                <Legend
+                  content={(props) => {
+                    const { payload } = props as {
+                      payload?: Array<{ value: string; color: string }>
+                    }
+                    // Numerisch absteigend sortieren (Recharts liefert alphabetische Reihenfolge)
+                    const items = [...(payload ?? [])].sort((a, b) => {
+                      const nA = parseInt(a.value.replace("r", ""), 10)
+                      const nB = parseInt(b.value.replace("r", ""), 10)
+                      return nB - nA
+                    })
+                    return (
+                      <div
+                        style={{
+                          display: "flex",
+                          flexWrap: "wrap",
+                          justifyContent: "center",
+                          gap: "4px 12px",
+                          paddingTop: 8,
+                          fontSize: 11,
+                        }}
+                      >
+                        {items.map((entry) => (
+                          <div
+                            key={entry.value}
+                            style={{ display: "flex", alignItems: "center", gap: 4 }}
+                          >
+                            <div
+                              style={{
+                                width: 10,
+                                height: 10,
+                                background: entry.color,
+                                borderRadius: 2,
+                                flexShrink: 0,
+                              }}
+                            />
+                            <span>{entry.value.replace("r", "")}er</span>
+                          </div>
+                        ))}
+                      </div>
+                    )
+                  }}
+                />
+                {/* Stapelreihenfolge: r0 zuerst (unten) → r10 zuletzt (oben im Stack).
+                    Farbschema analog Meyton: 10 rot, 9 gelb, 8–0 Grautöne (8 dunkelst, 0 hellst). */}
+                <Area type="monotone" dataKey="r0" stackId="rings" stroke="#edf1f5" fill="#edf1f5" />
+                <Area type="monotone" dataKey="r1" stackId="rings" stroke="#dae1e8" fill="#dae1e8" />
+                <Area type="monotone" dataKey="r2" stackId="rings" stroke="#c8d1da" fill="#c8d1da" />
+                <Area type="monotone" dataKey="r3" stackId="rings" stroke="#b5bec8" fill="#b5bec8" />
+                <Area type="monotone" dataKey="r4" stackId="rings" stroke="#9ca3af" fill="#9ca3af" />
+                <Area type="monotone" dataKey="r5" stackId="rings" stroke="#8896a0" fill="#8896a0" />
+                <Area type="monotone" dataKey="r6" stackId="rings" stroke="#6b7280" fill="#6b7280" />
+                <Area type="monotone" dataKey="r7" stackId="rings" stroke="#52606d" fill="#52606d" />
+                <Area type="monotone" dataKey="r8" stackId="rings" stroke="#374151" fill="#374151" />
+                <Area type="monotone" dataKey="r9" stackId="rings" stroke="#eab308" fill="#eab308" />
+                <Area type="monotone" dataKey="r10" stackId="rings" stroke="#ef4444" fill="#ef4444" />
+              </AreaChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
