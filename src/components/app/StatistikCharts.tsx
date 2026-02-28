@@ -139,6 +139,31 @@ export function StatistikCharts({ sessions, wellbeingData, qualityData }: Props)
     return qualityData.filter((p) => p.disciplineId === disciplineFilter)
   }, [qualityData, disciplineFilter])
 
+  // Befinden-Anzeigedaten: bei Hochrechnung auf Gesamtschusszahl der Disziplin projizieren
+  const wellbeingDisplayData = useMemo(() => {
+    return filteredWellbeing.map((p) => ({
+      ...p,
+      displayScore:
+        effectiveDisplayMode === "projected" && selectedDiscipline
+          ? computeDisplayValue(p.avgPerShot, "projected", selectedDiscipline)
+          : p.avgPerShot,
+    }))
+  }, [filteredWellbeing, effectiveDisplayMode, selectedDiscipline])
+
+  // Ausführungsqualität-Anzeigedaten: bei Hochrechnung auf Ringe/Serie (shotsPerSeries) projizieren,
+  // nicht auf den Gesamtschuss — Serienergebnis ist der sinnvolle Vergleichswert hier
+  const qualityDisplayData = useMemo(() => {
+    return filteredQuality.map((p) => ({
+      ...p,
+      displayScore:
+        effectiveDisplayMode === "projected" && selectedDiscipline
+          ? selectedDiscipline.scoringType === "TENTH"
+            ? Math.round(p.scorePerShot * selectedDiscipline.shotsPerSeries * 10) / 10
+            : Math.round(p.scorePerShot * selectedDiscipline.shotsPerSeries)
+          : p.scorePerShot,
+    }))
+  }, [filteredQuality, effectiveDisplayMode, selectedDiscipline])
+
   // Nur Einheiten mit normalisiertem Ergebnis (avgPerShot) für den Verlaufschart
   const withScore = filtered.filter((s) => s.avgPerShot !== null)
 
@@ -155,10 +180,20 @@ export function StatistikCharts({ sessions, wellbeingData, qualityData }: Props)
     ? selectedDiscipline.shotsPerSeries * selectedDiscipline.seriesCount
     : null
 
-  // Label für Legende und Y-Achsen-Beschriftung
+  // Label für Legende und Y-Achsen-Beschriftung (Ergebnisverlauf)
   const metricLabel =
     effectiveDisplayMode === "projected" && selectedDiscipline
       ? `Hochrechnung (${totalDisciplineShots} Sch.)`
+      : "Ringe/Sch."
+
+  // Y-Achsen-Labels für Befinden- und Qualitätscharts
+  const wellbeingScoreLabel =
+    effectiveDisplayMode === "projected" && selectedDiscipline
+      ? `Ringe (${totalDisciplineShots} Sch.)`
+      : "Ringe/Sch."
+  const qualityScoreLabel =
+    effectiveDisplayMode === "projected" && selectedDiscipline
+      ? `Ringe/Serie (${selectedDiscipline.shotsPerSeries} Sch.)`
       : "Ringe/Sch."
 
   // Tooltip-Formatierung: 2 Stellen für Ringe/Schuss, disziplinabhängig für Hochrechnung
@@ -428,7 +463,14 @@ export function StatistikCharts({ sessions, wellbeingData, qualityData }: Props)
       {filteredWellbeing.length > 1 && (
         <Card>
           <CardHeader>
-            <CardTitle>Befinden vs. Ergebnis</CardTitle>
+            <CardTitle className="flex items-baseline gap-2">
+            Befinden vs. Ergebnis
+            {effectiveDisplayMode === "projected" && selectedDiscipline && (
+              <span className="text-base font-normal text-muted-foreground">
+                Hochrechnung auf {totalDisciplineShots} Schuss
+              </span>
+            )}
+          </CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
             {(
@@ -452,22 +494,26 @@ export function StatistikCharts({ sessions, wellbeingData, qualityData }: Props)
                       tick={{ fontSize: 11 }}
                     />
                     <YAxis
-                      dataKey="avgPerShot"
+                      dataKey="displayScore"
                       type="number"
                       domain={["auto", "auto"]}
                       tick={{ fontSize: 11 }}
-                      tickFormatter={(v: number) => v.toFixed(2)}
+                      tickFormatter={(v: number) =>
+                        effectiveDisplayMode === "projected" && selectedDiscipline
+                          ? formatDisplayValue(v)
+                          : v.toFixed(2)
+                      }
                     />
                     <Tooltip
                       cursor={{ strokeDasharray: "3 3" }}
                       formatter={(value, name) => [
-                        typeof value === "number" && name === "avgPerShot"
-                          ? value.toFixed(2) + " Ringe/Sch."
+                        typeof value === "number" && name === "displayScore"
+                          ? formatDisplayValue(value)
                           : String(value ?? ""),
-                        name === "avgPerShot" ? "Ringe/Sch." : label,
+                        name === "displayScore" ? wellbeingScoreLabel : label,
                       ]}
                     />
-                    <Scatter data={filteredWellbeing} fill="var(--chart-1)" opacity={0.7} />
+                    <Scatter data={wellbeingDisplayData} fill="var(--chart-1)" opacity={0.7} />
                   </ScatterChart>
                 </ResponsiveContainer>
               </div>
@@ -480,7 +526,14 @@ export function StatistikCharts({ sessions, wellbeingData, qualityData }: Props)
       {filteredQuality.length > 1 && (
         <Card>
           <CardHeader>
-            <CardTitle>Ausführungsqualität vs. Serienergebnis</CardTitle>
+            <CardTitle className="flex items-baseline gap-2">
+            Ausführungsqualität vs. Serienergebnis
+            {effectiveDisplayMode === "projected" && selectedDiscipline && (
+              <span className="text-base font-normal text-muted-foreground">
+                Hochrechnung auf {selectedDiscipline.shotsPerSeries} Sch./Serie
+              </span>
+            )}
+          </CardTitle>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={240}>
@@ -503,21 +556,25 @@ export function StatistikCharts({ sessions, wellbeingData, qualityData }: Props)
                   }}
                 />
                 <YAxis
-                  dataKey="scorePerShot"
+                  dataKey="displayScore"
                   type="number"
                   domain={["auto", "auto"]}
                   tick={{ fontSize: 11 }}
-                  tickFormatter={(v: number) => v.toFixed(2)}
+                  tickFormatter={(v: number) =>
+                    effectiveDisplayMode === "projected" && selectedDiscipline
+                      ? formatDisplayValue(v)
+                      : v.toFixed(2)
+                  }
                 />
                 <Tooltip
                   formatter={(value, name) => [
-                    typeof value === "number" && name === "scorePerShot"
-                      ? value.toFixed(2) + " Ringe/Sch."
+                    typeof value === "number" && name === "displayScore"
+                      ? formatDisplayValue(value)
                       : String(value ?? ""),
-                    name === "scorePerShot" ? "Ringe/Sch." : "Ausführung",
+                    name === "displayScore" ? qualityScoreLabel : "Ausführung",
                   ]}
                 />
-                <Scatter data={filteredQuality} fill="var(--chart-2)" opacity={0.7} />
+                <Scatter data={qualityDisplayData} fill="var(--chart-2)" opacity={0.7} />
               </ScatterChart>
             </ResponsiveContainer>
           </CardContent>
