@@ -1,6 +1,6 @@
 # Treffsicher
 
-Trainingsunterstützungs-App für Schiesssportler. Trainingstagebuch, Ergebniserfassung und Mentaltraining in einer Web-App.
+Trainingsunterstützungs-App für Schiesssportler. Trainingstagebuch, Ergebniserfassung, Mentaltraining und Statistiken in einer Web-App (PWA-fähig).
 
 ---
 
@@ -8,8 +8,8 @@ Trainingsunterstützungs-App für Schiesssportler. Trainingstagebuch, Ergebniser
 
 ### Voraussetzungen
 
-- [Docker](https://www.docker.com/) + Docker Compose
-- Node.js 20+ (für Prisma-CLI-Befehle)
+- [Docker](https://www.docker.com/) + Docker Compose v2.22+
+- Node.js 20+ (für Prisma-CLI-Befehle, die lokal ausgeführt werden)
 
 ### Erste Inbetriebnahme
 
@@ -42,10 +42,10 @@ npx prisma db seed
 
 Legt die 5 vorinstallierten Disziplinen (Luftpistole, Luftgewehr etc.) in der DB an.
 
-**4. App starten**
+**4. App mit Watch starten**
 
 ```bash
-docker compose -f docker-compose.dev.yml up
+docker compose -f docker-compose.dev.yml up --watch
 ```
 
 Die App läuft unter [http://localhost:3000](http://localhost:3000).
@@ -78,22 +78,38 @@ docker compose -f docker-compose.dev.yml down -v
 ### Ab dem zweiten Start
 
 ```bash
-docker compose -f docker-compose.dev.yml up
+docker compose -f docker-compose.dev.yml up --watch
 ```
 
 Migration und Seed müssen nicht wiederholt werden.
+
+### Docker Compose Watch
+
+Der Dev-Workflow nutzt [Compose Watch](https://docs.docker.com/compose/how-tos/file-watch/) für automatische Reaktion auf Dateiänderungen:
+
+| Datei / Pfad         | Aktion          | Effekt                                               |
+| -------------------- | --------------- | ---------------------------------------------------- |
+| `src/**`             | Bind-Mount HMR  | Next.js Hot-Reload (kein Watch nötig)                |
+| `prisma/schema.prisma` | `sync+restart` | Container startet neu, `prisma generate` läuft auto. |
+| `next.config.ts`     | `sync+restart`  | Container startet neu mit neuer Konfiguration        |
+| `package.json`       | `rebuild`       | Image neu gebaut (npm ci), Container neu gestartet   |
+| `package-lock.json`  | `rebuild`       | Wie `package.json`                                   |
+
+Der Container-Start führt immer `prisma generate && npm run dev` aus — damit ist der Prisma-Client nach einem Watch-Neustart automatisch aktuell.
 
 ---
 
 ## Schemaänderungen
 
-Nach jeder Änderung an `prisma/schema.prisma`:
+Nach jeder Änderung an `prisma/schema.prisma` eine neue Migration erstellen:
 
 ```bash
 npx prisma migrate dev --name beschreibender-name
 ```
 
 Die erzeugte Migrationsdatei wird ins Repository eingecheckt.
+
+Wenn Compose Watch läuft, erkennt es die Schema-Änderung automatisch, startet den Container neu und regeneriert den Prisma-Client (`prisma generate`). Ein manueller Neustart ist nicht nötig.
 
 ---
 
@@ -146,7 +162,7 @@ docker compose -f docker-compose.prod.yml up -d
 ```
 
 Erfordert eine ausgefüllte `.env`-Datei (siehe Abschnitt oben).
-Migrationen laufen automatisch beim App-Start.
+Migrationen laufen automatisch beim App-Start (`prisma migrate deploy`).
 Der erste Admin wird beim ersten Start aus `ADMIN_EMAIL` + `ADMIN_PASSWORD` angelegt.
 
 ---
@@ -165,7 +181,8 @@ src/
     ├── db.ts          # Prisma Client Singleton
     ├── auth.ts        # NextAuth Konfiguration
     ├── disciplines/   # Disziplin-Logik
-    └── sessions/      # Einheiten-Logik, Berechnung
+    ├── sessions/      # Einheiten-Logik, Berechnung
+    └── stats/         # Statistik-Abfragen und Berechnungen
 prisma/
 ├── schema.prisma      # Datenbankschema
 ├── migrations/        # Migrationsdateien (eingecheckt)
@@ -183,5 +200,6 @@ docs/                  # Anforderungen und technische Dokumentation
 | Datenbank | PostgreSQL 15 + Prisma 7   |
 | Auth      | NextAuth.js v4             |
 | UI        | shadcn/ui + Tailwind CSS 4 |
+| Charts    | Recharts                   |
 | Tests     | Vitest                     |
 | Container | Docker + Docker Compose    |
