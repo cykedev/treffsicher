@@ -2,12 +2,20 @@
 
 import { db } from "@/lib/db"
 import { getAuthSession } from "@/lib/auth-helpers"
-import { calculateTotalScore } from "@/lib/sessions/calculateScore"
 
 export type StatsFilters = {
   type?: "TRAINING" | "WETTKAMPF" | "all"
   from?: string // ISO-Datumsstring
   to?: string // ISO-Datumsstring
+  disciplineId?: string // Optionaler Disziplin-Filter für server-seitige Abfragen
+}
+
+export type DisciplineForStats = {
+  id: string
+  name: string
+  seriesCount: number
+  shotsPerSeries: number
+  scoringType: string
 }
 
 export type SeriesForStats = {
@@ -15,19 +23,40 @@ export type SeriesForStats = {
   // Prisma Decimal wurde bereits zu number | null konvertiert — plain object für Client-Grenze
   scoreTotal: number | null
   isPractice: boolean
+  // Tatsächliche Schussanzahl: aus shots-Array (wenn Einzelschüsse erfasst) oder Disziplin-Standard
+  shotCount: number
+  executionQuality: number | null
 }
 
 export type StatsSession = {
   id: string
   date: Date
   type: string
+  disciplineId: string | null
+  discipline: DisciplineForStats | null
+  // Absolute Summe aller Wertungsserien (ohne Probeschüsse)
   totalScore: number | null
+  // Normalisierter Durchschnitt pro Schuss — vergleichbar über Einheiten mit unterschiedlicher Schussanzahl
+  avgPerShot: number | null
+  // Gesamtschusszahl der Wertungsserien (Basis für avgPerShot)
+  totalNonPracticeShots: number
   series: SeriesForStats[]
 }
 
 /**
+ * Schussanzahl einer Serie bestimmen.
+ * Wenn Einzelschüsse erfasst wurden, ist die Array-Länge die exakte Anzahl.
+ * Ohne Einzelschüsse gilt der Disziplin-Standard (Näherungswert für flexible Serien).
+ */
+function resolveSeriesShotCount(shots: unknown, fallback: number): number {
+  if (Array.isArray(shots) && shots.length > 0) return shots.length
+  return fallback
+}
+
+/**
  * Lädt alle Einheiten des eingeloggten Nutzers mit den für Statistiken benötigten Daten.
- * Filter für Typ und Zeitraum werden serverseitig angewendet.
+ * Berechnet avgPerShot (normalisierter Durchschnitt pro Schuss) je Einheit —
+ * damit sind Einheiten mit unterschiedlicher Serienzahl/Schussanzahl direkt vergleichbar.
  */
 export async function getStatsData(filters: StatsFilters): Promise<StatsSession[]> {
   const session = await getAuthSession()
@@ -42,12 +71,16 @@ export async function getStatsData(filters: StatsFilters): Promise<StatsSession[
     where.type = filters.type
   }
 
+  // Disziplin-Filter (optional, wird aktuell vom Client ausgeführt)
+  if (filters.disciplineId && filters.disciplineId !== "all") {
+    where.disciplineId = filters.disciplineId
+  }
+
   // Zeitraum-Filter
   if (filters.from || filters.to) {
     const dateFilter: Record<string, Date> = {}
     if (filters.from) dateFilter.gte = new Date(filters.from)
     if (filters.to) {
-      // Bis-Datum inklusive: Ende des Tages setzen
       const to = new Date(filters.to)
       to.setHours(23, 59, 59, 999)
       dateFilter.lte = to
@@ -58,11 +91,18 @@ export async function getStatsData(filters: StatsFilters): Promise<StatsSession[
   const sessions = await db.trainingSession.findMany({
     where,
     include: {
+      // Disziplin für Metadaten (Schusszahl, Wertungsart) und Hochrechnung
+      discipline: {
+        select: { id: true, name: true, seriesCount: true, shotsPerSeries: true, scoringType: true },
+      },
       series: {
         select: {
           position: true,
           scoreTotal: true,
           isPractice: true,
+          // shots wird benötigt um die tatsächliche Schussanzahl zu ermitteln
+          shots: true,
+          executionQuality: true,
         },
         orderBy: { position: "asc" },
       },
@@ -71,33 +111,41 @@ export async function getStatsData(filters: StatsFilters): Promise<StatsSession[
   })
 
   return sessions.map((s) => {
-    const seriesForCalc = s.series.map((serie) => ({
+    const fallback = s.discipline?.shotsPerSeries ?? 10
+
+    // Serien serialisieren + Schussanzahl pro Serie ermitteln
+    const series: SeriesForStats[] = s.series.map((serie) => ({
+      position: serie.position,
       scoreTotal: serie.scoreTotal !== null ? parseFloat(String(serie.scoreTotal)) : null,
       isPractice: serie.isPractice,
+      shotCount: resolveSeriesShotCount(serie.shots, fallback),
+      executionQuality: serie.executionQuality,
     }))
 
-    const totalScore = calculateTotalScore(seriesForCalc)
+    // Nur Wertungsserien (keine Probeschüsse) mit vorhandenem Ergebnis
+    const scoredNonPractice = series.filter((s) => !s.isPractice && s.scoreTotal !== null)
+    const totalScore = scoredNonPractice.reduce((sum, s) => sum + (s.scoreTotal ?? 0), 0)
+    const totalNonPracticeShots = scoredNonPractice.reduce((sum, s) => sum + s.shotCount, 0)
 
     return {
       id: s.id,
       date: s.date,
       type: s.type,
-      // Null wenn keine Wertungsserien vorhanden (z.B. Trockentraining)
-      totalScore: s.series.some((s) => !s.isPractice) ? totalScore : null,
-      // Decimal → number konvertieren: Prisma Decimal-Objekte können nicht über die
-      // Server→Client-Grenze (Next.js serialisiert nur plain objects)
-      series: s.series.map((serie) => ({
-        position: serie.position,
-        scoreTotal:
-          serie.scoreTotal !== null ? parseFloat(String(serie.scoreTotal)) : null,
-        isPractice: serie.isPractice,
-      })),
+      disciplineId: s.disciplineId,
+      discipline: s.discipline ?? null,
+      totalScore: scoredNonPractice.length > 0 ? totalScore : null,
+      // avgPerShot ist null wenn keine Wertungsserien vorhanden (z.B. Trockentraining ohne Ergebnis)
+      avgPerShot: totalNonPracticeShots > 0 ? totalScore / totalNonPracticeShots : null,
+      totalNonPracticeShots,
+      series,
     }
   })
 }
 
 export type WellbeingCorrelationPoint = {
-  totalScore: number
+  // Normalisierter Durchschnitt pro Schuss — vergleichbar über Disziplinen
+  avgPerShot: number
+  disciplineId: string | null
   sleep: number
   energy: number
   stress: number
@@ -106,7 +154,7 @@ export type WellbeingCorrelationPoint = {
 
 /**
  * Lädt Einheiten mit Wellbeing-Daten für die Befinden-Korrelationsauswertung.
- * Nur Einheiten mit sowohl Wellbeing-Daten als auch einem Gesamtergebnis werden zurückgegeben.
+ * Verwendet avgPerShot statt totalScore — Disziplin-übergreifend vergleichbar.
  */
 export async function getWellbeingCorrelationData(
   filters: StatsFilters
@@ -120,6 +168,10 @@ export async function getWellbeingCorrelationData(
     wellbeing: { isNot: null },
     // Nur schiessende Einheiten (haben Ergebnisse)
     type: filters.type && filters.type !== "all" ? filters.type : { in: ["TRAINING", "WETTKAMPF"] },
+  }
+
+  if (filters.disciplineId && filters.disciplineId !== "all") {
+    where.disciplineId = filters.disciplineId
   }
 
   if (filters.from || filters.to) {
@@ -137,8 +189,9 @@ export async function getWellbeingCorrelationData(
     where,
     include: {
       wellbeing: true,
+      discipline: { select: { shotsPerSeries: true } },
       series: {
-        select: { scoreTotal: true, isPractice: true },
+        select: { scoreTotal: true, isPractice: true, shots: true },
       },
     },
   })
@@ -146,16 +199,25 @@ export async function getWellbeingCorrelationData(
   const result: WellbeingCorrelationPoint[] = []
   for (const s of sessions) {
     if (!s.wellbeing) continue
-    const seriesForCalc = s.series.map((serie) => ({
-      scoreTotal: serie.scoreTotal !== null ? parseFloat(String(serie.scoreTotal)) : null,
-      isPractice: serie.isPractice,
-    }))
-    const totalScore = calculateTotalScore(seriesForCalc)
-    // Nur Einheiten mit Ergebnis > 0 verwenden
-    if (totalScore <= 0) continue
+
+    const fallback = s.discipline?.shotsPerSeries ?? 10
+    let totalScore = 0
+    let totalShots = 0
+
+    for (const serie of s.series) {
+      if (serie.isPractice || serie.scoreTotal === null) continue
+      const score = parseFloat(String(serie.scoreTotal))
+      if (isNaN(score)) continue
+      totalScore += score
+      totalShots += resolveSeriesShotCount(serie.shots, fallback)
+    }
+
+    const avgPerShot = totalShots > 0 ? totalScore / totalShots : null
+    if (avgPerShot === null || avgPerShot <= 0) continue
 
     result.push({
-      totalScore,
+      avgPerShot,
+      disciplineId: s.disciplineId,
       sleep: s.wellbeing.sleep,
       energy: s.wellbeing.energy,
       stress: s.wellbeing.stress,
@@ -168,12 +230,14 @@ export async function getWellbeingCorrelationData(
 
 export type QualityVsScorePoint = {
   quality: number
-  score: number
+  // Normalisiert: Ringe/Schuss dieser Serie — vergleichbar über Serien unterschiedlicher Länge
+  scorePerShot: number
+  disciplineId: string | null
 }
 
 /**
  * Lädt Serien mit Ausführungsqualität für die Qualitäts-/Ergebnis-Korrelation.
- * Nur Serien mit gesetzter Ausführungsqualität und einem Ergebnis werden zurückgegeben.
+ * Normalisiert auf Ringe/Schuss damit Serien unterschiedlicher Länge vergleichbar sind.
  */
 export async function getQualityVsScoreData(
   filters: StatsFilters
@@ -181,20 +245,16 @@ export async function getQualityVsScoreData(
   const session = await getAuthSession()
   if (!session) return []
 
-  const where: Record<string, unknown> = {
-    session: {
-      userId: session.user.id,
-      type:
-        filters.type && filters.type !== "all"
-          ? filters.type
-          : { in: ["TRAINING", "WETTKAMPF"] },
-    },
-    // Nur Serien mit Ausführungsqualität
-    executionQuality: { not: null },
-    // Keine Probeschüsse
-    isPractice: false,
-    // Nur Serien mit Ergebnis
-    scoreTotal: { not: null },
+  const sessionFilter: Record<string, unknown> = {
+    userId: session.user.id,
+    type:
+      filters.type && filters.type !== "all"
+        ? filters.type
+        : { in: ["TRAINING", "WETTKAMPF"] },
+  }
+
+  if (filters.disciplineId && filters.disciplineId !== "all") {
+    sessionFilter.disciplineId = filters.disciplineId
   }
 
   if (filters.from || filters.to) {
@@ -205,22 +265,39 @@ export async function getQualityVsScoreData(
       to.setHours(23, 59, 59, 999)
       dateFilter.lte = to
     }
-    // Datum-Filter auf die verknüpfte Session anwenden
-    where.session = { ...(where.session as object), date: dateFilter }
+    sessionFilter.date = dateFilter
   }
 
   const series = await db.series.findMany({
-    where,
+    where: {
+      session: sessionFilter,
+      executionQuality: { not: null },
+      isPractice: false,
+      scoreTotal: { not: null },
+    },
     select: {
       executionQuality: true,
       scoreTotal: true,
+      shots: true,
+      session: {
+        select: {
+          disciplineId: true,
+          discipline: { select: { shotsPerSeries: true } },
+        },
+      },
     },
   })
 
   return series
     .filter((s) => s.executionQuality !== null && s.scoreTotal !== null)
-    .map((s) => ({
-      quality: s.executionQuality!,
-      score: parseFloat(String(s.scoreTotal)),
-    }))
+    .map((s) => {
+      const score = parseFloat(String(s.scoreTotal))
+      const fallback = s.session.discipline?.shotsPerSeries ?? 10
+      const shotCount = resolveSeriesShotCount(s.shots, fallback)
+      return {
+        quality: s.executionQuality!,
+        scorePerShot: score / shotCount,
+        disciplineId: s.session.disciplineId,
+      }
+    })
 }

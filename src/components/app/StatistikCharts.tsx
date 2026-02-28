@@ -21,8 +21,16 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import type {
   StatsSession,
+  DisciplineForStats,
   WellbeingCorrelationPoint,
   QualityVsScorePoint,
 } from "@/lib/stats/actions"
@@ -34,6 +42,7 @@ interface Props {
 }
 
 type TypeFilter = "all" | "TRAINING" | "WETTKAMPF"
+type DisplayMode = "per_shot" | "projected"
 
 // Datumsstring für Presets berechnen
 function daysAgo(days: number): string {
@@ -47,18 +56,67 @@ function today(): string {
 }
 
 /**
+ * Anzeigewert je nach Modus berechnen.
+ * per_shot: normalisierter Wert (Ringe/Schuss), 2 Stellen.
+ * projected: Hochrechnung auf die Gesamtschusszahl der Disziplin.
+ */
+function computeDisplayValue(
+  avgPerShot: number,
+  mode: DisplayMode,
+  discipline: DisciplineForStats | null
+): number {
+  if (mode === "projected" && discipline) {
+    const total = avgPerShot * discipline.shotsPerSeries * discipline.seriesCount
+    // Zehntelwertung: 1 Dezimalstelle; Ganzringe: auf ganze Ringe runden
+    return discipline.scoringType === "TENTH"
+      ? Math.round(total * 10) / 10
+      : Math.round(total)
+  }
+  return avgPerShot
+}
+
+/**
  * Statistik-Charts-Komponente.
  * Empfängt alle Einheiten und filtert client-seitig — ausreichend für kleine Nutzerzahl.
+ * Zeigt Ringe/Schuss statt absolute Summe — damit sind Einheiten mit unterschiedlicher
+ * Schussanzahl direkt vergleichbar. Optional: Hochrechnung auf Disziplin-Gesamtschuss.
  */
 export function StatistikCharts({ sessions, wellbeingData, qualityData }: Props) {
   const [typeFilter, setTypeFilter] = useState<TypeFilter>("all")
   const [from, setFrom] = useState("")
   const [to, setTo] = useState("")
+  const [disciplineFilter, setDisciplineFilter] = useState<string>("all")
+  const [displayMode, setDisplayMode] = useState<DisplayMode>("per_shot")
 
-  // Gefilterte Sessions
+  // Verfügbare Disziplinen aus den Einheitendaten ableiten — keine separate Abfrage nötig
+  const availableDisciplines = useMemo<DisciplineForStats[]>(() => {
+    const seen = new Set<string>()
+    const result: DisciplineForStats[] = []
+    for (const s of sessions) {
+      if (s.discipline && !seen.has(s.discipline.id)) {
+        seen.add(s.discipline.id)
+        result.push(s.discipline)
+      }
+    }
+    return result.sort((a, b) => a.name.localeCompare(b.name, "de"))
+  }, [sessions])
+
+  // Aktuell gewählte Disziplin (für Hochrechnung und Metadaten)
+  const selectedDiscipline = useMemo(
+    () => availableDisciplines.find((d) => d.id === disciplineFilter) ?? null,
+    [availableDisciplines, disciplineFilter]
+  )
+
+  // Wenn keine Disziplin gewählt, ist Hochrechnung nicht möglich — per_shot als Fallback.
+  // Abgeleitet statt useEffect — verhindert Kaskadenrender.
+  const effectiveDisplayMode: DisplayMode =
+    disciplineFilter === "all" || !selectedDiscipline ? "per_shot" : displayMode
+
+  // Gefilterte Einheiten (Typ + Disziplin + Zeitraum)
   const filtered = useMemo(() => {
     return sessions.filter((s) => {
       if (typeFilter !== "all" && s.type !== typeFilter) return false
+      if (disciplineFilter !== "all" && s.disciplineId !== disciplineFilter) return false
       if (from && new Date(s.date) < new Date(from)) return false
       if (to) {
         const toDate = new Date(to)
@@ -67,18 +125,53 @@ export function StatistikCharts({ sessions, wellbeingData, qualityData }: Props)
       }
       return true
     })
-  }, [sessions, typeFilter, from, to])
+  }, [sessions, typeFilter, disciplineFilter, from, to])
 
-  // Sessions mit Ergebnis (für Verlaufschart)
-  const withScore = filtered.filter((s) => s.totalScore !== null)
+  // Wellbeing-Daten nach Disziplin filtern — keine Disziplin-Vermischung
+  const filteredWellbeing = useMemo(() => {
+    if (disciplineFilter === "all") return wellbeingData
+    return wellbeingData.filter((p) => p.disciplineId === disciplineFilter)
+  }, [wellbeingData, disciplineFilter])
 
-  // Gleitender Durchschnitt über 5 Einheiten
-  const scores = withScore.map((s) => s.totalScore as number)
-  const movingAvg = calculateMovingAverage(scores, 5)
+  // Ausführungsqualität-Daten nach Disziplin filtern
+  const filteredQuality = useMemo(() => {
+    if (disciplineFilter === "all") return qualityData
+    return qualityData.filter((p) => p.disciplineId === disciplineFilter)
+  }, [qualityData, disciplineFilter])
 
-  // Daten für LineChart
-  // i als x-Achsen-Key damit gleiche Daten am selben Tag separate Punkte bleiben.
-  // datum nur für Tooltip/Tick-Formatierung.
+  // Nur Einheiten mit normalisiertem Ergebnis (avgPerShot) für den Verlaufschart
+  const withScore = filtered.filter((s) => s.avgPerShot !== null)
+
+  // Anzeigewerte je nach effektivem Modus berechnen
+  const displayValues = withScore.map((s) =>
+    computeDisplayValue(s.avgPerShot as number, effectiveDisplayMode, selectedDiscipline)
+  )
+
+  // Gleitender Durchschnitt über die Anzeigewerte
+  const movingAvg = calculateMovingAverage(displayValues, 5)
+
+  // Gesamtschusszahl der gewählten Disziplin (für Hochrechnung-Label)
+  const totalDisciplineShots = selectedDiscipline
+    ? selectedDiscipline.shotsPerSeries * selectedDiscipline.seriesCount
+    : null
+
+  // Label für Legende und Y-Achsen-Beschriftung
+  const metricLabel =
+    effectiveDisplayMode === "projected" && selectedDiscipline
+      ? `Hochrechnung (${totalDisciplineShots} Sch.)`
+      : "Ringe/Sch."
+
+  // Tooltip-Formatierung: 2 Stellen für Ringe/Schuss, disziplinabhängig für Hochrechnung
+  function formatDisplayValue(value: number): string {
+    if (effectiveDisplayMode === "projected" && selectedDiscipline) {
+      return selectedDiscipline.scoringType === "TENTH"
+        ? value.toFixed(1)
+        : String(value)
+    }
+    return value.toFixed(2)
+  }
+
+  // Daten für den Verlaufschart
   const lineData = withScore.map((s, i) => ({
     i,
     datum: new Intl.DateTimeFormat("de-CH", {
@@ -87,8 +180,9 @@ export function StatistikCharts({ sessions, wellbeingData, qualityData }: Props)
       hour: "2-digit",
       minute: "2-digit",
     }).format(new Date(s.date)),
-    Ergebnis: s.totalScore,
-    Trend: movingAvg[i],
+    // Feste Keys statt dynamischer — Recharts braucht stabile dataKey-Referenzen
+    wert: displayValues[i],
+    trend: movingAvg[i],
   }))
 
   // Serien-Statistiken für BarChart
@@ -106,7 +200,8 @@ export function StatistikCharts({ sessions, wellbeingData, qualityData }: Props)
     <div className="space-y-6">
       {/* Filter */}
       <Card>
-        <CardContent className="pt-6">
+        <CardContent className="space-y-4 pt-6">
+          {/* Erste Filterzeile: Typ, Disziplin, Von, Bis */}
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {/* Typ-Filter */}
             <div className="space-y-2">
@@ -126,6 +221,24 @@ export function StatistikCharts({ sessions, wellbeingData, qualityData }: Props)
               </div>
             </div>
 
+            {/* Disziplin-Filter — verhindert Vermischung unterschiedlicher Disziplinen */}
+            <div className="space-y-2">
+              <Label>Disziplin</Label>
+              <Select value={disciplineFilter} onValueChange={setDisciplineFilter}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Alle Disziplinen</SelectItem>
+                  {availableDisciplines.map((d) => (
+                    <SelectItem key={d.id} value={d.id}>
+                      {d.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
             {/* Von */}
             <div className="space-y-2">
               <Label htmlFor="from">Von</Label>
@@ -137,11 +250,13 @@ export function StatistikCharts({ sessions, wellbeingData, qualityData }: Props)
               <Label htmlFor="to">Bis</Label>
               <Input id="to" type="date" value={to} onChange={(e) => setTo(e.target.value)} />
             </div>
+          </div>
 
-            {/* Schnellauswahl */}
+          {/* Zweite Filterzeile: Zeitraum-Presets + Anzeigemodus */}
+          <div className="flex flex-wrap items-end gap-6">
             <div className="space-y-2">
               <Label>Zeitraum</Label>
-              <div className="flex flex-col gap-1">
+              <div className="flex gap-1">
                 <Button
                   size="sm"
                   variant="outline"
@@ -151,7 +266,7 @@ export function StatistikCharts({ sessions, wellbeingData, qualityData }: Props)
                     setTo(today())
                   }}
                 >
-                  Letzte 4 Wochen
+                  4 Wochen
                 </Button>
                 <Button
                   size="sm"
@@ -162,7 +277,7 @@ export function StatistikCharts({ sessions, wellbeingData, qualityData }: Props)
                     setTo(today())
                   }}
                 >
-                  Letzter Monat
+                  Monat
                 </Button>
                 <Button
                   size="sm"
@@ -173,15 +288,41 @@ export function StatistikCharts({ sessions, wellbeingData, qualityData }: Props)
                     setTo("")
                   }}
                 >
-                  Alle Einheiten
+                  Alle
                 </Button>
               </div>
             </div>
+
+            {/* Anzeigemodus — nur wenn eine Disziplin gewählt (Hochrechnung braucht feste Schusszahl) */}
+            {selectedDiscipline && (
+              <div className="space-y-2">
+                <Label>Anzeige</Label>
+                <div className="flex gap-1">
+                  <Button
+                    size="sm"
+                    variant={effectiveDisplayMode === "per_shot" ? "default" : "outline"}
+                    onClick={() => setDisplayMode("per_shot")}
+                    className="text-xs"
+                  >
+                    Ringe/Sch.
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={effectiveDisplayMode === "projected" ? "default" : "outline"}
+                    onClick={() => setDisplayMode("projected")}
+                    className="text-xs"
+                  >
+                    Hochrechnung ({totalDisciplineShots} Sch.)
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
 
-          <p className="mt-3 text-sm text-muted-foreground">
+          <p className="text-sm text-muted-foreground">
             {filtered.length} Einheit{filtered.length !== 1 ? "en" : ""} gefunden
             {withScore.length !== filtered.length && ` · ${withScore.length} mit Ergebnis`}
+            {selectedDiscipline && ` · ${selectedDiscipline.name}`}
           </p>
         </CardContent>
       </Card>
@@ -197,7 +338,14 @@ export function StatistikCharts({ sessions, wellbeingData, qualityData }: Props)
           {/* Ergebnisverlauf */}
           <Card>
             <CardHeader>
-              <CardTitle>Ergebnisverlauf</CardTitle>
+              <CardTitle className="flex items-baseline gap-2">
+                Ergebnisverlauf
+                <span className="text-base font-normal text-muted-foreground">
+                  {effectiveDisplayMode === "projected" && selectedDiscipline
+                    ? `Hochrechnung auf ${totalDisciplineShots} Schuss`
+                    : "Ringe pro Schuss"}
+                </span>
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={280}>
@@ -210,13 +358,19 @@ export function StatistikCharts({ sessions, wellbeingData, qualityData }: Props)
                     tickFormatter={(i: number) => lineData[i]?.datum ?? ""}
                     tick={{ fontSize: 11 }}
                   />
-                  {/* domain auto → Y-Achse beginnt nahe am Datumini­mum statt bei 0 */}
                   <YAxis domain={["auto", "auto"]} tick={{ fontSize: 12 }} />
-                  <Tooltip labelFormatter={(i) => lineData[i as number]?.datum ?? ""} />
-                  <Legend />
+                  <Tooltip
+                    labelFormatter={(i) => lineData[i as number]?.datum ?? ""}
+                    formatter={(value, name) => [
+                      typeof value === "number" ? formatDisplayValue(value) : String(value ?? ""),
+                      name === "wert" ? metricLabel : "Trend",
+                    ]}
+                  />
+                  <Legend formatter={(value) => (value === "wert" ? metricLabel : "Trend")} />
                   <Line
                     type="monotone"
-                    dataKey="Ergebnis"
+                    dataKey="wert"
+                    name="wert"
                     stroke="var(--chart-1)"
                     strokeWidth={2}
                     dot={{ r: 3 }}
@@ -224,7 +378,8 @@ export function StatistikCharts({ sessions, wellbeingData, qualityData }: Props)
                   />
                   <Line
                     type="monotone"
-                    dataKey="Trend"
+                    dataKey="trend"
+                    name="trend"
                     stroke="var(--muted-foreground)"
                     strokeWidth={1.5}
                     strokeDasharray="4 2"
@@ -236,11 +391,19 @@ export function StatistikCharts({ sessions, wellbeingData, qualityData }: Props)
             </CardContent>
           </Card>
 
-          {/* Serienstatistik */}
+          {/* Serienwertungen — nur wenn Serien vorhanden */}
           {barData.length > 0 && (
             <Card>
               <CardHeader>
-                <CardTitle>Serienwertungen</CardTitle>
+                <CardTitle className="flex items-baseline gap-2">
+                  Serienwertungen
+                  {/* Hinweis wenn Disziplinen vermischt werden könnten */}
+                  {disciplineFilter === "all" && (
+                    <span className="text-sm font-normal text-muted-foreground">
+                      (Disziplin wählen für vergleichbare Werte)
+                    </span>
+                  )}
+                </CardTitle>
               </CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={240}>
@@ -261,8 +424,8 @@ export function StatistikCharts({ sessions, wellbeingData, qualityData }: Props)
         </>
       )}
 
-      {/* Befinden-Korrelation */}
-      {wellbeingData.length > 1 && (
+      {/* Befinden-Korrelation — nach Disziplin gefiltert */}
+      {filteredWellbeing.length > 1 && (
         <Card>
           <CardHeader>
             <CardTitle>Befinden vs. Ergebnis</CardTitle>
@@ -289,19 +452,22 @@ export function StatistikCharts({ sessions, wellbeingData, qualityData }: Props)
                       tick={{ fontSize: 11 }}
                     />
                     <YAxis
-                      dataKey="totalScore"
+                      dataKey="avgPerShot"
                       type="number"
                       domain={["auto", "auto"]}
                       tick={{ fontSize: 11 }}
+                      tickFormatter={(v: number) => v.toFixed(2)}
                     />
                     <Tooltip
                       cursor={{ strokeDasharray: "3 3" }}
                       formatter={(value, name) => [
-                        value,
-                        name === "totalScore" ? "Ergebnis" : label,
+                        typeof value === "number" && name === "avgPerShot"
+                          ? value.toFixed(2) + " Ringe/Sch."
+                          : String(value ?? ""),
+                        name === "avgPerShot" ? "Ringe/Sch." : label,
                       ]}
                     />
-                    <Scatter data={wellbeingData} fill="var(--chart-1)" opacity={0.7} />
+                    <Scatter data={filteredWellbeing} fill="var(--chart-1)" opacity={0.7} />
                   </ScatterChart>
                 </ResponsiveContainer>
               </div>
@@ -310,8 +476,8 @@ export function StatistikCharts({ sessions, wellbeingData, qualityData }: Props)
         </Card>
       )}
 
-      {/* Schussqualität vs. Serienergebnis */}
-      {qualityData.length > 1 && (
+      {/* Schussqualität vs. Serienergebnis — nach Disziplin gefiltert, normalisiert auf Ringe/Sch. */}
+      {filteredQuality.length > 1 && (
         <Card>
           <CardHeader>
             <CardTitle>Ausführungsqualität vs. Serienergebnis</CardTitle>
@@ -325,23 +491,33 @@ export function StatistikCharts({ sessions, wellbeingData, qualityData }: Props)
                   type="number"
                   domain={[0.5, 5.5]}
                   ticks={[1, 2, 3, 4, 5]}
-                  tickFormatter={(v) => ["", "Schlecht", "Mässig", "Mittel", "Gut", "Sehr gut"][v] ?? v}
+                  tickFormatter={(v) =>
+                    ["", "Schlecht", "Mässig", "Mittel", "Gut", "Sehr gut"][v] ?? v
+                  }
                   tick={{ fontSize: 10 }}
-                  label={{ value: "Ausführung", position: "insideBottom", offset: -8, fontSize: 11 }}
+                  label={{
+                    value: "Ausführung",
+                    position: "insideBottom",
+                    offset: -8,
+                    fontSize: 11,
+                  }}
                 />
                 <YAxis
-                  dataKey="score"
+                  dataKey="scorePerShot"
                   type="number"
                   domain={["auto", "auto"]}
                   tick={{ fontSize: 11 }}
+                  tickFormatter={(v: number) => v.toFixed(2)}
                 />
                 <Tooltip
                   formatter={(value, name) => [
-                    value,
-                    name === "score" ? "Serie-Ringe" : "Ausführung",
+                    typeof value === "number" && name === "scorePerShot"
+                      ? value.toFixed(2) + " Ringe/Sch."
+                      : String(value ?? ""),
+                    name === "scorePerShot" ? "Ringe/Sch." : "Ausführung",
                   ]}
                 />
-                <Scatter data={qualityData} fill="var(--chart-2)" opacity={0.7} />
+                <Scatter data={filteredQuality} fill="var(--chart-2)" opacity={0.7} />
               </ScatterChart>
             </ResponsiveContainer>
           </CardContent>
