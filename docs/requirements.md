@@ -207,6 +207,28 @@ Da Einheiten mit unterschiedlicher Schussanzahl (z.B. 2 statt 4 Serien) vorkomme
 - **Befinden-Korrelation**: Schlaf / Energie / Stress / Motivation vs. normalisiertem Ergebnis (Ringe/Schuss)
 - **Selbsteinschätzung (7 Dimensionen)**: Radarchart über Zeit (Prognose vs. Feedback)
 - **Schussqualität vs. Ringe**: Ausführungsqualität (1–5) vs. normalisiertem Serienergebnis (Ringe/Schuss)
+- **Schussverteilung im Zeitverlauf**: Anteil der Treffer je Ringwert (0–10) als gestapeltes Flächendiagramm, normalisiert auf Prozent — vergleichbar über Einheiten mit unterschiedlicher Schussanzahl. Nur sichtbar wenn Einzelschüsse erfasst wurden. 10er oben im Stack, 0er unten. Legende und Tooltip absteigend (10 → 0).
+
+### Einheits-Detailansicht — Schuss-Histogramm
+
+Wenn Einzelschüsse für eine Einheit erfasst wurden, wird ein Histogramm der Trefferwertungen angezeigt:
+
+- Darstellung als Balkendiagramm (Anzahl Treffer je Ringwert 0–10)
+- Ringwert 10 links, 0 rechts (beste Werte links)
+- Alle 11 Ringwerte immer vollständig dargestellt (stabile Achse), auch bei Anzahl 0
+- Bei Zehntelwertung: Schusswerte werden auf den nächsttieferen ganzen Ring gefloort (9.5 und 9.1 → Bucket 9)
+
+### Farbschema Schussverteilung (Histogramm und Zeitverlauf)
+
+Analog zu Meyton-Schiessständen — einheitlich in Detailansicht und Statistik:
+
+| Ringwert | Farbe                                    |
+| -------- | ---------------------------------------- |
+| 10       | Rot                                      |
+| 9        | Gelb                                     |
+| 8        | Dunkelgrau (dunkelst der Graureihe)      |
+| 7–1      | Abgestufte Grautöne (heller werdend)     |
+| 0        | Sehr hellgrau (hellst der Graureihe)     |
 
 ---
 
