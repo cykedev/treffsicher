@@ -63,6 +63,15 @@ export default async function EinheitenPage() {
             )
             const hasSeries = s.series.length > 0
             const scoringType = s.discipline?.scoringType
+            // Schussanzahl: Wertungsserien × Schuss/Serie der Disziplin (Näherung)
+            const scoringSeriesCount = s.series.filter(
+              (series: { scoreTotal: unknown; isPractice: boolean }) =>
+                !series.isPractice && series.scoreTotal !== null
+            ).length
+            const approxShots =
+              scoringSeriesCount > 0 && s.discipline?.shotsPerSeries
+                ? scoringSeriesCount * s.discipline.shotsPerSeries
+                : 0
 
             return (
               // Ganzer Card ist klickbar — führt zur Detailansicht
@@ -104,7 +113,9 @@ export default async function EinheitenPage() {
                         <span className="text-lg font-bold">
                           {scoringType === "TENTH" ? totalScore.toFixed(1) : totalScore}
                         </span>
-                        <p className="text-xs text-muted-foreground">Ringe gesamt</p>
+                        <p className="text-xs text-muted-foreground">
+                          {approxShots > 0 ? `Ringe · ${approxShots} Sch.` : "Ringe gesamt"}
+                        </p>
                       </div>
                     )}
                   </CardContent>
