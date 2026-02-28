@@ -25,6 +25,11 @@ import type {
 export type SessionWithDiscipline = TrainingSession & {
   discipline: Discipline | null
   series: Array<{ scoreTotal: unknown; isPractice: boolean }>
+  // Für Tagebuch-Indikatoren: nur Vorhandensein prüfen, kein vollständiges Laden nötig
+  wellbeing: { id: string } | null
+  reflection: { id: string } | null
+  prognosis: { id: string } | null
+  feedback: { id: string } | null
 }
 
 // Prognosis mit serialisierten Decimal-Feldern — kann über die Server→Client-Grenze übergeben werden
@@ -273,6 +278,11 @@ export async function getSessions(): Promise<SessionWithDiscipline[]> {
           isPractice: true,
         },
       },
+      // Minimale Selects — nur id für Tagebuch-Indikatoren (Vorhandensein der mentalen Felder)
+      wellbeing: { select: { id: true } },
+      reflection: { select: { id: true } },
+      prognosis: { select: { id: true } },
+      feedback: { select: { id: true } },
     },
     orderBy: { date: "desc" },
   })

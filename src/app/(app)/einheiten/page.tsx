@@ -82,6 +82,20 @@ export default async function EinheitenPage() {
                         {formatDate(s.date)}
                         {s.location && ` · ${s.location}`}
                       </p>
+                      {/* Indikatoren: welche mentalen Felder wurden gepflegt */}
+                      {(() => {
+                        const filled = [
+                          s.wellbeing && "Befinden",
+                          s.prognosis && "Prognose",
+                          s.feedback && "Feedback",
+                          s.reflection && "Reflexion",
+                        ].filter((x): x is string => Boolean(x))
+                        return filled.length > 0 ? (
+                          <p className="text-xs text-muted-foreground/70">
+                            {filled.join(" · ")}
+                          </p>
+                        ) : null
+                      })()}
                     </div>
 
                     {/* Gesamtergebnis rechts */}

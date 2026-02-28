@@ -1,11 +1,18 @@
 import { redirect } from "next/navigation"
+import dynamic from "next/dynamic"
 import { getAuthSession } from "@/lib/auth-helpers"
 import {
   getStatsData,
   getWellbeingCorrelationData,
   getQualityVsScoreData,
 } from "@/lib/stats/actions"
-import { StatistikCharts } from "@/components/app/StatistikCharts"
+
+// ssr: false verhindert den Radix-UI-Hydration-Fehler (aria-controls IDs differ between
+// SSR and client). Da die Seite auth-geschützt ist, ist kein SSR für die Charts nötig.
+const StatistikCharts = dynamic(
+  () => import("@/components/app/StatistikCharts").then((m) => m.StatistikCharts),
+  { ssr: false }
+)
 
 export default async function StatistikenPage() {
   const session = await getAuthSession()
