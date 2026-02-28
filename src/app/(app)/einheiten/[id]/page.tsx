@@ -5,10 +5,10 @@ import { getSessionById } from "@/lib/sessions/actions"
 import { calculateTotalScore } from "@/lib/sessions/calculateScore"
 import { AttachmentSection } from "@/components/app/AttachmentSection"
 import { DeleteSessionButton } from "@/components/app/DeleteSessionButton"
-import { WellbeingForm } from "@/components/app/WellbeingForm"
-import { ReflectionForm } from "@/components/app/ReflectionForm"
-import { PrognosisForm } from "@/components/app/PrognosisForm"
-import { FeedbackForm } from "@/components/app/FeedbackForm"
+import { WellbeingSection } from "@/components/app/WellbeingSection"
+import { ReflectionSection } from "@/components/app/ReflectionSection"
+import { PrognosisSection } from "@/components/app/PrognosisSection"
+import { FeedbackSection } from "@/components/app/FeedbackSection"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { Button } from "@/components/ui/button"
@@ -45,6 +45,17 @@ function parseShotsJson(shots: unknown): string[] | null {
   if (!Array.isArray(shots)) return null
   return shots.filter((s): s is string => typeof s === "string")
 }
+
+// Dimensionen für den Prognose-/Feedback-Vergleich
+const comparisonDimensions = [
+  { key: "fitness", label: "Kondition" },
+  { key: "nutrition", label: "Ernährung" },
+  { key: "technique", label: "Technik" },
+  { key: "tactics", label: "Taktik" },
+  { key: "mentalStrength", label: "Mentale Stärke" },
+  { key: "environment", label: "Umfeld" },
+  { key: "equipment", label: "Material" },
+] as const
 
 export default async function EinheitDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await getAuthSession()
@@ -197,13 +208,13 @@ export default async function EinheitDetailPage({ params }: { params: Promise<{ 
         </CardContent>
       </Card>
 
-      {/* Befinden */}
+      {/* Befinden — immer anzeigen (bei allen Einheitentypen sinnvoll) */}
       <Card>
         <CardHeader>
           <CardTitle>Befinden</CardTitle>
         </CardHeader>
         <CardContent>
-          <WellbeingForm sessionId={einheit.id} initialData={einheit.wellbeing} />
+          <WellbeingSection sessionId={einheit.id} initialData={einheit.wellbeing} />
         </CardContent>
       </Card>
 
@@ -214,62 +225,7 @@ export default async function EinheitDetailPage({ params }: { params: Promise<{ 
             <CardTitle>Prognose</CardTitle>
           </CardHeader>
           <CardContent>
-            <PrognosisForm sessionId={einheit.id} initialData={einheit.prognosis} />
-            {/* Vergleich Prognose vs. Feedback wenn beide vorhanden */}
-            {einheit.prognosis && einheit.feedback && (
-              <div className="mt-6 border-t pt-4">
-                <p className="mb-3 text-sm font-medium text-muted-foreground">
-                  Vergleich Prognose vs. Feedback
-                </p>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b text-left text-muted-foreground">
-                        <th className="pb-2 pr-4 font-medium">Dimension</th>
-                        <th className="pb-2 pr-4 font-medium">Prognose</th>
-                        <th className="pb-2 pr-4 font-medium">Tatsächlich</th>
-                        <th className="pb-2 font-medium">Differenz</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y">
-                      {(
-                        [
-                          { key: "fitness", label: "Kondition" },
-                          { key: "nutrition", label: "Ernährung" },
-                          { key: "technique", label: "Technik" },
-                          { key: "tactics", label: "Taktik" },
-                          { key: "mentalStrength", label: "Mentale Stärke" },
-                          { key: "environment", label: "Umfeld" },
-                          { key: "equipment", label: "Material" },
-                        ] as const
-                      ).map(({ key, label }) => {
-                        const prog = einheit.prognosis![key]
-                        const feed = einheit.feedback![key]
-                        const diff = feed - prog
-                        return (
-                          <tr key={key}>
-                            <td className="py-1.5 pr-4">{label}</td>
-                            <td className="py-1.5 pr-4">{prog}</td>
-                            <td className="py-1.5 pr-4">{feed}</td>
-                            <td
-                              className={`py-1.5 font-medium ${
-                                diff > 0
-                                  ? "text-green-600"
-                                  : diff < 0
-                                    ? "text-destructive"
-                                    : "text-muted-foreground"
-                              }`}
-                            >
-                              {diff > 0 ? `+${diff}` : diff}
-                            </td>
-                          </tr>
-                        )
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            )}
+            <PrognosisSection sessionId={einheit.id} initialData={einheit.prognosis} />
           </CardContent>
         </Card>
       )}
@@ -281,18 +237,66 @@ export default async function EinheitDetailPage({ params }: { params: Promise<{ 
             <CardTitle>Feedback</CardTitle>
           </CardHeader>
           <CardContent>
-            <FeedbackForm sessionId={einheit.id} initialData={einheit.feedback} />
+            <FeedbackSection sessionId={einheit.id} initialData={einheit.feedback} />
           </CardContent>
         </Card>
       )}
 
-      {/* Reflexion */}
+      {/* Vergleich Prognose vs. Feedback — eigene Card, nur wenn beide erfasst */}
+      {hasPrognosisFeedback && einheit.prognosis && einheit.feedback && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Vergleich Prognose vs. Feedback</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b text-left text-muted-foreground">
+                    <th className="pb-2 pr-4 font-medium">Dimension</th>
+                    <th className="pb-2 pr-4 font-medium">Prognose</th>
+                    <th className="pb-2 pr-4 font-medium">Tatsächlich</th>
+                    <th className="pb-2 font-medium">Differenz</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y">
+                  {comparisonDimensions.map(({ key, label }) => {
+                    const prog = einheit.prognosis![key]
+                    const feed = einheit.feedback![key]
+                    const diff = feed - prog
+                    return (
+                      <tr key={key}>
+                        <td className="py-1.5 pr-4">{label}</td>
+                        <td className="py-1.5 pr-4">{prog}</td>
+                        <td className="py-1.5 pr-4">{feed}</td>
+                        <td
+                          className={`py-1.5 font-medium ${
+                            diff > 0
+                              ? "text-green-600"
+                              : diff < 0
+                                ? "text-destructive"
+                                : "text-muted-foreground"
+                          }`}
+                        >
+                          {diff > 0 ? `+${diff}` : diff}
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Reflexion — immer anzeigen */}
       <Card>
         <CardHeader>
           <CardTitle>Reflexion</CardTitle>
         </CardHeader>
         <CardContent>
-          <ReflectionForm sessionId={einheit.id} initialData={einheit.reflection} />
+          <ReflectionSection sessionId={einheit.id} initialData={einheit.reflection} />
         </CardContent>
       </Card>
     </div>

@@ -1,6 +1,6 @@
 "use client"
 
-import { useActionState, useState } from "react"
+import { useActionState, useState, useEffect } from "react"
 import { savePrognosis, type ActionResult, type SerializedPrognosis } from "@/lib/sessions/actions"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -11,6 +11,9 @@ interface Props {
   sessionId: string
   // SerializedPrognosis statt Prognosis — expectedScore ist string | null (nicht Decimal)
   initialData?: SerializedPrognosis | null
+  // Callbacks für den Einsatz im Section-Wrapper (view/edit-Modus)
+  onSuccess?: () => void
+  onCancel?: () => void
 }
 
 const dimensions = [
@@ -27,7 +30,8 @@ type DimensionKey = (typeof dimensions)[number]["name"]
 
 // Erfasst die Selbsteinschätzung vor einer Trainings- oder Wettkampfeinheit.
 // 7 Dimensionen (je 0–100) + Ergebnisprognose + Leistungsziel.
-export function PrognosisForm({ sessionId, initialData }: Props) {
+// Unterstützt Standalone-Nutzung (ohne Callbacks) und eingebettet im Section-Wrapper.
+export function PrognosisForm({ sessionId, initialData, onSuccess, onCancel }: Props) {
   const action = savePrognosis.bind(null, sessionId)
   const [state, formAction, pending] = useActionState<ActionResult | null, FormData>(action, null)
 
@@ -41,10 +45,18 @@ export function PrognosisForm({ sessionId, initialData }: Props) {
     equipment: initialData?.equipment ?? 50,
   })
 
+  // Nach erfolgreichem Speichern Callback aufrufen (für Section-Wrapper)
+  useEffect(() => {
+    if (state?.success) {
+      onSuccess?.()
+    }
+  }, [state?.success, onSuccess])
+
   return (
     <form action={formAction} className="space-y-4">
       {state?.error && <p className="text-sm text-destructive">{state.error}</p>}
-      {state?.success && (
+      {/* Erfolgsmeldung nur ohne Callback — Wrapper übernimmt sonst die Navigation */}
+      {state?.success && !onSuccess && (
         <p className="text-sm text-green-600">Prognose gespeichert.</p>
       )}
 
@@ -118,9 +130,16 @@ export function PrognosisForm({ sessionId, initialData }: Props) {
         />
       </div>
 
-      <Button type="submit" size="sm" disabled={pending}>
-        {pending ? "Speichern..." : "Prognose speichern"}
-      </Button>
+      <div className="flex gap-2">
+        <Button type="submit" size="sm" disabled={pending}>
+          {pending ? "Speichern..." : "Prognose speichern"}
+        </Button>
+        {onCancel && (
+          <Button type="button" variant="outline" size="sm" onClick={onCancel} disabled={pending}>
+            Abbrechen
+          </Button>
+        )}
+      </div>
     </form>
   )
 }

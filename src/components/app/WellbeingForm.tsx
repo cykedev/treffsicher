@@ -1,6 +1,6 @@
 "use client"
 
-import { useActionState, useState } from "react"
+import { useActionState, useState, useEffect } from "react"
 import { saveWellbeing, type ActionResult } from "@/lib/sessions/actions"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
@@ -9,6 +9,9 @@ import type { Wellbeing } from "@/generated/prisma/client"
 interface Props {
   sessionId: string
   initialData?: Wellbeing | null
+  // Callbacks für den Einsatz im Section-Wrapper (view/edit-Modus)
+  onSuccess?: () => void
+  onCancel?: () => void
 }
 
 const wellbeingFields = [
@@ -20,7 +23,8 @@ const wellbeingFields = [
 
 // Erfasst das Befinden vor einer Einheit (4 Schieberegler, je 0–10).
 // Kann jederzeit nachträglich gespeichert oder aktualisiert werden.
-export function WellbeingForm({ sessionId, initialData }: Props) {
+// Unterstützt Standalone-Nutzung (ohne Callbacks) und eingebettet im Section-Wrapper.
+export function WellbeingForm({ sessionId, initialData, onSuccess, onCancel }: Props) {
   const action = saveWellbeing.bind(null, sessionId)
   const [state, formAction, pending] = useActionState<ActionResult | null, FormData>(action, null)
 
@@ -32,10 +36,18 @@ export function WellbeingForm({ sessionId, initialData }: Props) {
     motivation: initialData?.motivation ?? 5,
   })
 
+  // Nach erfolgreichem Speichern Callback aufrufen (für Section-Wrapper)
+  useEffect(() => {
+    if (state?.success) {
+      onSuccess?.()
+    }
+  }, [state?.success, onSuccess])
+
   return (
     <form action={formAction} className="space-y-4">
       {state?.error && <p className="text-sm text-destructive">{state.error}</p>}
-      {state?.success && (
+      {/* Erfolgsmeldung nur ohne Callback — Wrapper übernimmt sonst die Navigation */}
+      {state?.success && !onSuccess && (
         <p className="text-sm text-green-600">Befinden gespeichert.</p>
       )}
 
@@ -64,9 +76,16 @@ export function WellbeingForm({ sessionId, initialData }: Props) {
         </div>
       ))}
 
-      <Button type="submit" size="sm" disabled={pending}>
-        {pending ? "Speichern..." : "Befinden speichern"}
-      </Button>
+      <div className="flex gap-2">
+        <Button type="submit" size="sm" disabled={pending}>
+          {pending ? "Speichern..." : "Befinden speichern"}
+        </Button>
+        {onCancel && (
+          <Button type="button" variant="outline" size="sm" onClick={onCancel} disabled={pending}>
+            Abbrechen
+          </Button>
+        )}
+      </div>
     </form>
   )
 }

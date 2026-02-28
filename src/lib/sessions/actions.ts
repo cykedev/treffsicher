@@ -690,7 +690,8 @@ export async function saveFeedback(
     equipment: Number(formData.get("equipment")),
     explanation: formData.get("explanation") as string,
     goalAchieved: formData.get("goalAchieved") === "on",
-    goalAchievedNote: formData.get("goalAchievedNote") as string,
+    // goalAchievedNote ist nur im DOM wenn goalAchieved gesetzt — null → undefined damit z.string().optional() passt
+    goalAchievedNote: formData.get("goalAchievedNote") ?? undefined,
     progress: formData.get("progress") as string,
     fiveBestShots: formData.get("fiveBestShots") as string,
     wentWell: formData.get("wentWell") as string,
