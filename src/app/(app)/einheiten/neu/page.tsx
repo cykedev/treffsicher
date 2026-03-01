@@ -1,13 +1,16 @@
 import { getAuthSession } from "@/lib/auth-helpers"
 import { redirect } from "next/navigation"
-import { getDisciplines } from "@/lib/disciplines/actions"
+import { getDisciplines, getFavouriteDisciplineId } from "@/lib/disciplines/actions"
 import { EinheitForm } from "@/components/app/EinheitForm"
 
 export default async function NeueEinheitPage() {
   const session = await getAuthSession()
   if (!session) redirect("/login")
 
-  const disciplines = await getDisciplines()
+  const [disciplines, favouriteDisciplineId] = await Promise.all([
+    getDisciplines(),
+    getFavouriteDisciplineId(),
+  ])
 
   return (
     <div className="space-y-6">
@@ -17,7 +20,7 @@ export default async function NeueEinheitPage() {
           Training, Wettkampf, Trockentraining oder Mentaltraining erfassen.
         </p>
       </div>
-      <EinheitForm disciplines={disciplines} />
+      <EinheitForm disciplines={disciplines} defaultDisciplineId={favouriteDisciplineId ?? undefined} />
     </div>
   )
 }
