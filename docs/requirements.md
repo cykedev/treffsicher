@@ -174,7 +174,7 @@ Ziele auf Saisonebene können verwaltet werden:
 
 ## Dateien & Bilder
 
-An jede Einheit können Dateien angehängt werden:
+Anhänge sind ausschliesslich bei Einheiten des Typs **Training** und **Wettkampf** verfügbar. Trockentraining und Mentaltraining benötigen keine Dateien.
 
 - Bilder (z.B. Schussbild / Trefferbild)
 - PDFs (z.B. Wettkampfausdruck)
@@ -266,6 +266,13 @@ Analog zu Meyton-Schiessständen — einheitlich in Detailansicht und Statistik:
 - Einzelne Einheiten oder Zeiträume können exportiert werden (PDF und/oder CSV)
 - Export dient der bewussten Weitergabe an Trainer oder für eigene Archivierung
 - Kein automatischer Trainer-Zugang — Export ist ein manueller, bewusster Schritt
+
+---
+
+## Design-Entscheidungen
+
+- **Dark Mode**: Die App verwendet ausschliesslich Dark Mode — kein Light Mode, kein Toggle.
+- **Prognose und Feedback**: Nur bei Training und Wettkampf verfügbar (nicht bei Trockentraining und Mentaltraining).
 
 ---
 
