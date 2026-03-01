@@ -9,7 +9,7 @@ Trainingsunterstützungs-App für Schiesssportler. Trainingstagebuch, Ergebniser
 ### Voraussetzungen
 
 - [Docker](https://www.docker.com/) + Docker Compose v2.22+
-- Node.js 20+ (für Prisma-CLI-Befehle, die lokal ausgeführt werden)
+- Optional: Node.js 20+ (nur wenn `npm`/Prisma-Befehle lokal statt im Container laufen sollen)
 
 ### Erste Inbetriebnahme
 
@@ -26,31 +26,22 @@ docker compose -f docker-compose.dev.yml ps
 # "db" sollte "healthy" zeigen
 ```
 
-**2. Initiale Migration erstellen**
-
-```bash
-npx prisma migrate dev --name init
-```
-
-Erstellt `prisma/migrations/` und wendet das Schema auf die DB an. Erzeugt ausserdem den Prisma-Client unter `src/generated/prisma/`.
-
-**3. Standarddisziplinen anlegen**
-
-```bash
-npx prisma db seed
-```
-
-Legt die 5 vorinstallierten Disziplinen (Luftpistole, Luftgewehr etc.) in der DB an.
-
-**4. App mit Watch starten**
+**2. App mit Watch starten**
 
 ```bash
 docker compose -f docker-compose.dev.yml up --watch
 ```
 
+Der Container-Start führt automatisch `prisma migrate deploy`, `prisma db push` und `prisma generate` aus.
+Standarddisziplinen und der erste Admin-Account werden beim ersten Request automatisch angelegt (Startup-Initialisierung).
+
 Die App läuft unter [http://localhost:3000](http://localhost:3000).
 
-Beim ersten Start wird automatisch ein Admin-Account angelegt (via `src/lib/startup.ts`).
+Beim ersten Request wird die Startup-Initialisierung ausgeführt (via `src/lib/startup.ts`):
+
+- Standarddisziplinen werden angelegt, falls sie fehlen
+- der erste Admin-Account wird angelegt, falls noch keiner existiert
+
 Die Credentials kommen aus den Umgebungsvariablen in `docker-compose.dev.yml`:
 
 | Variable         | Wert in dev         |
@@ -72,8 +63,10 @@ Für einen vollständigen Reset inkl. Datenverlust:
 
 ```bash
 docker compose -f docker-compose.dev.yml down -v
-# Danach: Migration und Seed erneut ausführen (Schritte 2–4)
+# Danach: App-Start erneut ausführen (Schritt 2)
 ```
+
+Hinweis: Nach `down -v` sind alle Nutzerdaten neu aufgebaut. Falls im Browser noch eine alte Session liegt, einmal neu einloggen (ggf. Cookies löschen), damit keine veraltete `userId` verwendet wird.
 
 ### Ab dem zweiten Start
 
@@ -81,52 +74,52 @@ docker compose -f docker-compose.dev.yml down -v
 docker compose -f docker-compose.dev.yml up --watch
 ```
 
-Migration und Seed müssen nicht wiederholt werden.
+Keine weiteren Initialisierungsschritte nötig (ausser nach `down -v`).
 
 ### Docker Compose Watch
 
 Der Dev-Workflow nutzt [Compose Watch](https://docs.docker.com/compose/how-tos/file-watch/) für automatische Reaktion auf Dateiänderungen:
 
-| Datei / Pfad         | Aktion          | Effekt                                               |
-| -------------------- | --------------- | ---------------------------------------------------- |
-| `src/**`             | Bind-Mount HMR  | Next.js Hot-Reload (kein Watch nötig)                |
-| `prisma/schema.prisma` | `sync+restart` | Container startet neu, `prisma generate` läuft auto. |
-| `next.config.ts`     | `sync+restart`  | Container startet neu mit neuer Konfiguration        |
-| `package.json`       | `rebuild`       | Image neu gebaut (npm ci), Container neu gestartet   |
-| `package-lock.json`  | `rebuild`       | Wie `package.json`                                   |
+| Datei / Pfad           | Aktion         | Effekt                                                                 |
+| ---------------------- | -------------- | ---------------------------------------------------------------------- |
+| `src/**`               | Bind-Mount HMR | Next.js Hot-Reload (kein Compose-Watch-Eintrag)                        |
+| `prisma/schema.prisma` | `restart`      | App-Container startet neu, `prisma db push` + `prisma generate` laufen |
+| `next.config.ts`       | `restart`      | App-Container startet neu                                              |
+| `package.json`         | `rebuild`      | Image neu gebaut (npm ci), Container neu gestartet                     |
+| `package-lock.json`    | `rebuild`      | Wie `package.json`                                                     |
 
-Der Container-Start führt immer `prisma generate && npm run dev` aus — damit ist der Prisma-Client nach einem Watch-Neustart automatisch aktuell.
+Der Container-Start führt `prisma migrate deploy && prisma db push && prisma generate && npm run dev` aus.
 
 ---
 
 ## Schemaänderungen
 
-Nach jeder Änderung an `prisma/schema.prisma` eine neue Migration erstellen:
+In der laufenden Entwicklung sind keine manuellen Schritte nötig:
+Änderungen an `prisma/schema.prisma` triggern automatisch einen Container-Restart, dabei werden Schema (`db push`) und Prisma-Client aktualisiert.
+
+Wenn eine Schemaänderung ins Repository soll, danach eine Migration erzeugen und committen:
 
 ```bash
-npx prisma migrate dev --name beschreibender-name
+docker compose -f docker-compose.dev.yml run --rm app npx prisma migrate dev --name beschreibender-name
 ```
-
-Die erzeugte Migrationsdatei wird ins Repository eingecheckt.
-
-Wenn Compose Watch läuft, erkennt es die Schema-Änderung automatisch, startet den Container neu und regeneriert den Prisma-Client (`prisma generate`). Ein manueller Neustart ist nicht nötig.
 
 ---
 
 ## Qualitätschecks
 
-Vor jedem Commit müssen diese drei Befehle fehlerfrei durchlaufen:
+Vor jedem Commit müssen diese drei Befehle fehlerfrei durchlaufen.
+Container-basiert (ohne lokales `npm ci`):
 
 ```bash
-npm run lint         # ESLint
-npm run format:check # Prettier
-npm run test         # Vitest
+docker compose -f docker-compose.dev.yml run --rm app npm run lint
+docker compose -f docker-compose.dev.yml run --rm app npm run format:check
+docker compose -f docker-compose.dev.yml run --rm app npm run test
 ```
 
 Formatierung automatisch korrigieren:
 
 ```bash
-npm run format
+docker compose -f docker-compose.dev.yml run --rm app npm run format
 ```
 
 ---
@@ -144,7 +137,14 @@ Alle Konfiguration erfolgt über Umgebungsvariablen. Die Vorlage liegt in `.env.
 | `ADMIN_EMAIL`     | E-Mail des ersten Admin-Accounts                                | `admin@example.com`                          |
 | `ADMIN_PASSWORD`  | Passwort des ersten Admin-Accounts (min. 12 Zeichen)            | sicheres Passwort                            |
 
-**Entwicklung**: Werte sind direkt in `docker-compose.dev.yml` gesetzt — keine `.env` nötig (ausser `DATABASE_URL` für Prisma-CLI-Befehle, die lokal ausgeführt werden).
+**Entwicklung**: Werte sind direkt in `docker-compose.dev.yml` gesetzt — für den oben beschriebenen Container-Workflow ist keine `.env` nötig.
+
+**Optional (lokale Prisma-CLI):** Wenn Prisma-Befehle lokal ausgeführt werden sollen:
+
+```bash
+npm ci
+export DATABASE_URL=postgresql://treffsicher:treffsicher@localhost:5432/treffsicher
+```
 
 **Produktion**: `.env`-Datei anlegen (aus `.env.example` kopieren) und alle Werte ausfüllen.
 
@@ -173,7 +173,8 @@ Der erste Admin wird beim ersten Start aus `ADMIN_EMAIL` + `ADMIN_PASSWORD` ange
 src/
 ├── app/              # Next.js App Router (Seiten, Layouts)
 │   ├── (auth)/       # Login (nicht geschützt)
-│   └── (app)/        # Geschützte Seiten (Middleware prüft Login)
+│   └── (app)/        # Geschützte Seiten (Proxy prüft Login)
+├── proxy.ts          # Route-Schutz (Next.js Proxy + NextAuth)
 ├── components/
 │   ├── ui/           # shadcn/ui Basiskomponenten
 │   └── app/          # App-spezifische Komponenten
