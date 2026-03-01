@@ -5,6 +5,11 @@ import { useRouter } from "next/navigation"
 import { createSession, updateSession } from "@/lib/sessions/actions"
 import type { SessionDetail } from "@/lib/sessions/actions"
 import { calculateSumFromShots } from "@/lib/sessions/calculateScore"
+import {
+  isValidShotValue,
+  isValidSeriesTotal,
+  formatSeriesMax,
+} from "@/lib/sessions/validation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -97,6 +102,15 @@ export function EinheitForm({ disciplines, initialData, sessionId }: Props) {
     })
   })
 
+  // Seriensummen im Summen-Modus: kontrolliertes State-Array (parallel zu shotCounts etc.)
+  // Ermöglicht Echtzeit-Validierung ohne nativen Browser-Validation-Dialog
+  const [seriesTotals, setSeriesTotals] = useState<string[]>(() => {
+    if (!initialData) return []
+    return sortedInitialSeries.map((s) =>
+      s.scoreTotal != null ? String(s.scoreTotal) : ""
+    )
+  })
+
   // isPractice-Flag pro Serie — ermöglicht manuelles Hinzufügen von Probeschuss-Serien,
   // unabhängig von der Anzahl in der Disziplin-Konfiguration
   const [seriesIsPractice, setSeriesIsPractice] = useState<boolean[]>(() =>
@@ -118,8 +132,33 @@ export function EinheitForm({ disciplines, initialData, sessionId }: Props) {
 
   // Gewählte Disziplin aus der Liste suchen
   const selectedDiscipline = disciplines.find((d) => d.id === disciplineId)
+  const scoringType = selectedDiscipline?.scoringType
 
-  // Disziplinwechsel: Serien-State auf Disziplin-Standardwerte zurücksetzen
+  // ─── Validierung ─────────────────────────────────────────────────────────────
+  // Wird inline ohne separaten Error-State berechnet — so immer synchron mit dem
+  // aktuellen Eingabe-State. Leere Felder gelten nicht als Fehler.
+
+  // Shot-Modus: Für jeden Schuss prüfen ob der Wert für die Wertungsart gültig ist
+  const invalidShots: boolean[][] = showShots && scoringType
+    ? shots.map((serieShots) =>
+        serieShots.map((v) => v !== "" && !isValidShotValue(v, scoringType))
+      )
+    : shots.map((serieShots) => serieShots.map(() => false))
+
+  // Summen-Modus: Seriensumme darf den Maximalwert nicht überschreiten
+  const invalidTotals: boolean[] = !showShots && scoringType
+    ? seriesTotals.map((v, i) =>
+        v !== "" && !isValidSeriesTotal(v, scoringType, shotCounts[i] ?? (selectedDiscipline?.shotsPerSeries ?? 10))
+      )
+    : seriesTotals.map(() => false)
+
+  const hasValidationErrors =
+    invalidShots.some((serie) => serie.some(Boolean)) ||
+    invalidTotals.some(Boolean)
+
+  // ─── Handler ─────────────────────────────────────────────────────────────────
+
+  // Disziplinwechsel: alle Serien-States auf Disziplin-Standardwerte zurücksetzen
   function handleDisciplineChange(id: string) {
     setDisciplineId(id)
     const disc = disciplines.find((d) => d.id === id)
@@ -127,7 +166,6 @@ export function EinheitForm({ disciplines, initialData, sessionId }: Props) {
       const newTotal = disc.practiceSeries + disc.seriesCount
       setTotalSeries(newTotal)
       setShotCounts(Array(newTotal).fill(disc.shotsPerSeries))
-      // Probeschuss-Flags: erste practiceSeries Serien sind Probeschüsse
       setSeriesIsPractice([
         ...Array(disc.practiceSeries).fill(true),
         ...Array(disc.seriesCount).fill(false),
@@ -136,6 +174,7 @@ export function EinheitForm({ disciplines, initialData, sessionId }: Props) {
         ...Array.from({ length: disc.practiceSeries }, (_, i) => `d-p-${i}-${Date.now()}`),
         ...Array.from({ length: disc.seriesCount }, (_, i) => `d-r-${i}-${Date.now()}`),
       ])
+      setSeriesTotals(Array(newTotal).fill(""))
       setShowShots(false)
       setShots([])
     } else {
@@ -143,17 +182,26 @@ export function EinheitForm({ disciplines, initialData, sessionId }: Props) {
       setShotCounts([])
       setSeriesIsPractice([])
       setSeriesKeys([])
+      setSeriesTotals([])
       setShowShots(false)
       setShots([])
     }
   }
 
   // Shots-Array initialisieren wenn Toggle aktiviert wird.
-  // Nutzt shotCounts statt festem shotsPerSeries — berücksichtigt individuelle Anpassungen.
+  // Beim Deaktivieren: berechnete Summen in seriesTotals übernehmen.
   function handleShotToggle(enabled: boolean) {
     setShowShots(enabled)
     if (enabled) {
       setShots(shotCounts.map((count) => Array(count).fill("")))
+    } else {
+      // Berechnete Summen in den Summen-Modus übernehmen (statt Felder leer zu lassen)
+      setSeriesTotals(
+        shots.map((serieShots) => {
+          const total = calculateSumFromShots(serieShots)
+          return total !== null ? String(total) : ""
+        })
+      )
     }
   }
 
@@ -166,24 +214,25 @@ export function EinheitForm({ disciplines, initialData, sessionId }: Props) {
     })
   }
 
+  // Seriensumme im Summen-Modus aktualisieren
+  function handleTotalChange(seriesIndex: number, value: string) {
+    setSeriesTotals((prev) => prev.map((v, i) => (i === seriesIndex ? value : v)))
+  }
+
   // Serientyp umschalten: Probe ↔ Wertung
   // Nach dem Umschalten werden alle parallelen Arrays stabil neu sortiert:
   // Probeschuss-Serien stehen immer vor Wertungsserien (relative Reihenfolge bleibt erhalten)
   function handleTogglePractice(index: number) {
-    // 1. Flag an der gewünschten Position invertieren
     const newIsPractice = seriesIsPractice.map((v, i) => (i === index ? !v : v))
-
-    // 2. Stabile Permutation berechnen: practice = true zuerst, Reihenfolge innerhalb jeder Gruppe bleibt
     const perm = Array.from({ length: newIsPractice.length }, (_, i) => i)
     perm.sort((a, b) => {
       if (newIsPractice[a] === newIsPractice[b]) return 0
       return newIsPractice[a] ? -1 : 1
     })
-
-    // 3. Permutation auf alle parallelen Arrays anwenden (React batcht die Updates)
     setSeriesIsPractice(perm.map((i) => newIsPractice[i]))
     setSeriesKeys(perm.map((i) => seriesKeys[i]))
     setShotCounts(perm.map((i) => shotCounts[i]))
+    setSeriesTotals(perm.map((i) => seriesTotals[i] ?? ""))
     if (showShots) {
       setShots(perm.map((i) => shots[i] ?? []))
     }
@@ -196,6 +245,7 @@ export function EinheitForm({ disciplines, initialData, sessionId }: Props) {
     setShotCounts((prev) => [...prev, defaultCount])
     setSeriesIsPractice((prev) => [...prev, false])
     setSeriesKeys((prev) => [...prev, `r-${Date.now()}`])
+    setSeriesTotals((prev) => [...prev, ""])
     if (showShots) {
       setShots((prev) => [...prev, Array(defaultCount).fill("")])
     }
@@ -204,14 +254,13 @@ export function EinheitForm({ disciplines, initialData, sessionId }: Props) {
   // Probeschuss-Serie hinzufügen — vor der ersten Wertungsserie einfügen
   function handleAddPracticeSeries() {
     const defaultCount = selectedDiscipline?.shotsPerSeries ?? 10
-    // Erste Wertungsserie finden — dort einfügen (Probeschüsse stehen immer zuerst)
     const firstRegular = seriesIsPractice.findIndex((p) => !p)
     const idx = firstRegular === -1 ? seriesIsPractice.length : firstRegular
-    const newKey = `p-${Date.now()}`
     setTotalSeries((n) => n + 1)
     setShotCounts((prev) => [...prev.slice(0, idx), defaultCount, ...prev.slice(idx)])
     setSeriesIsPractice((prev) => [...prev.slice(0, idx), true, ...prev.slice(idx)])
-    setSeriesKeys((prev) => [...prev.slice(0, idx), newKey, ...prev.slice(idx)])
+    setSeriesKeys((prev) => [...prev.slice(0, idx), `p-${Date.now()}`, ...prev.slice(idx)])
+    setSeriesTotals((prev) => [...prev.slice(0, idx), "", ...prev.slice(idx)])
     if (showShots) {
       setShots((prev) => [...prev.slice(0, idx), Array(defaultCount).fill(""), ...prev.slice(idx)])
     }
@@ -224,6 +273,7 @@ export function EinheitForm({ disciplines, initialData, sessionId }: Props) {
     setShotCounts((prev) => prev.filter((_, i) => i !== index))
     setSeriesIsPractice((prev) => prev.filter((_, i) => i !== index))
     setSeriesKeys((prev) => prev.filter((_, i) => i !== index))
+    setSeriesTotals((prev) => prev.filter((_, i) => i !== index))
     if (showShots) {
       setShots((prev) => prev.filter((_, i) => i !== index))
     }
@@ -238,10 +288,8 @@ export function EinheitForm({ disciplines, initialData, sessionId }: Props) {
         prev.map((serieShots, i) => {
           if (i !== seriesIndex) return serieShots
           if (count > serieShots.length) {
-            // Neue Felder anhängen
             return [...serieShots, ...Array(count - serieShots.length).fill("")]
           }
-          // Überzählige Felder abschneiden
           return serieShots.slice(0, count)
         })
       )
@@ -250,6 +298,10 @@ export function EinheitForm({ disciplines, initialData, sessionId }: Props) {
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
+
+    // Validierung vor dem Absenden: ungültige Felder verhindern Speichern
+    if (hasValidationErrors) return
+
     setPending(true)
 
     const formData = new FormData(e.currentTarget)
@@ -263,10 +315,8 @@ export function EinheitForm({ disciplines, initialData, sessionId }: Props) {
     }
 
     if (sessionId) {
-      // Bearbeiten-Modus: bestehende Einheit aktualisieren
       await updateSession(sessionId, formData)
     } else {
-      // Neu-Modus: neue Einheit anlegen
       await createSession(formData)
     }
     // Actions führen intern redirect() durch bei Erfolg
@@ -276,7 +326,7 @@ export function EinheitForm({ disciplines, initialData, sessionId }: Props) {
   const needsDiscipline = typesWithDiscipline.includes(type)
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form onSubmit={handleSubmit} noValidate className="space-y-6">
       <Card>
         <CardContent className="space-y-4 pt-6">
           <div className="grid gap-4 sm:grid-cols-2">
@@ -296,6 +346,7 @@ export function EinheitForm({ disciplines, initialData, sessionId }: Props) {
                     setShotCounts([])
                     setSeriesIsPractice([])
                     setSeriesKeys([])
+                    setSeriesTotals([])
                     setShowShots(false)
                     setShots([])
                   }
@@ -402,25 +453,22 @@ export function EinheitForm({ disciplines, initialData, sessionId }: Props) {
 
           <div className="grid gap-3 sm:grid-cols-2">
             {Array.from({ length: totalSeries }, (_, i) => {
-              // isPractice aus State — unabhängig von Position und Disziplin-Konfiguration
               const isPractice = seriesIsPractice[i] ?? false
-              // Laufende Nummerierung je Serientyp
               const practicesBefore = seriesIsPractice.slice(0, i).filter(Boolean).length
               const regularsBefore = i - practicesBefore
               const seriesLabel = isPractice
                 ? `Probeschuss-Serie ${practicesBefore + 1}`
                 : `Serie ${regularsBefore + 1}`
 
-              // Schussanzahl dieser Serie (ggf. vom Nutzer angepasst)
               const currentShotCount = shotCounts[i] ?? selectedDiscipline.shotsPerSeries
-              // Berechnete Seriensumme aus Einzelschüssen (nur im Shot-Modus)
               const shotsForSeries = shots[i] ?? []
               const computedTotal = showShots ? calculateSumFromShots(shotsForSeries) : null
-              // Maximale Ringe basierend auf aktueller Schussanzahl
-              const maxScore =
-                selectedDiscipline.scoringType === "TENTH"
-                  ? currentShotCount * 10.9
-                  : currentShotCount * 10
+              const maxLabel = formatSeriesMax(selectedDiscipline.scoringType, currentShotCount)
+
+              // Anzahl ungültiger Schüsse dieser Serie für die Fehleranzeige
+              const invalidShotCount = (invalidShots[i] ?? []).filter(Boolean).length
+              // Seriensumme ungültig?
+              const totalIsInvalid = invalidTotals[i] ?? false
 
               return (
                 // Wrapper hat stabilen key und trägt das dunkle Dreieck als CSS-Gradient —
@@ -431,7 +479,6 @@ export function EinheitForm({ disciplines, initialData, sessionId }: Props) {
                   style={
                     isPractice
                       ? {
-                          // Gradient 28×28px oben-rechts: dunkle Hälfte = Dreieck oben-rechts
                           backgroundImage: "linear-gradient(225deg, #374151 50%, transparent 50%)",
                           backgroundSize: "50px 50px",
                           backgroundPosition: "top right",
@@ -444,8 +491,7 @@ export function EinheitForm({ disciplines, initialData, sessionId }: Props) {
                     className={isPractice ? "bg-muted/30" : ""}
                     style={
                       isPractice
-                        ? // Abgeschnittene obere rechte Ecke — gibt Dreieck des Wrappers frei
-                          { clipPath: "polygon(0 0, calc(100% - 50px) 0, 100% 50px, 100% 100%, 0 100%)" }
+                        ? { clipPath: "polygon(0 0, calc(100% - 50px) 0, 100% 50px, 100% 100%, 0 100%)" }
                         : undefined
                     }
                   >
@@ -468,7 +514,6 @@ export function EinheitForm({ disciplines, initialData, sessionId }: Props) {
                         )}
                       </Label>
                       <div className="flex items-center gap-1">
-                        {/* Typ umschalten: Probe ↔ Wertung */}
                         <button
                           type="button"
                           onClick={() => handleTogglePractice(i)}
@@ -494,7 +539,6 @@ export function EinheitForm({ disciplines, initialData, sessionId }: Props) {
                       {showShots ? (
                         // Einzelschuss-Modus: Schussanzahl-Selector + N Eingabefelder + Summe
                         <div className="space-y-2">
-                          {/* Schussanzahl anpassbar — Disziplin-Wert ist nur Standardwert */}
                           <div className="flex items-center gap-2">
                             <span className="text-xs text-muted-foreground">Schüsse:</span>
                             <Input
@@ -511,22 +555,38 @@ export function EinheitForm({ disciplines, initialData, sessionId }: Props) {
                             />
                           </div>
                           <div className="grid grid-cols-5 gap-1">
-                            {Array.from({ length: currentShotCount }, (_, j) => (
-                              <Input
-                                key={j}
-                                type="number"
-                                min="0"
-                                max={selectedDiscipline.scoringType === "WHOLE" ? "10" : "10.9"}
-                                step={selectedDiscipline.scoringType === "TENTH" ? "0.1" : "1"}
-                                placeholder="-"
-                                value={shotsForSeries[j] ?? ""}
-                                onChange={(e) => handleShotChange(i, j, e.target.value)}
-                                disabled={pending}
-                                className="px-1 text-center text-sm"
-                                aria-label={`Serie ${i + 1} Schuss ${j + 1}`}
-                              />
-                            ))}
+                            {Array.from({ length: currentShotCount }, (_, j) => {
+                              const isInvalid = invalidShots[i]?.[j] ?? false
+                              return (
+                                <Input
+                                  key={j}
+                                  type="number"
+                                  min="0"
+                                  max={selectedDiscipline.scoringType === "WHOLE" ? "10" : "10.9"}
+                                  step={selectedDiscipline.scoringType === "TENTH" ? "0.1" : "1"}
+                                  placeholder="-"
+                                  value={shotsForSeries[j] ?? ""}
+                                  onChange={(e) => handleShotChange(i, j, e.target.value)}
+                                  disabled={pending}
+                                  className={`px-1 text-center text-sm ${
+                                    isInvalid ? "border-destructive focus-visible:ring-destructive" : ""
+                                  }`}
+                                  aria-label={`Serie ${i + 1} Schuss ${j + 1}`}
+                                  aria-invalid={isInvalid}
+                                />
+                              )
+                            })}
                           </div>
+
+                          {/* Fehlermeldung bei ungültigen Schüssen */}
+                          {invalidShotCount > 0 && (
+                            <p className="text-xs text-destructive">
+                              {selectedDiscipline.scoringType === "TENTH"
+                                ? `${invalidShotCount} ungültige${invalidShotCount === 1 ? "r" : ""} Wert — erlaubt: 0.0 oder 1.0–10.9`
+                                : `${invalidShotCount} ungültige${invalidShotCount === 1 ? "r" : ""} Wert — erlaubt: 0–10 (ganzzahlig)`}
+                            </p>
+                          )}
+
                           {/* Seriensumme live berechnet und read-only angezeigt */}
                           <div className="flex items-center gap-2">
                             <span className="text-sm text-muted-foreground">Summe:</span>
@@ -534,10 +594,7 @@ export function EinheitForm({ disciplines, initialData, sessionId }: Props) {
                               {computedTotal !== null ? computedTotal : "–"}
                             </span>
                             <span className="text-sm text-muted-foreground">
-                              /{" "}
-                              {selectedDiscipline.scoringType === "TENTH"
-                                ? maxScore.toFixed(1)
-                                : maxScore}
+                              / {maxLabel}
                             </span>
                             {/* Berechnete Summe als Hidden-Field für den Server */}
                             <input
@@ -548,32 +605,40 @@ export function EinheitForm({ disciplines, initialData, sessionId }: Props) {
                           </div>
                         </div>
                       ) : (
-                        // Standard-Modus: Seriensumme direkt eingeben
-                        <div className="flex items-center gap-2">
-                          <Input
-                            id={`series-${i}`}
-                            name={`series[${i}][scoreTotal]`}
-                            type="number"
-                            min="0"
-                            step={selectedDiscipline.scoringType === "TENTH" ? "0.1" : "1"}
-                            placeholder="Ringe"
-                            className="w-28"
-                            disabled={pending}
-                            defaultValue={
-                              sortedInitialSeries[i]?.scoreTotal != null
-                                ? String(sortedInitialSeries[i].scoreTotal)
-                                : ""
-                            }
-                          />
-                          <span className="text-sm text-muted-foreground">
-                            {selectedDiscipline.scoringType === "TENTH" ? "Zehntel" : "Ringe"}
-                          </span>
+                        // Summen-Modus: Seriensumme direkt eingeben (kontrolliertes Input)
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <Input
+                              id={`series-${i}`}
+                              name={`series[${i}][scoreTotal]`}
+                              type="number"
+                              min="0"
+                              max={maxLabel}
+                              step={selectedDiscipline.scoringType === "TENTH" ? "0.1" : "1"}
+                              placeholder="Ringe"
+                              className={`w-28 ${
+                                totalIsInvalid ? "border-destructive focus-visible:ring-destructive" : ""
+                              }`}
+                              value={seriesTotals[i] ?? ""}
+                              onChange={(e) => handleTotalChange(i, e.target.value)}
+                              disabled={pending}
+                              aria-invalid={totalIsInvalid}
+                            />
+                            <span className="text-sm text-muted-foreground">
+                              / {maxLabel}
+                            </span>
+                          </div>
+                          {/* Fehlermeldung bei überschrittenem Maximum */}
+                          {totalIsInvalid && (
+                            <p className="text-xs text-destructive">
+                              Maximum: {maxLabel} {selectedDiscipline.scoringType === "TENTH" ? "Zehntel" : "Ringe"}
+                            </p>
+                          )}
                         </div>
                       )}
                     </div>
 
-                    {/* Ausführungsqualität — optional, hilft zu erkennen ob schlechte Ergebnisse
-                        aus Technikfehlern oder schlechter Tagesform entstanden sind */}
+                    {/* Ausführungsqualität — optional */}
                     <div className="space-y-1">
                       <Label htmlFor={`quality-${i}`} className="text-xs text-muted-foreground">
                         Ausführung (optional)
@@ -606,7 +671,6 @@ export function EinheitForm({ disciplines, initialData, sessionId }: Props) {
           </div>
 
           <div className="flex gap-2">
-            {/* Wertungsserie hinzufügen */}
             <Button
               type="button"
               variant="outline"
@@ -616,7 +680,6 @@ export function EinheitForm({ disciplines, initialData, sessionId }: Props) {
             >
               + Wertungsserie
             </Button>
-            {/* Probeschuss-Serie hinzufügen — zählt nicht in die Gesamtwertung */}
             <Button
               type="button"
               variant="outline"
@@ -631,9 +694,14 @@ export function EinheitForm({ disciplines, initialData, sessionId }: Props) {
       )}
 
       <div className="flex gap-3">
-        <Button type="submit" disabled={pending || !type}>
+        <Button type="submit" disabled={pending || !type || hasValidationErrors}>
           {pending ? "Speichern..." : sessionId ? "Änderungen speichern" : "Einheit speichern"}
         </Button>
+        {hasValidationErrors && (
+          <p className="self-center text-sm text-destructive">
+            Bitte ungültige Werte korrigieren.
+          </p>
+        )}
         <Button
           type="button"
           variant="outline"
