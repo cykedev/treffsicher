@@ -62,6 +62,81 @@ export async function getDisciplines(): Promise<Discipline[]> {
 }
 
 /**
+ * Gibt die Favorit-Disziplin des Nutzers zurück.
+ * Falls die gespeicherte Disziplin nicht mehr verfügbar ist, wird der Favorit entfernt.
+ */
+export async function getFavouriteDisciplineId(): Promise<string | null> {
+  const session = await getAuthSession()
+  if (!session) return null
+
+  const user = await db.user.findUnique({
+    where: { id: session.user.id },
+    select: { favouriteDisciplineId: true },
+  })
+
+  const favouriteDisciplineId = user?.favouriteDisciplineId ?? null
+  if (!favouriteDisciplineId) return null
+
+  const favouriteDiscipline = await db.discipline.findFirst({
+    where: {
+      id: favouriteDisciplineId,
+      isArchived: false,
+      OR: [{ isSystem: true }, { ownerId: session.user.id }],
+    },
+    select: { id: true },
+  })
+
+  if (favouriteDiscipline) return favouriteDiscipline.id
+
+  await db.user.update({
+    where: { id: session.user.id },
+    data: { favouriteDisciplineId: null },
+  })
+  return null
+}
+
+/**
+ * Setzt oder entfernt die Favorit-Disziplin des Nutzers.
+ * Erneutes Klicken auf die bereits gesetzte Favorit-Disziplin entfernt den Favoriten.
+ */
+export async function setFavouriteDiscipline(disciplineId: string): Promise<ActionResult> {
+  const session = await getAuthSession()
+  if (!session) return { error: "Nicht angemeldet" }
+
+  const user = await db.user.findUnique({
+    where: { id: session.user.id },
+    select: { favouriteDisciplineId: true },
+  })
+  if (!user) return { error: "Nutzer nicht gefunden." }
+
+  const nextFavouriteId = user.favouriteDisciplineId === disciplineId ? null : disciplineId
+
+  if (nextFavouriteId) {
+    const discipline = await db.discipline.findFirst({
+      where: {
+        id: nextFavouriteId,
+        isArchived: false,
+        OR: [{ isSystem: true }, { ownerId: session.user.id }],
+      },
+      select: { id: true },
+    })
+
+    if (!discipline) {
+      return { error: "Disziplin nicht gefunden oder keine Berechtigung." }
+    }
+  }
+
+  await db.user.update({
+    where: { id: session.user.id },
+    data: { favouriteDisciplineId: nextFavouriteId },
+  })
+
+  revalidatePath("/disziplinen")
+  revalidatePath("/einheiten", "layout")
+  return { success: true }
+}
+
+/**
  * Legt eine neue benutzerdefinierte Disziplin an.
  * React 19 useActionState erfordert (prevState, formData) Signatur.
  */
@@ -195,10 +270,19 @@ export async function archiveDiscipline(id: string): Promise<ActionResult> {
     return { error: "Disziplin nicht gefunden oder keine Berechtigung." }
   }
 
-  await db.discipline.update({
-    where: { id },
-    data: { isArchived: true },
-  })
+  await db.$transaction([
+    db.discipline.update({
+      where: { id },
+      data: { isArchived: true },
+    }),
+    db.user.updateMany({
+      where: {
+        id: session.user.id,
+        favouriteDisciplineId: id,
+      },
+      data: { favouriteDisciplineId: null },
+    }),
+  ])
 
   revalidatePath("/disziplinen")
   revalidatePath("/einheiten", "layout")

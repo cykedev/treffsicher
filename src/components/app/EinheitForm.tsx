@@ -25,6 +25,7 @@ interface Props {
   // Wenn gesetzt: Bearbeiten-Modus — Formular wird mit bestehender Einheit vorbelegt
   initialData?: SessionDetail
   sessionId?: string
+  defaultDisciplineId?: string
 }
 
 const sessionTypeLabels: Record<string, string> = {
@@ -53,12 +54,41 @@ function toDateTimeLocalValue(value: Date | string): string {
   return base.toISOString().slice(0, 16)
 }
 
+function createSeriesDefaults(discipline: Discipline | undefined) {
+  if (!discipline) {
+    return {
+      totalSeries: 0,
+      shotCounts: [] as number[],
+      seriesIsPractice: [] as boolean[],
+      seriesKeys: [] as string[],
+      seriesTotals: [] as string[],
+    }
+  }
+
+  const newTotal = discipline.practiceSeries + discipline.seriesCount
+  const seed = Date.now()
+
+  return {
+    totalSeries: newTotal,
+    shotCounts: Array(newTotal).fill(discipline.shotsPerSeries),
+    seriesIsPractice: [
+      ...Array(discipline.practiceSeries).fill(true),
+      ...Array(discipline.seriesCount).fill(false),
+    ] as boolean[],
+    seriesKeys: [
+      ...Array.from({ length: discipline.practiceSeries }, (_, i) => `d-p-${i}-${seed}`),
+      ...Array.from({ length: discipline.seriesCount }, (_, i) => `d-r-${i}-${seed}`),
+    ],
+    seriesTotals: Array(newTotal).fill(""),
+  }
+}
+
 // Formular für neue oder bestehende Einheit.
 // Im Bearbeiten-Modus (sessionId gesetzt) wird initialData zur Vorbelegen verwendet.
 // Bei Auswahl von Typ und Disziplin werden die Serienfelder dynamisch generiert.
 // Die Serienanzahl und Schussanzahl pro Serie kann vom Disziplin-Standard abweichen.
 // Optional: Einzelschüsse erfassen (Toggle) und Ausführungsqualität pro Serie.
-export function EinheitForm({ disciplines, initialData, sessionId }: Props) {
+export function EinheitForm({ disciplines, initialData, sessionId, defaultDisciplineId }: Props) {
   const router = useRouter()
   const [pending, setPending] = useState(false)
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false)
@@ -68,9 +98,13 @@ export function EinheitForm({ disciplines, initialData, sessionId }: Props) {
   const [importUrl, setImportUrl] = useState("")
   const [importFile, setImportFile] = useState<File | null>(null)
 
-  // Lazy initializer: Werte aus initialData (Bearbeiten) oder Leerwerte (Neu)
+  const initialDisciplineId = initialData?.disciplineId ?? defaultDisciplineId ?? ""
+  const initialDiscipline = disciplines.find((d) => d.id === initialDisciplineId)
+  const initialSeriesDefaults = createSeriesDefaults(initialDiscipline)
+
+  // Lazy initializer: Werte aus initialData (Bearbeiten) oder Favorit/Leerwerte (Neu)
   const [type, setType] = useState<string>(() => initialData?.type ?? "")
-  const [disciplineId, setDisciplineId] = useState<string>(() => initialData?.disciplineId ?? "")
+  const [disciplineId, setDisciplineId] = useState<string>(() => initialDisciplineId)
 
   // Serien sortiert: Probeschüsse immer zuerst — wird einmalig beim Mount berechnet
   // und als Referenz für alle State-Initialisierungen verwendet
@@ -100,13 +134,15 @@ export function EinheitForm({ disciplines, initialData, sessionId }: Props) {
     return sortedInitialSeries.map((s) => (Array.isArray(s.shots) ? (s.shots as string[]) : []))
   })
 
-  // Serienanzahl aus initialData oder 0
-  const [totalSeries, setTotalSeries] = useState<number>(() => sortedInitialSeries.length)
+  // Serienanzahl aus initialData oder Disziplin-Standard
+  const [totalSeries, setTotalSeries] = useState<number>(() =>
+    initialData ? sortedInitialSeries.length : initialSeriesDefaults.totalSeries
+  )
 
   // Schussanzahl pro Serie: aus shots-Array-Länge ableiten (falls shots vorhanden),
   // sonst Disziplin-Standard (aus disciplines-Array nachschlagen) oder 10
   const [shotCounts, setShotCounts] = useState<number[]>(() => {
-    if (!initialData) return []
+    if (!initialData) return initialSeriesDefaults.shotCounts
     const disc = disciplines.find((d) => d.id === initialData.disciplineId)
     return sortedInitialSeries.map((s) => {
       if (Array.isArray(s.shots) && (s.shots as string[]).length > 0) {
@@ -119,19 +155,21 @@ export function EinheitForm({ disciplines, initialData, sessionId }: Props) {
   // Seriensummen im Summen-Modus: kontrolliertes State-Array (parallel zu shotCounts etc.)
   // Ermöglicht Echtzeit-Validierung ohne nativen Browser-Validation-Dialog
   const [seriesTotals, setSeriesTotals] = useState<string[]>(() => {
-    if (!initialData) return []
+    if (!initialData) return initialSeriesDefaults.seriesTotals
     return sortedInitialSeries.map((s) => (s.scoreTotal != null ? String(s.scoreTotal) : ""))
   })
 
   // isPractice-Flag pro Serie — ermöglicht manuelles Hinzufügen von Probeschuss-Serien,
   // unabhängig von der Anzahl in der Disziplin-Konfiguration
   const [seriesIsPractice, setSeriesIsPractice] = useState<boolean[]>(() =>
-    sortedInitialSeries.map((s) => s.isPractice)
+    initialData ? sortedInitialSeries.map((s) => s.isPractice) : initialSeriesDefaults.seriesIsPractice
   )
 
   // Stabile Keys pro Serie: verhindert ungewollte Re-Renders (und Wertverlust in unkontrollierten
   // Inputs) wenn Serien eingefügt oder verschoben werden — neue Serien erhalten generierte IDs
-  const [seriesKeys, setSeriesKeys] = useState<string[]>(() => sortedInitialSeries.map((s) => s.id))
+  const [seriesKeys, setSeriesKeys] = useState<string[]>(() =>
+    initialData ? sortedInitialSeries.map((s) => s.id) : initialSeriesDefaults.seriesKeys
+  )
 
   // Datum vorbelegen: aus initialData oder aktuelle Zeit
   const [dateValue, setDateValue] = useState<string>(() =>
@@ -177,30 +215,14 @@ export function EinheitForm({ disciplines, initialData, sessionId }: Props) {
   function handleDisciplineChange(id: string) {
     setDisciplineId(id)
     const disc = disciplines.find((d) => d.id === id)
-    if (disc) {
-      const newTotal = disc.practiceSeries + disc.seriesCount
-      setTotalSeries(newTotal)
-      setShotCounts(Array(newTotal).fill(disc.shotsPerSeries))
-      setSeriesIsPractice([
-        ...Array(disc.practiceSeries).fill(true),
-        ...Array(disc.seriesCount).fill(false),
-      ])
-      setSeriesKeys([
-        ...Array.from({ length: disc.practiceSeries }, (_, i) => `d-p-${i}-${Date.now()}`),
-        ...Array.from({ length: disc.seriesCount }, (_, i) => `d-r-${i}-${Date.now()}`),
-      ])
-      setSeriesTotals(Array(newTotal).fill(""))
-      setShowShots(false)
-      setShots([])
-    } else {
-      setTotalSeries(0)
-      setShotCounts([])
-      setSeriesIsPractice([])
-      setSeriesKeys([])
-      setSeriesTotals([])
-      setShowShots(false)
-      setShots([])
-    }
+    const defaults = createSeriesDefaults(disc)
+    setTotalSeries(defaults.totalSeries)
+    setShotCounts(defaults.shotCounts)
+    setSeriesIsPractice(defaults.seriesIsPractice)
+    setSeriesKeys(defaults.seriesKeys)
+    setSeriesTotals(defaults.seriesTotals)
+    setShowShots(false)
+    setShots([])
   }
 
   // Shots-Array initialisieren wenn Toggle aktiviert wird.
@@ -423,6 +445,12 @@ export function EinheitForm({ disciplines, initialData, sessionId }: Props) {
                     setSeriesTotals([])
                     setShowShots(false)
                     setShots([])
+                    return
+                  }
+
+                  // Bei neuer Einheit automatisch Favorit setzen, falls noch keine Disziplin gewählt ist.
+                  if (!initialData && !disciplineId && defaultDisciplineId) {
+                    handleDisciplineChange(defaultDisciplineId)
                   }
                 }}
               >

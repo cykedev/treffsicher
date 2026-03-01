@@ -2,11 +2,12 @@ import { getAuthSession } from "@/lib/auth-helpers"
 import { redirect } from "next/navigation"
 import Link from "next/link"
 import { Plus, Pencil } from "lucide-react"
-import { getDisciplines } from "@/lib/disciplines/actions"
+import { getDisciplines, getFavouriteDisciplineId } from "@/lib/disciplines/actions"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import { ArchiveDisciplineButton } from "@/components/app/ArchiveDisciplineButton"
+import { FavouriteDisciplineButton } from "@/components/app/FavouriteDisciplineButton"
 
 const scoringTypeLabel: Record<string, string> = {
   WHOLE: "Ganzringe",
@@ -17,7 +18,10 @@ export default async function DisziplinenPage() {
   const session = await getAuthSession()
   if (!session) redirect("/login")
 
-  const disciplines = await getDisciplines()
+  const [disciplines, favouriteDisciplineId] = await Promise.all([
+    getDisciplines(),
+    getFavouriteDisciplineId(),
+  ])
 
   return (
     <div className="space-y-6">
@@ -56,18 +60,22 @@ export default async function DisziplinenPage() {
                     {d.practiceSeries > 0 && ` — ${d.practiceSeries} Probeschuss-Serie(n)`}
                   </p>
                 </div>
-                {/* Aktionen nur bei eigenen Disziplinen */}
-                {!d.isSystem && (
-                  <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2">
+                  <FavouriteDisciplineButton
+                    disciplineId={d.id}
+                    initialFavourite={favouriteDisciplineId === d.id}
+                  />
+                  {/* Aktionen nur bei eigenen Disziplinen */}
+                  {!d.isSystem && (
                     <Button variant="outline" size="sm" asChild>
                       <Link href={`/disziplinen/${d.id}/bearbeiten`}>
                         <Pencil className="mr-1.5 h-3.5 w-3.5" />
                         Bearbeiten
                       </Link>
                     </Button>
-                    <ArchiveDisciplineButton disciplineId={d.id} />
-                  </div>
-                )}
+                  )}
+                  {!d.isSystem && <ArchiveDisciplineButton disciplineId={d.id} />}
+                </div>
               </CardContent>
             </Card>
           ))}
