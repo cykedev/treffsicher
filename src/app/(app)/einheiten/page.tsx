@@ -178,8 +178,8 @@ export default async function EinheitenPage() {
                         )}
                         <p className="text-xs text-muted-foreground">
                           {totalScoringShots > 0
-                            ? `Ringe · ${totalScoringShots} Sch.${totalPracticeShots > 0 ? ` + ${totalPracticeShots} Probe` : ""}`
-                            : "Ringe"}
+                            ? `${totalScoringShots} Sch.${totalPracticeShots > 0 ? ` + ${totalPracticeShots} Probe` : ""}`
+                            : ""}
                         </p>
                       </div>
                     )}
