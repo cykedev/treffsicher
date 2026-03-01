@@ -433,7 +433,7 @@ export function EinheitForm({ disciplines, initialData, sessionId }: Props) {
                       ? {
                           // Gradient 28×28px oben-rechts: dunkle Hälfte = Dreieck oben-rechts
                           backgroundImage: "linear-gradient(225deg, #374151 50%, transparent 50%)",
-                          backgroundSize: "28px 28px",
+                          backgroundSize: "50px 50px",
                           backgroundPosition: "top right",
                           backgroundRepeat: "no-repeat",
                         }
@@ -445,7 +445,7 @@ export function EinheitForm({ disciplines, initialData, sessionId }: Props) {
                     style={
                       isPractice
                         ? // Abgeschnittene obere rechte Ecke — gibt Dreieck des Wrappers frei
-                          { clipPath: "polygon(0 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 0 100%)" }
+                          { clipPath: "polygon(0 0, calc(100% - 50px) 0, 100% 50px, 100% 100%, 0 100%)" }
                         : undefined
                     }
                   >

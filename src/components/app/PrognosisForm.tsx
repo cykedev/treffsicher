@@ -100,13 +100,13 @@ export function PrognosisForm({ sessionId, initialData, onSuccess, onCancel }: P
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="expectedCleanShots">Erwartete Volltreffer</Label>
+          <Label htmlFor="expectedCleanShots">Erwartete saubere Schüsse</Label>
           <Input
             id="expectedCleanShots"
             name="expectedCleanShots"
             type="number"
             min="0"
-            placeholder="Anzahl 10er"
+            placeholder="saubere Schüsse"
             defaultValue={initialData?.expectedCleanShots ?? ""}
             disabled={pending}
           />
