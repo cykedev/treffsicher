@@ -4,6 +4,7 @@ import Link from "next/link"
 import { Plus, Heart } from "lucide-react"
 import { getSessions } from "@/lib/sessions/actions"
 import { calculateTotalScore } from "@/lib/sessions/calculateScore"
+import { getSeriesMax, type ScoringType } from "@/lib/sessions/validation"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
@@ -75,24 +76,42 @@ export default async function EinheitenPage() {
               }))
             )
             const hasSeries = s.series.length > 0
-            const scoringType = s.discipline?.scoringType
+            const scoringType = s.discipline?.scoringType as ScoringType | undefined
             const shotsPerSeries = s.discipline?.shotsPerSeries ?? 0
 
-            // Wertungsserien × Schuss/Serie (Näherung, ohne Probeschüsse)
-            const scoringSeriesCount = s.series.filter(
-              (serie) => !serie.isPractice && serie.scoreTotal !== null
-            ).length
-            const approxShots = scoringSeriesCount > 0 && shotsPerSeries
-              ? scoringSeriesCount * shotsPerSeries
-              : 0
+            const getSeriesShotCount = (serie: { shots: unknown }): number => {
+              if (Array.isArray(serie.shots) && serie.shots.length > 0) {
+                return serie.shots.length
+              }
+              return shotsPerSeries
+            }
 
-            // Probeschuss-Serien × Schuss/Serie
-            const practiceSeriesCount = s.series.filter(
+            // Schussanzahl dynamisch: echte Einzelschüsse wenn vorhanden, sonst Disziplin-Standard
+            const scoringSeries = s.series.filter(
+              (serie) => !serie.isPractice && serie.scoreTotal !== null
+            )
+            const totalScoringShots = scoringSeries.reduce(
+              (sum, serie) => sum + getSeriesShotCount(serie),
+              0
+            )
+
+            const practiceSeries = s.series.filter(
               (serie) => serie.isPractice && serie.scoreTotal !== null
-            ).length
-            const approxPracticeShots = practiceSeriesCount > 0 && shotsPerSeries
-              ? practiceSeriesCount * shotsPerSeries
+            )
+            const totalPracticeShots = practiceSeries.reduce(
+              (sum, serie) => sum + getSeriesShotCount(serie),
+              0
+            )
+
+            const maxScore = scoringType && totalScoringShots > 0
+              ? getSeriesMax(scoringType, totalScoringShots)
               : 0
+            const formattedTotalScore = scoringType === "TENTH"
+              ? totalScore.toFixed(1)
+              : String(totalScore)
+            const formattedMaxScore = scoringType === "TENTH"
+              ? maxScore.toFixed(1)
+              : String(maxScore)
 
             // Einzelschüsse erfasst wenn mindestens eine Serie ein nicht-leeres shots-Array hat
             const hasIndividualShots = s.series.some(
@@ -156,11 +175,16 @@ export default async function EinheitenPage() {
                     {hasSeries && totalScore > 0 && (
                       <div className="ml-4 shrink-0 text-right">
                         <span className="text-xl font-bold tabular-nums">
-                          {scoringType === "TENTH" ? totalScore.toFixed(1) : totalScore}
+                          {formattedTotalScore}
                         </span>
+                        {maxScore > 0 && (
+                          <p className="text-[11px] leading-tight text-muted-foreground/80">
+                            von {formattedMaxScore}
+                          </p>
+                        )}
                         <p className="text-xs text-muted-foreground">
-                          {approxShots > 0
-                            ? `Ringe · ${approxShots} Sch.${approxPracticeShots > 0 ? ` + ${approxPracticeShots} Probe` : ""}`
+                          {totalScoringShots > 0
+                            ? `Ringe · ${totalScoringShots} Sch.${totalPracticeShots > 0 ? ` + ${totalPracticeShots} Probe` : ""}`
                             : "Ringe"}
                         </p>
                       </div>
