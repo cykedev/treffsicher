@@ -145,8 +145,8 @@ export default async function EinheitDetailPage({ params }: { params: Promise<{ 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-start justify-between gap-4">
-        <div className="space-y-1.5">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 flex-1 space-y-1.5">
           <Badge variant="outline" className={typeBadgeClass[einheit.type] ?? ""}>
             {sessionTypeLabels[einheit.type] ?? einheit.type}
           </Badge>
@@ -179,12 +179,16 @@ export default async function EinheitDetailPage({ params }: { params: Promise<{ 
             </div>
           )}
         </div>
-        <div className="flex items-center gap-1">
+        <div className="ml-2 flex shrink-0 items-center gap-0.5 sm:gap-1">
           <FavouriteButton sessionId={einheit.id} initialFavourite={einheit.isFavourite} />
-          <Button variant="ghost" size="sm" asChild>
-            <Link href={`/einheiten/${einheit.id}/export/pdf`} target="_blank">
-              <Download className="mr-1.5 h-4 w-4" />
-              PDF
+          <Button variant="ghost" size="sm" className="px-2 sm:px-3" asChild>
+            <Link
+              href={`/einheiten/${einheit.id}/export/pdf`}
+              target="_blank"
+              aria-label="Als PDF exportieren"
+            >
+              <Download className="h-4 w-4 sm:mr-1.5" />
+              <span className="hidden sm:inline">PDF</span>
             </Link>
           </Button>
           <Button variant="ghost" size="icon" asChild>
@@ -193,10 +197,10 @@ export default async function EinheitDetailPage({ params }: { params: Promise<{ 
             </Link>
           </Button>
           <DeleteSessionButton sessionId={einheit.id} />
-          <Button variant="ghost" size="sm" asChild>
-            <Link href="/einheiten">
-              <ArrowLeft className="mr-1.5 h-4 w-4" />
-              Zurück
+          <Button variant="ghost" size="sm" className="px-2 sm:px-3" asChild>
+            <Link href="/einheiten" aria-label="Zurück zu Einheiten">
+              <ArrowLeft className="h-4 w-4 sm:mr-1.5" />
+              <span className="hidden sm:inline">Zurück</span>
             </Link>
           </Button>
         </div>
