@@ -92,7 +92,7 @@ export function PrognosisSection({ sessionId, initialData }: Props) {
         </div>
       </div>
 
-      {/* Ergebnisprognose + Volltreffer */}
+      {/* Ergebnisprognose + saubere Schüsse */}
       {hasScore && (
         <>
           <Separator />
@@ -105,7 +105,7 @@ export function PrognosisSection({ sessionId, initialData }: Props) {
             )}
             {initialData.expectedCleanShots != null && (
               <div className="space-y-0.5">
-                <p className="text-xs text-muted-foreground">Erwartete Volltreffer</p>
+                <p className="text-xs text-muted-foreground">Erwartete saubere Schüsse</p>
                 <p className="text-base font-semibold">{initialData.expectedCleanShots}</p>
               </div>
             )}
