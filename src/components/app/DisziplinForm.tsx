@@ -21,11 +21,12 @@ interface Props {
   // Wenn gesetzt: Bearbeiten-Modus
   initialData?: Discipline
   disciplineId?: string
+  canCreateSystem?: boolean
 }
 
 // Formular für neue oder bestehende Disziplin.
 // Im Bearbeiten-Modus (disciplineId gesetzt) wird updateDiscipline mit bind verwendet.
-export function DisziplinForm({ initialData, disciplineId }: Props) {
+export function DisziplinForm({ initialData, disciplineId, canCreateSystem = false }: Props) {
   const router = useRouter()
 
   // Im Bearbeiten-Modus die action via bind an die ID binden
@@ -137,6 +138,26 @@ export function DisziplinForm({ initialData, disciplineId }: Props) {
               </SelectContent>
             </Select>
           </div>
+
+          {disciplineId ? (
+            // Beim Bearbeiten bleibt der Disziplin-Typ unveraendert.
+            <input type="hidden" name="isSystem" value={initialData?.isSystem ? "true" : "false"} />
+          ) : canCreateSystem ? (
+            <div className="space-y-2">
+              <Label htmlFor="isSystem">Sichtbarkeit</Label>
+              <Select name="isSystem" defaultValue="true" disabled={pending}>
+                <SelectTrigger id="isSystem">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="true">System-Disziplin (fuer alle)</SelectItem>
+                  <SelectItem value="false">Eigene Disziplin (nur fuer mich)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          ) : (
+            <input type="hidden" name="isSystem" value="false" />
+          )}
 
           <div className="flex gap-3">
             <Button type="submit" disabled={pending}>

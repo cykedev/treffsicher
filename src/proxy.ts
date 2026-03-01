@@ -6,6 +6,19 @@ export const proxy = withAuth({
   pages: {
     signIn: "/login",
   },
+  callbacks: {
+    authorized: ({ req, token }) => {
+      // Alle geschützten Routen erfordern Login.
+      if (!token) return false
+
+      // /admin nur für ADMIN-Rolle erlauben.
+      if (req.nextUrl.pathname.startsWith("/admin")) {
+        return token.role === "ADMIN"
+      }
+
+      return true
+    },
+  },
 })
 
 export default proxy

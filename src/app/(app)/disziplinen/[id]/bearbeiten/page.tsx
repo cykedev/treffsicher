@@ -19,8 +19,14 @@ export default async function DisziplinBearbeitenPage({
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Disziplin bearbeiten</h1>
-        <p className="text-muted-foreground">Name, Serien und Schusszahl anpassen.</p>
+        <h1 className="text-2xl font-bold tracking-tight">
+          {discipline.isSystem ? "System-Disziplin bearbeiten" : "Disziplin bearbeiten"}
+        </h1>
+        <p className="text-muted-foreground">
+          {discipline.isSystem
+            ? "Diese Standard-Disziplin gilt fuer alle Nutzer."
+            : "Name, Serien und Schusszahl anpassen."}
+        </p>
       </div>
       <DisziplinForm initialData={discipline} disciplineId={id} />
     </div>

@@ -2,7 +2,7 @@ import { getAuthSession } from "@/lib/auth-helpers"
 import { redirect } from "next/navigation"
 import Link from "next/link"
 import { Plus, Pencil } from "lucide-react"
-import { getDisciplines, getFavouriteDisciplineId } from "@/lib/disciplines/actions"
+import { getDisciplinesForManagement, getFavouriteDisciplineId } from "@/lib/disciplines/actions"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
@@ -17,9 +17,10 @@ const scoringTypeLabel: Record<string, string> = {
 export default async function DisziplinenPage() {
   const session = await getAuthSession()
   if (!session) redirect("/login")
+  const isAdmin = session.user.role === "ADMIN"
 
   const [disciplines, favouriteDisciplineId] = await Promise.all([
-    getDisciplines(),
+    getDisciplinesForManagement(),
     getFavouriteDisciplineId(),
   ])
 
@@ -28,12 +29,16 @@ export default async function DisziplinenPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Disziplinen</h1>
-          <p className="text-muted-foreground">System-Disziplinen und eigene Konfigurationen.</p>
+          <p className="text-muted-foreground">
+            {isAdmin
+              ? "System-Disziplinen fuer den Verein und eigene Konfigurationen."
+              : "System-Disziplinen und eigene Konfigurationen."}
+          </p>
         </div>
         <Button asChild>
           <Link href="/disziplinen/neu">
             <Plus className="mr-1.5 h-4 w-4" />
-            Neue Disziplin
+            {isAdmin ? "Neue (System-)Disziplin" : "Neue Disziplin"}
           </Link>
         </Button>
       </div>
@@ -53,6 +58,11 @@ export default async function DisziplinenPage() {
                         Standard
                       </Badge>
                     )}
+                    {d.isArchived && (
+                      <Badge variant="outline" className="text-xs">
+                        Archiviert
+                      </Badge>
+                    )}
                   </div>
                   <p className="text-sm text-muted-foreground">
                     {d.seriesCount} × {d.shotsPerSeries} Schuss —{" "}
@@ -61,12 +71,14 @@ export default async function DisziplinenPage() {
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <FavouriteDisciplineButton
-                    disciplineId={d.id}
-                    initialFavourite={favouriteDisciplineId === d.id}
-                  />
-                  {/* Aktionen nur bei eigenen Disziplinen */}
-                  {!d.isSystem && (
+                  {!d.isArchived && (
+                    <FavouriteDisciplineButton
+                      disciplineId={d.id}
+                      initialFavourite={favouriteDisciplineId === d.id}
+                    />
+                  )}
+                  {/* Eigene Disziplinen sind bearbeitbar; System-Disziplinen nur fuer Admins. */}
+                  {(!d.isSystem || isAdmin) && (
                     <Button variant="outline" size="sm" asChild>
                       <Link href={`/disziplinen/${d.id}/bearbeiten`}>
                         <Pencil className="mr-1.5 h-3.5 w-3.5" />
@@ -74,7 +86,13 @@ export default async function DisziplinenPage() {
                       </Link>
                     </Button>
                   )}
-                  {!d.isSystem && <ArchiveDisciplineButton disciplineId={d.id} />}
+                  {(!d.isSystem || isAdmin) && (
+                    <ArchiveDisciplineButton
+                      disciplineId={d.id}
+                      isArchived={d.isArchived}
+                      isSystem={d.isSystem}
+                    />
+                  )}
                 </div>
               </CardContent>
             </Card>

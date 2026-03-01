@@ -6,13 +6,21 @@ export default async function NeueDisziplinPage() {
   const session = await getAuthSession()
   if (!session) redirect("/login")
 
+  const isAdmin = session.user.role === "ADMIN"
+
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Neue Disziplin</h1>
-        <p className="text-muted-foreground">Eigene Disziplin mit individuellem Format anlegen.</p>
+        <h1 className="text-2xl font-bold tracking-tight">
+          {isAdmin ? "Neue Disziplin anlegen" : "Neue Disziplin"}
+        </h1>
+        <p className="text-muted-foreground">
+          {isAdmin
+            ? "Als Admin kannst du System-Disziplinen fuer alle oder eigene Disziplinen anlegen."
+            : "Eigene Disziplin mit individuellem Format anlegen."}
+        </p>
       </div>
-      <DisziplinForm />
+      <DisziplinForm canCreateSystem={isAdmin} />
     </div>
   )
 }
