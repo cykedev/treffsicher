@@ -69,6 +69,7 @@ const CreateSessionSchema = z.object({
   date: z.string().min(1, "Datum ist erforderlich"),
   location: z.string().optional(),
   disciplineId: z.string().optional(),
+  trainingGoal: z.string().optional(),
 })
 
 // Schema für eine einzelne Serie inkl. Phase-2-Felder
@@ -126,6 +127,7 @@ export async function createSession(formData: FormData): Promise<void> {
     date: formData.get("date"),
     location: formData.get("location") || undefined,
     disciplineId: formData.get("disciplineId") || undefined,
+    trainingGoal: formData.get("trainingGoal") || undefined,
   })
 
   if (!parsed.success) {
@@ -176,6 +178,7 @@ export async function createSession(formData: FormData): Promise<void> {
           date: new Date(parsed.data.date),
           location: parsed.data.location,
           disciplineId: parsed.data.disciplineId || null,
+          trainingGoal: parsed.data.trainingGoal || null,
         },
       })
 
@@ -384,6 +387,7 @@ export async function updateSession(id: string, formData: FormData): Promise<voi
     date: formData.get("date"),
     location: formData.get("location") || undefined,
     disciplineId: formData.get("disciplineId") || undefined,
+    trainingGoal: formData.get("trainingGoal") || undefined,
   })
 
   if (!parsed.success) {
@@ -429,6 +433,7 @@ export async function updateSession(id: string, formData: FormData): Promise<voi
           date: new Date(parsed.data.date),
           location: parsed.data.location ?? null,
           disciplineId: parsed.data.disciplineId || null,
+          trainingGoal: parsed.data.trainingGoal || null,
         },
       })
 
@@ -453,6 +458,29 @@ export async function updateSession(id: string, formData: FormData): Promise<voi
   revalidatePath("/einheiten")
   revalidatePath(`/einheiten/${id}`)
   redirect(`/einheiten/${id}`)
+}
+
+/**
+ * Setzt isFavourite einer Einheit auf den gegenteiligen Wert.
+ * Nur der Eigentümer kann den Favorit-Status seiner eigenen Einheiten ändern.
+ */
+export async function toggleFavourite(sessionId: string): Promise<void> {
+  const session = await getAuthSession()
+  if (!session) return
+
+  const existing = await db.trainingSession.findFirst({
+    where: { id: sessionId, userId: session.user.id },
+    select: { isFavourite: true },
+  })
+  if (!existing) return
+
+  await db.trainingSession.update({
+    where: { id: sessionId },
+    data: { isFavourite: !existing.isFavourite },
+  })
+
+  revalidatePath("/einheiten")
+  revalidatePath(`/einheiten/${sessionId}`)
 }
 
 /**

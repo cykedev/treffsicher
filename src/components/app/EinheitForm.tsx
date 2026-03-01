@@ -16,6 +16,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Card, CardContent } from "@/components/ui/card"
+import { Textarea } from "@/components/ui/textarea"
 import type { Discipline } from "@/generated/prisma/client"
 
 interface Props {
@@ -363,6 +364,21 @@ export function EinheitForm({ disciplines, initialData, sessionId }: Props) {
               disabled={pending}
             />
           </div>
+
+          {/* Trainingsziel — bei WETTKAMPF wird stattdessen das Leistungsziel in der Prognose erfasst */}
+          {type && type !== "WETTKAMPF" && (
+            <div className="space-y-2">
+              <Label htmlFor="trainingGoal">Trainingsziel (optional)</Label>
+              <Textarea
+                id="trainingGoal"
+                name="trainingGoal"
+                placeholder="Was soll heute gelingen?"
+                defaultValue={initialData?.trainingGoal ?? ""}
+                disabled={pending}
+                rows={2}
+              />
+            </div>
+          )}
         </CardContent>
       </Card>
 

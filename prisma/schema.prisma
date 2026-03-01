@@ -101,6 +101,10 @@ model TrainingSession {
   // Disziplin nur bei TRAINING und WETTKAMPF gesetzt
   disciplineId String?
   discipline   Discipline? @relation(fields: [disciplineId], references: [id])
+  // Als Favorit markiert — wird im Tagebuch mit Herz-Icon hervorgehoben
+  isFavourite  Boolean     @default(false)
+  // Trainingsziel für TRAINING, TROCKENTRAINING und MENTAL (bei WETTKAMPF: Leistungsziel in Prognose)
+  trainingGoal String?
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
 

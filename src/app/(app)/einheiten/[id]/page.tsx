@@ -1,11 +1,12 @@
 import { notFound, redirect } from "next/navigation"
 import Link from "next/link"
-import { Pencil, ArrowLeft, Heart, Gauge, CheckCircle2, MessageSquare, Paperclip } from "lucide-react"
+import { Pencil, ArrowLeft, Heart, Target, Gauge, CheckCircle2, MessageSquare, Paperclip } from "lucide-react"
 import { getAuthSession } from "@/lib/auth-helpers"
 import { getSessionById } from "@/lib/sessions/actions"
 import { calculateTotalScore } from "@/lib/sessions/calculateScore"
 import { AttachmentSection } from "@/components/app/AttachmentSection"
 import { DeleteSessionButton } from "@/components/app/DeleteSessionButton"
+import { FavouriteButton } from "@/components/app/FavouriteButton"
 import { WellbeingSection } from "@/components/app/WellbeingSection"
 import { ReflectionSection } from "@/components/app/ReflectionSection"
 import { PrognosisSection } from "@/components/app/PrognosisSection"
@@ -148,8 +149,16 @@ export default async function EinheitDetailPage({ params }: { params: Promise<{ 
             {einheit.discipline && einheit.location && <span>·</span>}
             {einheit.location && <span>{einheit.location}</span>}
           </div>
+          {/* Trainingsziel — nur wenn gesetzt und nicht WETTKAMPF (dort: Leistungsziel in Prognose) */}
+          {einheit.trainingGoal && (
+            <div className="flex items-start gap-1.5 text-sm text-muted-foreground">
+              <Target className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+              <span>{einheit.trainingGoal}</span>
+            </div>
+          )}
         </div>
         <div className="flex items-center gap-1">
+          <FavouriteButton sessionId={einheit.id} initialFavourite={einheit.isFavourite} />
           <Button variant="ghost" size="icon" asChild>
             <Link href={`/einheiten/${einheit.id}/bearbeiten`} aria-label="Bearbeiten">
               <Pencil className="h-4 w-4" />
