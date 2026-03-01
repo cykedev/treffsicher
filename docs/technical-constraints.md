@@ -684,7 +684,7 @@ Nutzer können eigene Disziplinen hinzufügen.
 
 ### Meyton-PDF Import (verbindlich)
 
-- Import-Startpunkt: separater Dialog in `Neue Einheit`
+- Import-Startpunkt: Dialog direkt im Einheit-Formular (`neu` und `bearbeiten`)
 - Quelle: `URL` oder Datei-Upload (`application/pdf`)
 - Verarbeitung: strikt textbasiert (kein OCR)
 - Architekturtrennung: **PDF laden** -> **Text extrahieren** -> **Meyton-Parsing**
@@ -692,7 +692,9 @@ Nutzer können eigene Disziplinen hinzufügen.
 - Schussparser: nur Werte im Bereich `0.0` bis `10.9`; Marker (`*`, `T`) und Footer-Texte werden ignoriert
 - Importierte Serien sind initial immer `isPractice: false`
 - Bei Disziplin `WHOLE`: jeder importierte Schusswert wird per `Math.floor()` umgerechnet
-- Import speichert nicht direkt in der DB: zuerst Formular-Vorbefuellung, Speichern erst durch Nutzeraktion
+- Import ersetzt die aktuell geladenen Serien im Formular vollständig
+- Import speichert nicht direkt in der DB: Speichern erst durch Nutzeraktion
+- Bei neuen, noch nicht gespeicherten Einheiten kann Datum/Uhrzeit aus dem Meyton-PDF übernommen werden
 - Fehlerstrategie: harter Abbruch mit deutscher Fehlermeldung, kein Teilimport
 
 ---

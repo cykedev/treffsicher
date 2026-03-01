@@ -9,9 +9,13 @@ export interface MeytonSeriesResult {
   serien: MeytonSerie[]
 }
 
+const WERTUNG_DATETIME_REGEX = /Wertung\s+(\d{2})\.(\d{2})\.(\d{4})\s+(\d{2}):(\d{2})/i
+const PROBE_DATETIME_REGEX = /Probe\s+(\d{2})\.(\d{2})\.(\d{4})\s+(\d{2}):(\d{2})/i
+const GENERIC_DATETIME_GLOBAL_REGEX = /(\d{2})\.(\d{2})\.(\d{4})\s+(\d{2}):(\d{2})/g
+
 const SERIES_HEADER_REGEX = /Serie\s+(\d+)\s*:/i
 const SERIES_HEADER_GLOBAL_REGEX = /Serie\s+(\d+)\s*:/gi
-const SHOT_TOKEN_REGEX = /(^|[^0-9])(\d{1,2}\.\d)(?:\*|T)?(?!\d)/g
+const SHOT_TOKEN_REGEX = /(^|[^0-9])(\d{1,2}(?:\.\d)?)(?:\*|T)?(?!\d)/g
 
 const STOP_KEYWORDS = [
   "trefferlage",
@@ -261,4 +265,56 @@ export function parseMeytonSeriesFromText(rawText: string): MeytonSeriesResult {
   }
 
   return { serien }
+}
+
+/**
+ * Liest Datum/Uhrzeit aus dem Meyton-Header (Wertung dd.mm.yyyy hh:mm).
+ * Rückgabe als ISO-String oder null wenn nicht vorhanden.
+ */
+export function extractMeytonDateTime(rawText: string): string | null {
+  function parseDateMatch(match: RegExpMatchArray): string | null {
+    const day = Number(match[1])
+    const month = Number(match[2])
+    const year = Number(match[3])
+    const hour = Number(match[4])
+    const minute = Number(match[5])
+
+    if (
+      Number.isNaN(day) ||
+      Number.isNaN(month) ||
+      Number.isNaN(year) ||
+      Number.isNaN(hour) ||
+      Number.isNaN(minute)
+    ) {
+      return null
+    }
+
+    const date = new Date(year, month - 1, day, hour, minute, 0, 0)
+    if (Number.isNaN(date.getTime())) return null
+
+    return date.toISOString()
+  }
+
+  const wertungMatch = rawText.match(WERTUNG_DATETIME_REGEX)
+  if (wertungMatch) {
+    return parseDateMatch(wertungMatch)
+  }
+
+  const probeMatch = rawText.match(PROBE_DATETIME_REGEX)
+  if (probeMatch) {
+    return parseDateMatch(probeMatch)
+  }
+
+  // Fallback: erstes Datum/Uhrzeit-Paar im Dokument, aber "gedruckt am" ignorieren.
+  for (const match of rawText.matchAll(GENERIC_DATETIME_GLOBAL_REGEX)) {
+    const start = match.index ?? 0
+    const contextStart = Math.max(0, start - 24)
+    const context = rawText.slice(contextStart, start).toLowerCase()
+    if (context.includes("gedruckt am")) continue
+
+    const parsed = parseDateMatch(match as unknown as RegExpMatchArray)
+    if (parsed) return parsed
+  }
+
+  return null
 }

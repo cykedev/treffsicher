@@ -6,7 +6,11 @@ import { redirect } from "next/navigation"
 import { db } from "@/lib/db"
 import { getAuthSession } from "@/lib/auth-helpers"
 import { saveUpload } from "@/lib/uploads/upload"
-import { extractTextFromPdfBuffer, parseMeytonSeriesFromText } from "@/lib/sessions/meytonImport"
+import {
+  extractMeytonDateTime,
+  extractTextFromPdfBuffer,
+  parseMeytonSeriesFromText,
+} from "@/lib/sessions/meytonImport"
 import type {
   TrainingSession,
   Discipline,
@@ -62,26 +66,20 @@ export type ActionResult = {
   success?: boolean
 }
 
-export type MeytonImportPrefillSeries = {
+export type MeytonImportPreviewSeries = {
   nr: number
-  isPractice: boolean
   scoreTotal: string
   shots: string[]
-  executionQuality: null
 }
 
-export type MeytonImportPrefill = {
-  type: "TRAINING" | "WETTKAMPF"
-  disciplineId: string
-  date: string
-  location: string
-  trainingGoal: string
-  series: MeytonImportPrefillSeries[]
+export type MeytonImportPreview = {
+  date: string | null
+  series: MeytonImportPreviewSeries[]
 }
 
-export type MeytonImportResult = {
+export type MeytonImportPreviewResult = {
   error?: string
-  data?: MeytonImportPrefill
+  data?: MeytonImportPreview
 }
 
 // ─────────────────────────────────────────────
@@ -97,9 +95,6 @@ const CreateSessionSchema = z.object({
 })
 
 const MeytonImportSchema = z.object({
-  type: z.enum(["TRAINING", "WETTKAMPF"] as const, {
-    message: "Bitte Modus waehlen",
-  }),
   disciplineId: z.string().min(1, "Bitte Disziplin waehlen"),
   source: z.enum(["URL", "UPLOAD"] as const, {
     message: "Bitte Quelle waehlen",
@@ -321,21 +316,20 @@ export async function createSession(formData: FormData): Promise<void> {
 
 /**
  * Liest ein Meyton-PDF (URL oder Upload), extrahiert Serien + Schuesse
- * und liefert eine Vorbelegung fuer das Einheit-Formular.
+ * und liefert eine Vorschau fuer die Serien in der Einheit.
  */
-export async function importMeytonPdf(formData: FormData): Promise<MeytonImportResult> {
+export async function previewMeytonImport(formData: FormData): Promise<MeytonImportPreviewResult> {
   const session = await getAuthSession()
   if (!session) return { error: "Nicht angemeldet" }
 
   const parsed = MeytonImportSchema.safeParse({
-    type: formData.get("type"),
     disciplineId: formData.get("disciplineId"),
     source: formData.get("source"),
     pdfUrl: formData.get("pdfUrl") || undefined,
   })
 
   if (!parsed.success) {
-    return { error: "Bitte Modus, Disziplin und Quelle korrekt auswaehlen." }
+    return { error: "Bitte Disziplin und Quelle korrekt auswaehlen." }
   }
 
   const discipline = await db.discipline.findFirst({
@@ -388,16 +382,14 @@ export async function importMeytonPdf(formData: FormData): Promise<MeytonImportR
     return { error: "Keine Meyton-Serien im PDF gefunden." }
   }
 
-  const importedSeries: MeytonImportPrefillSeries[] = parsedSeries.serien.map((serie) => {
+  const importedSeries: MeytonImportPreviewSeries[] = parsedSeries.serien.map((serie) => {
     const convertedShots = serie.shots.map((value) =>
       mapShotToScoringType(value, discipline.scoringType)
     )
     return {
       nr: serie.nr,
-      isPractice: false,
       scoreTotal: calculateSeriesTotal(convertedShots, discipline.scoringType),
       shots: convertedShots,
-      executionQuality: null,
     }
   })
 
@@ -408,11 +400,7 @@ export async function importMeytonPdf(formData: FormData): Promise<MeytonImportR
 
   return {
     data: {
-      type: parsed.data.type,
-      disciplineId: discipline.id,
-      date: new Date().toISOString(),
-      location: "",
-      trainingGoal: "",
+      date: extractMeytonDateTime(extractedText),
       series: importedSeries,
     },
   }
