@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
+import { Moon, Zap, Brain, Flame } from "lucide-react"
 import { WellbeingForm } from "@/components/app/WellbeingForm"
 import { Button } from "@/components/ui/button"
 import type { Wellbeing } from "@/generated/prisma/client"
@@ -12,10 +13,10 @@ interface Props {
 }
 
 const fields = [
-  { key: "sleep" as const, label: "Schlaf" },
-  { key: "energy" as const, label: "Energie" },
-  { key: "stress" as const, label: "Stress" },
-  { key: "motivation" as const, label: "Motivation" },
+  { key: "sleep"      as const, label: "Schlaf",     icon: Moon  },
+  { key: "energy"     as const, label: "Energie",    icon: Zap   },
+  { key: "stress"     as const, label: "Stress",     icon: Brain },
+  { key: "motivation" as const, label: "Motivation", icon: Flame },
 ]
 
 // Section-Wrapper für das Befinden-Tracking.
@@ -58,21 +59,26 @@ export function WellbeingSection({ sessionId, initialData }: Props) {
   // Lesemodus: Werte übersichtlich anzeigen
   return (
     <div className="space-y-3">
-      <div className="grid gap-2 sm:grid-cols-2">
+      <div className="space-y-2">
         {fields.map((field) => {
           const value = initialData[field.key]
+          const Icon = field.icon
           return (
-            <div key={field.key} className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">{field.label}</span>
-              <div className="flex items-center gap-2">
-                {/* Minimaler Balken als visuelle Orientierung */}
-                <div className="h-1.5 w-16 rounded-full bg-muted">
+            // Feste Label-Breite + wachsender Balken: auf allen Screenbreiten kompakt
+            <div key={field.key} className="flex items-center gap-3 text-sm">
+              <div className="flex w-28 shrink-0 items-center gap-1.5 text-muted-foreground">
+                <Icon className="h-3.5 w-3.5 shrink-0" />
+                <span>{field.label}</span>
+              </div>
+              {/* Balken wächst auf verfügbare Breite — bleibt immer nahe beim Label */}
+              <div className="flex flex-1 items-center gap-2">
+                <div className="h-1.5 flex-1 rounded-full bg-muted">
                   <div
                     className="h-1.5 rounded-full bg-primary"
                     style={{ width: `${(value / 10) * 100}%` }}
                   />
                 </div>
-                <span className="w-8 text-right font-medium tabular-nums">{value}/10</span>
+                <span className="w-8 shrink-0 text-right font-medium tabular-nums">{value}/10</span>
               </div>
             </div>
           )

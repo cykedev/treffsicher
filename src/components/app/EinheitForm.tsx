@@ -425,7 +425,7 @@ export function EinheitForm({ disciplines, initialData, sessionId }: Props) {
                   }
                 >
                   <Card
-                    className={isPractice ? "bg-slate-50" : ""}
+                    className={isPractice ? "bg-muted/30" : ""}
                     style={
                       isPractice
                         ? // Abgeschnittene obere rechte Ecke — gibt Dreieck des Wrappers frei

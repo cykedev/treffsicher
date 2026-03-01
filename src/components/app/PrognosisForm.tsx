@@ -5,13 +5,12 @@ import { savePrognosis, type ActionResult, type SerializedPrognosis } from "@/li
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Slider } from "@/components/ui/slider"
 import { Textarea } from "@/components/ui/textarea"
 
 interface Props {
   sessionId: string
-  // SerializedPrognosis statt Prognosis — expectedScore ist string | null (nicht Decimal)
   initialData?: SerializedPrognosis | null
-  // Callbacks für den Einsatz im Section-Wrapper (view/edit-Modus)
   onSuccess?: () => void
   onCancel?: () => void
 }
@@ -28,9 +27,6 @@ const dimensions = [
 
 type DimensionKey = (typeof dimensions)[number]["name"]
 
-// Erfasst die Selbsteinschätzung vor einer Trainings- oder Wettkampfeinheit.
-// 7 Dimensionen (je 0–100) + Ergebnisprognose + Leistungsziel.
-// Unterstützt Standalone-Nutzung (ohne Callbacks) und eingebettet im Section-Wrapper.
 export function PrognosisForm({ sessionId, initialData, onSuccess, onCancel }: Props) {
   const action = savePrognosis.bind(null, sessionId)
   const [state, formAction, pending] = useActionState<ActionResult | null, FormData>(action, null)
@@ -45,17 +41,13 @@ export function PrognosisForm({ sessionId, initialData, onSuccess, onCancel }: P
     equipment: initialData?.equipment ?? 50,
   })
 
-  // Nach erfolgreichem Speichern Callback aufrufen (für Section-Wrapper)
   useEffect(() => {
-    if (state?.success) {
-      onSuccess?.()
-    }
+    if (state?.success) onSuccess?.()
   }, [state?.success, onSuccess])
 
   return (
     <form action={formAction} className="space-y-4">
       {state?.error && <p className="text-sm text-destructive">{state.error}</p>}
-      {/* Erfolgsmeldung nur ohne Callback — Wrapper übernimmt sonst die Navigation */}
       {state?.success && !onSuccess && (
         <p className="text-sm text-green-600">Prognose gespeichert.</p>
       )}
@@ -63,27 +55,30 @@ export function PrognosisForm({ sessionId, initialData, onSuccess, onCancel }: P
       <div className="space-y-3">
         <p className="text-sm font-medium">Selbsteinschätzung (0–100)</p>
         {dimensions.map((dim) => (
-          <div key={dim.name} className="space-y-1">
-            <div className="flex items-center justify-between">
-              <Label htmlFor={`prognosis-${dim.name}`} className="text-sm">
-                {dim.label}
-              </Label>
-              <span className="text-sm font-medium tabular-nums">{values[dim.name]}</span>
-            </div>
-            <input
+          // Gleiche Ausrichtung wie Lese-Ansicht: Label (w-32) | Slider (flex-1) | Wert (w-8)
+          <div key={dim.name} className="flex items-center gap-3">
+            <Label
+              htmlFor={`prognosis-${dim.name}`}
+              className="w-32 shrink-0 truncate text-sm"
+            >
+              {dim.label}
+            </Label>
+            <input type="hidden" name={dim.name} value={values[dim.name]} />
+            <Slider
               id={`prognosis-${dim.name}`}
-              name={dim.name}
-              type="range"
-              min="0"
-              max="100"
-              step="1"
-              value={values[dim.name]}
-              onChange={(e) =>
-                setValues((prev) => ({ ...prev, [dim.name]: Number(e.target.value) }))
+              min={0}
+              max={100}
+              step={1}
+              value={[values[dim.name]]}
+              onValueChange={([v]) =>
+                setValues((prev) => ({ ...prev, [dim.name]: v }))
               }
               disabled={pending}
-              className="w-full accent-primary"
+              className="flex-1"
             />
+            <span className="w-8 shrink-0 text-right text-sm tabular-nums text-muted-foreground">
+              {values[dim.name]}
+            </span>
           </div>
         ))}
       </div>

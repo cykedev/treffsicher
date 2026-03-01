@@ -1,15 +1,12 @@
 "use client"
 
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Cell } from "recharts"
 import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Cell,
-  ResponsiveContainer,
-} from "recharts"
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+  type ChartConfig,
+} from "@/components/ui/chart"
 
 interface ShotHistogramProps {
   shots: string[]     // Schüsse aus Wertungsserien — Probeschüsse werden nicht dargestellt
@@ -38,6 +35,11 @@ interface BucketData {
   count: number
   label: string
 }
+
+// ChartConfig für die shadcn/ui ChartContainer-Komponente
+const chartConfig = {
+  count: { label: "Schüsse" },
+} satisfies ChartConfig
 
 /**
  * Schüsse einer Einheit in Ring-Buckets zählen.
@@ -77,30 +79,42 @@ export function ShotHistogram({ shots, isDecimal }: ShotHistogramProps) {
   return (
     <div className="space-y-2">
       <p className="text-sm text-muted-foreground">{total} Schüsse</p>
-      <ResponsiveContainer width="100%" height={160}>
+      <ChartContainer config={chartConfig} className="h-44 w-full">
         <BarChart data={data} margin={{ top: 4, right: 8, bottom: 0, left: 0 }}>
-          <CartesianGrid strokeDasharray="3 3" vertical={false} />
+          <CartesianGrid
+            strokeDasharray="3 3"
+            stroke="var(--border)"
+            vertical={false}
+          />
           <XAxis
             dataKey="label"
-            tick={{ fontSize: 12 }}
+            tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
             axisLine={false}
             tickLine={false}
           />
           <YAxis
             allowDecimals={false}
-            tick={{ fontSize: 12 }}
+            tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
             axisLine={false}
             tickLine={false}
-            width={30}
+            width={28}
           />
-          <Tooltip
-            formatter={(value: number) => {
-              if (value === 0) return [null, null]
-              return [`${value} Schüsse`, "Wertung"]
-            }}
-            labelFormatter={(label) => `Ring ${label}`}
+          <ChartTooltip
+            content={
+              <ChartTooltipContent
+                formatter={(value, _name, item) => {
+                  if (value === 0) return null
+                  return (
+                    <span>
+                      Ring {item.payload.ring}: <strong>{value}</strong> Schuss
+                    </span>
+                  )
+                }}
+                hideLabel
+              />
+            }
           />
-          <Bar dataKey="count">
+          <Bar dataKey="count" radius={[3, 3, 0, 0]}>
             {data.map((entry, index) => (
               <Cell
                 key={`cell-${entry.ring}`}
@@ -109,7 +123,7 @@ export function ShotHistogram({ shots, isDecimal }: ShotHistogramProps) {
             ))}
           </Bar>
         </BarChart>
-      </ResponsiveContainer>
+      </ChartContainer>
     </div>
   )
 }

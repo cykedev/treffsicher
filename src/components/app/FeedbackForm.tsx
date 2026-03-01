@@ -4,13 +4,13 @@ import { useActionState, useState, useEffect } from "react"
 import { saveFeedback, type ActionResult } from "@/lib/sessions/actions"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
+import { Slider } from "@/components/ui/slider"
 import { Textarea } from "@/components/ui/textarea"
 import type { Feedback } from "@/generated/prisma/client"
 
 interface Props {
   sessionId: string
   initialData?: Feedback | null
-  // Callbacks für den Einsatz im Section-Wrapper (view/edit-Modus)
   onSuccess?: () => void
   onCancel?: () => void
 }
@@ -27,9 +27,6 @@ const dimensions = [
 
 type DimensionKey = (typeof dimensions)[number]["name"]
 
-// Erfasst den tatsächlichen Stand nach einer Trainings- oder Wettkampfeinheit.
-// Gleiche 7 Dimensionen wie die Prognose — ermöglicht automatischen Vergleich.
-// Unterstützt Standalone-Nutzung (ohne Callbacks) und eingebettet im Section-Wrapper.
 export function FeedbackForm({ sessionId, initialData, onCancel, onSuccess }: Props) {
   const action = saveFeedback.bind(null, sessionId)
   const [state, formAction, pending] = useActionState<ActionResult | null, FormData>(action, null)
@@ -45,17 +42,13 @@ export function FeedbackForm({ sessionId, initialData, onCancel, onSuccess }: Pr
   })
   const [goalAchieved, setGoalAchieved] = useState(initialData?.goalAchieved ?? false)
 
-  // Nach erfolgreichem Speichern Callback aufrufen (für Section-Wrapper)
   useEffect(() => {
-    if (state?.success) {
-      onSuccess?.()
-    }
+    if (state?.success) onSuccess?.()
   }, [state?.success, onSuccess])
 
   return (
     <form action={formAction} className="space-y-4">
       {state?.error && <p className="text-sm text-destructive">{state.error}</p>}
-      {/* Erfolgsmeldung nur ohne Callback — Wrapper übernimmt sonst die Navigation */}
       {state?.success && !onSuccess && (
         <p className="text-sm text-green-600">Feedback gespeichert.</p>
       )}
@@ -63,27 +56,30 @@ export function FeedbackForm({ sessionId, initialData, onCancel, onSuccess }: Pr
       <div className="space-y-3">
         <p className="text-sm font-medium">Tatsächlicher Stand (0–100)</p>
         {dimensions.map((dim) => (
-          <div key={dim.name} className="space-y-1">
-            <div className="flex items-center justify-between">
-              <Label htmlFor={`feedback-${dim.name}`} className="text-sm">
-                {dim.label}
-              </Label>
-              <span className="text-sm font-medium tabular-nums">{values[dim.name]}</span>
-            </div>
-            <input
+          // Gleiche Ausrichtung wie Lese-Ansicht: Label (w-32) | Slider (flex-1) | Wert (w-8)
+          <div key={dim.name} className="flex items-center gap-3">
+            <Label
+              htmlFor={`feedback-${dim.name}`}
+              className="w-32 shrink-0 truncate text-sm"
+            >
+              {dim.label}
+            </Label>
+            <input type="hidden" name={dim.name} value={values[dim.name]} />
+            <Slider
               id={`feedback-${dim.name}`}
-              name={dim.name}
-              type="range"
-              min="0"
-              max="100"
-              step="1"
-              value={values[dim.name]}
-              onChange={(e) =>
-                setValues((prev) => ({ ...prev, [dim.name]: Number(e.target.value) }))
+              min={0}
+              max={100}
+              step={1}
+              value={[values[dim.name]]}
+              onValueChange={([v]) =>
+                setValues((prev) => ({ ...prev, [dim.name]: v }))
               }
               disabled={pending}
-              className="w-full accent-primary"
+              className="flex-1"
             />
+            <span className="w-8 shrink-0 text-right text-sm tabular-nums text-muted-foreground">
+              {values[dim.name]}
+            </span>
           </div>
         ))}
       </div>

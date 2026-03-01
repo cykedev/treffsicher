@@ -1,8 +1,10 @@
 import { getAuthSession } from "@/lib/auth-helpers"
 import { redirect } from "next/navigation"
 import Link from "next/link"
+import { Plus, Pencil } from "lucide-react"
 import { getDisciplines } from "@/lib/disciplines/actions"
 import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import { ArchiveDisciplineButton } from "@/components/app/ArchiveDisciplineButton"
 
@@ -25,7 +27,10 @@ export default async function DisziplinenPage() {
           <p className="text-muted-foreground">System-Disziplinen und eigene Konfigurationen.</p>
         </div>
         <Button asChild>
-          <Link href="/disziplinen/neu">Neue Disziplin</Link>
+          <Link href="/disziplinen/neu">
+            <Plus className="mr-1.5 h-4 w-4" />
+            Neue Disziplin
+          </Link>
         </Button>
       </div>
 
@@ -36,13 +41,13 @@ export default async function DisziplinenPage() {
           {disciplines.map((d) => (
             <Card key={d.id}>
               <CardContent className="flex items-center justify-between py-4">
-                <div>
-                  <span className="font-medium">{d.name}</span>
-                  {d.isSystem && (
-                    <span className="ml-2 rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">
-                      Standard
-                    </span>
-                  )}
+                <div className="space-y-0.5">
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium">{d.name}</span>
+                    {d.isSystem && (
+                      <Badge variant="secondary" className="text-xs">Standard</Badge>
+                    )}
+                  </div>
                   <p className="text-sm text-muted-foreground">
                     {d.seriesCount} × {d.shotsPerSeries} Schuss —{" "}
                     {scoringTypeLabel[d.scoringType] ?? d.scoringType}
@@ -53,7 +58,10 @@ export default async function DisziplinenPage() {
                 {!d.isSystem && (
                   <div className="flex items-center gap-2">
                     <Button variant="outline" size="sm" asChild>
-                      <Link href={`/disziplinen/${d.id}/bearbeiten`}>Bearbeiten</Link>
+                      <Link href={`/disziplinen/${d.id}/bearbeiten`}>
+                        <Pencil className="mr-1.5 h-3.5 w-3.5" />
+                        Bearbeiten
+                      </Link>
                     </Button>
                     <ArchiveDisciplineButton disciplineId={d.id} />
                   </div>
