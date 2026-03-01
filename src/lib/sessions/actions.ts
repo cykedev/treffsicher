@@ -16,6 +16,7 @@ import type {
   Discipline,
   Series,
   Attachment,
+  GoalType,
   Wellbeing,
   Reflection,
   Prognosis,
@@ -49,11 +50,21 @@ export type SerializedSeries = Omit<Series, "scoreTotal"> & {
   scoreTotal: number | null // Decimal → number serialisiert
 }
 
+export type SessionGoalSummary = {
+  goalId: string
+  goal: {
+    id: string
+    title: string
+    type: GoalType
+  }
+}
+
 export type SessionDetail = TrainingSession & {
   discipline: Discipline | null
   // Decimal-Felder sind zu plain types serialisiert — keine Prisma Decimal-Objekte
   series: SerializedSeries[]
   attachments: Attachment[]
+  goals: SessionGoalSummary[]
   // Mentaltraining-Daten — alle optional (Phase 3)
   wellbeing: Wellbeing | null
   reflection: Reflection | null
@@ -103,6 +114,16 @@ const MeytonImportSchema = z.object({
 })
 
 const MAX_MEYTON_PDF_SIZE_BYTES = 10 * 1024 * 1024
+
+function parseGoalIdsFromFormData(formData: FormData): string[] {
+  return [
+    ...new Set(
+      formData
+        .getAll("goalIds")
+        .filter((value): value is string => typeof value === "string" && value.length > 0)
+    ),
+  ]
+}
 
 function mapShotToScoringType(value: number, scoringType: ScoringType): string {
   if (scoringType === "WHOLE") {
@@ -269,6 +290,8 @@ export async function createSession(formData: FormData): Promise<void> {
     i++
   }
 
+  const selectedGoalIds = parseGoalIdsFromFormData(formData)
+
   // Einheit und Serien in einer Transaktion anlegen.
   // Omit entfernt die nicht-transaktionalen Methoden aus dem Typ — das ist der korrekte
   // Typ für den Prisma-Transaktions-Client
@@ -305,11 +328,32 @@ export async function createSession(formData: FormData): Promise<void> {
         })
       }
 
+      if (selectedGoalIds.length > 0) {
+        const validGoals = await tx.goal.findMany({
+          where: {
+            id: { in: selectedGoalIds },
+            userId: session.user.id,
+          },
+          select: { id: true },
+        })
+
+        if (validGoals.length > 0) {
+          await tx.sessionGoal.createMany({
+            data: validGoals.map((goal) => ({
+              sessionId: trainingSession.id,
+              goalId: goal.id,
+            })),
+            skipDuplicates: true,
+          })
+        }
+      }
+
       return trainingSession
     }
   )
 
   revalidatePath("/einheiten")
+  revalidatePath("/ziele")
   // Nach Erstellung direkt zur Detailansicht — dort können Uploads hinzugefügt werden
   redirect(`/einheiten/${created.id}`)
 }
@@ -436,6 +480,17 @@ export async function getSessionById(id: string): Promise<SessionDetail | null> 
       reflection: true,
       prognosis: true,
       feedback: true,
+      goals: {
+        include: {
+          goal: {
+            select: {
+              id: true,
+              title: true,
+              type: true,
+            },
+          },
+        },
+      },
     },
   })
 
@@ -617,6 +672,8 @@ export async function updateSession(id: string, formData: FormData): Promise<voi
     i++
   }
 
+  const selectedGoalIds = parseGoalIdsFromFormData(formData)
+
   // Einheit und Serien atomar aktualisieren: alte Serien löschen, neue anlegen
   await db.$transaction(
     async (
@@ -651,11 +708,34 @@ export async function updateSession(id: string, formData: FormData): Promise<voi
           })),
         })
       }
+
+      await tx.sessionGoal.deleteMany({ where: { sessionId: id } })
+
+      if (selectedGoalIds.length > 0) {
+        const validGoals = await tx.goal.findMany({
+          where: {
+            id: { in: selectedGoalIds },
+            userId: session.user.id,
+          },
+          select: { id: true },
+        })
+
+        if (validGoals.length > 0) {
+          await tx.sessionGoal.createMany({
+            data: validGoals.map((goal) => ({
+              sessionId: id,
+              goalId: goal.id,
+            })),
+            skipDuplicates: true,
+          })
+        }
+      }
     }
   )
 
   revalidatePath("/einheiten")
   revalidatePath(`/einheiten/${id}`)
+  revalidatePath("/ziele")
   redirect(`/einheiten/${id}`)
 }
 

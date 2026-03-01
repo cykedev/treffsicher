@@ -9,6 +9,7 @@ import {
   BookOpen,
   TrendingUp,
   Target,
+  Goal,
   ListChecks,
   LogOut,
 } from "lucide-react"
@@ -17,6 +18,7 @@ const navLinks = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/einheiten", label: "Tagebuch", icon: BookOpen },
   { href: "/statistiken", label: "Statistiken", icon: TrendingUp },
+  { href: "/ziele", label: "Ziele", icon: Goal },
   { href: "/disziplinen", label: "Disziplinen", icon: Target },
   { href: "/schuss-ablauf", label: "Ablauf", icon: ListChecks },
 ]
@@ -40,7 +42,7 @@ export function Navigation() {
           </Link>
 
           {/* Navigations-Links */}
-          <div className="flex items-center gap-0.5">
+          <div className="flex items-center gap-0">
             {navLinks.map((link) => {
               const isActive = pathname.startsWith(link.href)
               const Icon = link.icon
@@ -48,14 +50,14 @@ export function Navigation() {
                 <Link
                   key={link.href}
                   href={link.href}
-                  className={`flex items-center gap-1.5 rounded-md px-2 py-2 text-sm font-medium transition-colors sm:px-2.5 md:px-3 ${
+                  className={`flex items-center gap-1.5 rounded-md px-2 py-2 text-sm font-medium transition-colors md:px-2.5 lg:px-3 ${
                     isActive
                       ? "bg-secondary text-foreground"
                       : "text-muted-foreground hover:bg-secondary/50 hover:text-foreground"
                   }`}
                 >
                   <Icon className="h-4 w-4 shrink-0" />
-                  <span className="hidden sm:inline">{link.label}</span>
+                  <span className="hidden md:inline">{link.label}</span>
                 </Link>
               )
             })}

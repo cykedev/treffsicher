@@ -3,6 +3,7 @@ import Link from "next/link"
 import {
   Pencil,
   ArrowLeft,
+  Download,
   Heart,
   Target,
   Gauge,
@@ -162,9 +163,30 @@ export default async function EinheitDetailPage({ params }: { params: Promise<{ 
               <span>{einheit.trainingGoal}</span>
             </div>
           )}
+          {einheit.goals.length > 0 && (
+            <div className="space-y-1 text-sm text-muted-foreground">
+              <div className="flex items-start gap-1.5">
+                <Target className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                <span>Zahlt auf folgende Saisonziele ein:</span>
+              </div>
+              <div className="flex flex-wrap gap-1.5 pl-5">
+                {einheit.goals.map((entry) => (
+                  <Badge key={entry.goalId} variant="outline" className="text-xs">
+                    {entry.goal.title}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
         <div className="flex items-center gap-1">
           <FavouriteButton sessionId={einheit.id} initialFavourite={einheit.isFavourite} />
+          <Button variant="ghost" size="sm" asChild>
+            <Link href={`/einheiten/${einheit.id}/export/pdf`} target="_blank">
+              <Download className="mr-1.5 h-4 w-4" />
+              PDF
+            </Link>
+          </Button>
           <Button variant="ghost" size="icon" asChild>
             <Link href={`/einheiten/${einheit.id}/bearbeiten`} aria-label="Bearbeiten">
               <Pencil className="h-4 w-4" />
