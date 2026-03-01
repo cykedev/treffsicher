@@ -24,7 +24,7 @@ import type {
 
 export type SessionWithDiscipline = TrainingSession & {
   discipline: Discipline | null
-  series: Array<{ scoreTotal: unknown; isPractice: boolean }>
+  series: Array<{ scoreTotal: unknown; isPractice: boolean; shots: unknown }>
   // Für Tagebuch-Indikatoren: nur Vorhandensein prüfen, kein vollständiges Laden nötig
   wellbeing: { id: string } | null
   reflection: { id: string } | null
@@ -276,6 +276,7 @@ export async function getSessions(): Promise<SessionWithDiscipline[]> {
         select: {
           scoreTotal: true,
           isPractice: true,
+          shots: true,
         },
       },
       // Minimale Selects — nur id für Tagebuch-Indikatoren (Vorhandensein der mentalen Felder)

@@ -76,15 +76,28 @@ export default async function EinheitenPage() {
             )
             const hasSeries = s.series.length > 0
             const scoringType = s.discipline?.scoringType
-            // Schussanzahl: Wertungsserien × Schuss/Serie der Disziplin (Näherung)
+            const shotsPerSeries = s.discipline?.shotsPerSeries ?? 0
+
+            // Wertungsserien × Schuss/Serie (Näherung, ohne Probeschüsse)
             const scoringSeriesCount = s.series.filter(
-              (series: { scoreTotal: unknown; isPractice: boolean }) =>
-                !series.isPractice && series.scoreTotal !== null
+              (serie) => !serie.isPractice && serie.scoreTotal !== null
             ).length
-            const approxShots =
-              scoringSeriesCount > 0 && s.discipline?.shotsPerSeries
-                ? scoringSeriesCount * s.discipline.shotsPerSeries
-                : 0
+            const approxShots = scoringSeriesCount > 0 && shotsPerSeries
+              ? scoringSeriesCount * shotsPerSeries
+              : 0
+
+            // Probeschuss-Serien × Schuss/Serie
+            const practiceSeriesCount = s.series.filter(
+              (serie) => serie.isPractice && serie.scoreTotal !== null
+            ).length
+            const approxPracticeShots = practiceSeriesCount > 0 && shotsPerSeries
+              ? practiceSeriesCount * shotsPerSeries
+              : 0
+
+            // Einzelschüsse erfasst wenn mindestens eine Serie ein nicht-leeres shots-Array hat
+            const hasIndividualShots = s.series.some(
+              (serie) => Array.isArray(serie.shots) && (serie.shots as unknown[]).length > 0
+            )
 
             // Mentale Felder die gepflegt wurden
             const filledMental = [
@@ -92,6 +105,7 @@ export default async function EinheitenPage() {
               s.prognosis && "Prognose",
               s.feedback && "Feedback",
               s.reflection && "Reflexion",
+              hasIndividualShots && "Einzelschüsse",
             ].filter((x): x is string => Boolean(x))
 
             return (
@@ -142,7 +156,9 @@ export default async function EinheitenPage() {
                           {scoringType === "TENTH" ? totalScore.toFixed(1) : totalScore}
                         </span>
                         <p className="text-xs text-muted-foreground">
-                          {approxShots > 0 ? `Ringe · ${approxShots} Sch.` : "Ringe"}
+                          {approxShots > 0
+                            ? `Ringe · ${approxShots} Sch.${approxPracticeShots > 0 ? ` + ${approxPracticeShots} Probe` : ""}`
+                            : "Ringe"}
                         </p>
                       </div>
                     )}
