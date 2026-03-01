@@ -9,6 +9,13 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import {
   deleteGoal,
   updateGoal,
   updateGoalAssignments,
@@ -119,16 +126,15 @@ export function GoalCardSection({ goal, sessions }: Props) {
           </div>
           <div className="space-y-1.5">
             <Label htmlFor={`goal-type-${goal.id}`}>Typ</Label>
-            <select
-              id={`goal-type-${goal.id}`}
-              name="type"
-              required
-              defaultValue={goal.type}
-              className="border-input bg-background h-9 w-full rounded-md border px-3 text-sm"
-            >
-              <option value="RESULT">Ergebnisziel</option>
-              <option value="PROCESS">Prozessziel</option>
-            </select>
+            <Select name="type" required defaultValue={goal.type}>
+              <SelectTrigger id={`goal-type-${goal.id}`} className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="RESULT">Ergebnisziel</SelectItem>
+                <SelectItem value="PROCESS">Prozessziel</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
         <div className="space-y-1.5">
