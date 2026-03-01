@@ -1,10 +1,20 @@
 import { getAuthSession } from "@/lib/auth-helpers"
 import { redirect } from "next/navigation"
 import Link from "next/link"
+import { Plus } from "lucide-react"
 import { getSessions } from "@/lib/sessions/actions"
 import { calculateTotalScore } from "@/lib/sessions/calculateScore"
 import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
+
+// Farbige Badges je Einheitentyp (dark-mode-optimiert)
+const typeBadgeClass: Record<string, string> = {
+  TRAINING:        "border-blue-800   bg-blue-950   text-blue-300",
+  WETTKAMPF:       "border-amber-800  bg-amber-950  text-amber-300",
+  TROCKENTRAINING: "border-emerald-800 bg-emerald-950 text-emerald-300",
+  MENTAL:          "border-purple-800  bg-purple-950  text-purple-300",
+}
 
 const sessionTypeLabels: Record<string, string> = {
   TRAINING: "Training",
@@ -42,13 +52,16 @@ export default async function EinheitenPage() {
           </p>
         </div>
         <Button asChild>
-          <Link href="/einheiten/neu">Neue Einheit</Link>
+          <Link href="/einheiten/neu">
+            <Plus className="mr-1.5 h-4 w-4" />
+            Neue Einheit
+          </Link>
         </Button>
       </div>
 
       {sessions.length === 0 ? (
         <Card>
-          <CardContent className="py-8 text-center text-muted-foreground">
+          <CardContent className="py-10 text-center text-muted-foreground">
             Noch keine Einheiten vorhanden. Starte mit der ersten Einheit.
           </CardContent>
         </Card>
@@ -73,48 +86,63 @@ export default async function EinheitenPage() {
                 ? scoringSeriesCount * s.discipline.shotsPerSeries
                 : 0
 
+            // Mentale Felder die gepflegt wurden
+            const filledMental = [
+              s.wellbeing && "Befinden",
+              s.prognosis && "Prognose",
+              s.feedback && "Feedback",
+              s.reflection && "Reflexion",
+            ].filter((x): x is string => Boolean(x))
+
             return (
               // Ganzer Card ist klickbar — führt zur Detailansicht
               <Link key={s.id} href={`/einheiten/${s.id}`} className="block">
-                <Card className="transition-colors hover:bg-muted/50">
+                <Card className="transition-colors hover:bg-muted/30">
                   <CardContent className="flex items-center justify-between py-4">
-                    <div className="space-y-0.5">
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium">{sessionTypeLabels[s.type] ?? s.type}</span>
+                    <div className="space-y-1.5">
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <Badge
+                          variant="outline"
+                          className={typeBadgeClass[s.type] ?? ""}
+                        >
+                          {sessionTypeLabels[s.type] ?? s.type}
+                        </Badge>
                         {s.discipline && (
                           <span className="text-sm text-muted-foreground">
-                            — {s.discipline.name}
+                            {s.discipline.name}
                           </span>
                         )}
                       </div>
                       <p className="text-sm text-muted-foreground">
                         {formatDate(s.date)}
-                        {s.location && ` · ${s.location}`}
+                        {s.location && (
+                          <span className="text-muted-foreground/60"> · {s.location}</span>
+                        )}
                       </p>
-                      {/* Indikatoren: welche mentalen Felder wurden gepflegt */}
-                      {(() => {
-                        const filled = [
-                          s.wellbeing && "Befinden",
-                          s.prognosis && "Prognose",
-                          s.feedback && "Feedback",
-                          s.reflection && "Reflexion",
-                        ].filter((x): x is string => Boolean(x))
-                        return filled.length > 0 ? (
-                          <p className="text-xs text-muted-foreground/70">
-                            {filled.join(" · ")}
-                          </p>
-                        ) : null
-                      })()}
+                      {/* Mentale Indikatoren als kleine Badges */}
+                      {filledMental.length > 0 && (
+                        <div className="flex flex-wrap gap-1">
+                          {filledMental.map((label) => (
+                            <Badge
+                              key={label}
+                              variant="outline"
+                              className="h-4 px-1 py-0 text-[9px] leading-none text-muted-foreground/60 border-muted-foreground/20"
+                            >
+                              {label}
+                            </Badge>
+                          ))}
+                        </div>
+                      )}
                     </div>
 
                     {/* Gesamtergebnis rechts */}
                     {hasSeries && totalScore > 0 && (
-                      <div className="text-right">
-                        <span className="text-lg font-bold">
+                      <div className="ml-4 shrink-0 text-right">
+                        <span className="text-xl font-bold tabular-nums">
                           {scoringType === "TENTH" ? totalScore.toFixed(1) : totalScore}
                         </span>
                         <p className="text-xs text-muted-foreground">
-                          {approxShots > 0 ? `Ringe · ${approxShots} Sch.` : "Ringe gesamt"}
+                          {approxShots > 0 ? `Ringe · ${approxShots} Sch.` : "Ringe"}
                         </p>
                       </div>
                     )}

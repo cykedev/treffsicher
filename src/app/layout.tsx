@@ -30,7 +30,7 @@ export default async function RootLayout({
   await runStartup()
 
   return (
-    <html lang="de">
+    <html lang="de" className="dark" suppressHydrationWarning>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <Providers>{children}</Providers>
       </body>

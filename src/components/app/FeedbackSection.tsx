@@ -70,31 +70,26 @@ export function FeedbackSection({ sessionId, initialData }: Props) {
 
   return (
     <div className="space-y-5">
-      {/* Tatsächlicher Stand: 7 Dimensionen im 2-Spalten-Grid */}
+      {/* Tatsächlicher Stand: 7 Dimensionen als kompakte Balkenreihen */}
       <div>
         <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
           Tatsächlicher Stand
         </p>
-        {/* Kein gap-x: Spalten werden durch border-l visuell getrennt */}
-        <div className="grid gap-y-4 sm:grid-cols-2">
-          {dimensions.map((dim, i) => {
+        <div className="space-y-2">
+          {dimensions.map((dim) => {
             const value = initialData[dim.key]
             return (
-              <div
-                key={dim.key}
-                // Rechte Spalte bekommt linken Rand als Trenner, linke Spalte rechts Abstand
-                className={`space-y-1.5${i % 2 !== 0 ? " sm:border-l sm:pl-5" : " sm:pr-5"}`}
-              >
-                <div className="flex items-center justify-between gap-3">
-                  <span className="text-sm text-muted-foreground">{dim.label}</span>
-                  <span className="shrink-0 text-sm font-semibold tabular-nums">{value}</span>
-                </div>
-                {/* bg-slate-200: explizite Tailwind-Farbe, da bg-muted (shadcn) fast weiss ist */}
-                <div className="h-2 overflow-hidden rounded-full bg-slate-200">
-                  <div
-                    className="h-2 rounded-full bg-primary"
-                    style={{ width: `${value}%` }}
-                  />
+              // Feste Label-Breite + wachsender Balken analog WellbeingSection
+              <div key={dim.key} className="flex items-center gap-3 text-sm">
+                <span className="w-32 shrink-0 truncate text-muted-foreground">{dim.label}</span>
+                <div className="flex flex-1 items-center gap-2">
+                  <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
+                    <div
+                      className="h-1.5 rounded-full bg-primary"
+                      style={{ width: `${value}%` }}
+                    />
+                  </div>
+                  <span className="w-8 shrink-0 text-right text-sm font-semibold tabular-nums">{value}</span>
                 </div>
               </div>
             )

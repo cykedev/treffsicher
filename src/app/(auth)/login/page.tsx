@@ -3,6 +3,7 @@
 import { signIn } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
+import { Crosshair } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -41,46 +42,57 @@ export default function LoginPage() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
-      <Card className="w-full max-w-sm">
-        <CardHeader>
-          <CardTitle className="text-xl">Treffsicher</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">E-Mail</Label>
-              <Input
-                id="email"
-                type="email"
-                autoComplete="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                disabled={loading}
-              />
-            </div>
+      <div className="w-full max-w-sm space-y-6">
+        {/* App-Logo + Name über dem Card */}
+        <div className="flex flex-col items-center gap-2 text-center">
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-secondary">
+            <Crosshair className="h-6 w-6 text-foreground" />
+          </div>
+          <h1 className="text-xl font-semibold tracking-tight">Treffsicher</h1>
+          <p className="text-sm text-muted-foreground">Zugang nur für registrierte Nutzer.</p>
+        </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="password">Passwort</Label>
-              <Input
-                id="password"
-                type="password"
-                autoComplete="current-password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                disabled={loading}
-              />
-            </div>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Anmelden</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="email">E-Mail</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  autoComplete="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  disabled={loading}
+                />
+              </div>
 
-            {error && <p className="text-sm text-destructive">{error}</p>}
+              <div className="space-y-2">
+                <Label htmlFor="password">Passwort</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  autoComplete="current-password"
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  disabled={loading}
+                />
+              </div>
 
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Anmelden..." : "Anmelden"}
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
+              {error && <p className="text-sm text-destructive">{error}</p>}
+
+              <Button type="submit" className="w-full" disabled={loading}>
+                {loading ? "Anmelden..." : "Anmelden"}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   )
 }

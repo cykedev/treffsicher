@@ -30,6 +30,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import type {
   StatsSession,
   DisciplineForStats,
@@ -302,11 +303,11 @@ export function StatistikCharts({
             </div>
           </div>
 
-          {/* Zweite Filterzeile: Zeitraum-Presets + Anzeigemodus */}
-          <div className="flex flex-wrap items-end gap-6">
+          {/* Zweite Filterzeile: Zeitraum-Presets + Anzeigemodus — gleiche Grid-Struktur wie Zeile 1 */}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label>Zeitraum</Label>
-              <div className="flex gap-1">
+              <div className="flex flex-wrap gap-1">
                 <Button
                   size="sm"
                   variant="outline"
@@ -347,7 +348,7 @@ export function StatistikCharts({
             {selectedDiscipline && (
               <div className="space-y-2">
                 <Label>Anzeige</Label>
-                <div className="flex gap-1">
+                <div className="flex flex-wrap gap-1">
                   <Button
                     size="sm"
                     variant={effectiveDisplayMode === "per_shot" ? "default" : "outline"}
@@ -377,6 +378,18 @@ export function StatistikCharts({
         </CardContent>
       </Card>
 
+      <Tabs defaultValue="verlauf">
+        {/* overflow-x-auto: Tabs scrollen auf kleinen Screens statt zu brechen */}
+        <div className="overflow-x-auto pb-px">
+          <TabsList className="mb-2 w-max min-w-full">
+            <TabsTrigger value="verlauf">Verlauf</TabsTrigger>
+            <TabsTrigger value="befinden">Befinden</TabsTrigger>
+            <TabsTrigger value="qualitaet">Qualität &amp; Schüsse</TabsTrigger>
+          </TabsList>
+        </div>
+
+        {/* Tab 1: Verlauf — Ergebnisverlauf + Serienwertungen */}
+        <TabsContent value="verlauf" className="space-y-4">
       {!hasData ? (
         <Card>
           <CardContent className="py-12 text-center text-muted-foreground">
@@ -400,16 +413,31 @@ export function StatistikCharts({
             <CardContent>
               <ResponsiveContainer width="100%" height={280}>
                 <LineChart data={lineData} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
                   {/* dataKey="i" statt "datum" — verhindert Kollision wenn zwei Einheiten
                       am selben Tag existieren (gleicher Datumsstring → gleicher x-Slot) */}
                   <XAxis
                     dataKey="i"
                     tickFormatter={(i: number) => lineData[i]?.datum ?? ""}
-                    tick={{ fontSize: 11 }}
+                    tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
+                    axisLine={false}
+                    tickLine={false}
                   />
-                  <YAxis domain={["auto", "auto"]} tick={{ fontSize: 12 }} />
+                  <YAxis
+                    domain={["auto", "auto"]}
+                    tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
+                    axisLine={false}
+                    tickLine={false}
+                    width={40}
+                  />
                   <Tooltip
+                    contentStyle={{
+                      backgroundColor: "var(--card)",
+                      border: "1px solid var(--border)",
+                      borderRadius: "8px",
+                      color: "var(--card-foreground)",
+                      fontSize: "12px",
+                    }}
                     labelFormatter={(i) => lineData[i as number]?.datum ?? ""}
                     formatter={(value, name) => [
                       typeof value === "number" ? formatDisplayValue(value) : String(value ?? ""),
@@ -458,11 +486,31 @@ export function StatistikCharts({
               <CardContent>
                 <ResponsiveContainer width="100%" height={240}>
                   <BarChart data={barData} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-                    <XAxis dataKey="name" tick={{ fontSize: 12 }} />
-                    <YAxis tick={{ fontSize: 12 }} />
-                    <Tooltip />
-                    <Legend />
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+                    <XAxis
+                      dataKey="name"
+                      tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
+                      axisLine={false}
+                      tickLine={false}
+                    />
+                    <YAxis
+                      tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
+                      axisLine={false}
+                      tickLine={false}
+                      width={36}
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: "var(--card)",
+                        border: "1px solid var(--border)",
+                        borderRadius: "8px",
+                        color: "var(--card-foreground)",
+                        fontSize: "12px",
+                      }}
+                      // cursor-Rect beim Hover — dunkles Highlight statt hellem Standard
+                      cursor={{ fill: "var(--muted)", opacity: 0.4 }}
+                    />
+                    <Legend wrapperStyle={{ fontSize: "12px", color: "var(--muted-foreground)" }} />
                     <Bar dataKey="Min" fill="var(--chart-2)" opacity={0.5} />
                     <Bar dataKey="Avg" fill="var(--chart-1)" />
                     <Bar dataKey="Max" fill="var(--chart-1)" opacity={0.4} />
@@ -473,46 +521,59 @@ export function StatistikCharts({
           )}
         </>
       )}
+        </TabsContent>
 
-      {/* Befinden-Korrelation — nach Disziplin gefiltert */}
-      {filteredWellbeing.length > 1 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-baseline gap-2">
-            Befinden vs. Ergebnis
-            {effectiveDisplayMode === "projected" && selectedDiscipline && (
-              <span className="text-base font-normal text-muted-foreground">
-                Hochrechnung auf {totalDisciplineShots} Schuss
-              </span>
-            )}
-          </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            {(
-              [
-                { key: "sleep" as const, label: "Schlaf" },
-                { key: "energy" as const, label: "Energie" },
-                { key: "stress" as const, label: "Stress" },
-                { key: "motivation" as const, label: "Motivation" },
-              ] as const
-            ).map(({ key, label }) => (
-              <div key={key}>
-                <p className="mb-2 text-sm font-medium text-muted-foreground">{label}</p>
+        {/* Tab 2: Befinden-Korrelation — je Dimension eine eigene Card (2 Spalten auf Desktop) */}
+        <TabsContent value="befinden">
+      {filteredWellbeing.length > 1 ? (
+        <div className="grid gap-4 sm:grid-cols-2">
+          {(
+            [
+              { key: "sleep" as const, label: "Schlaf" },
+              { key: "energy" as const, label: "Energie" },
+              { key: "stress" as const, label: "Stress" },
+              { key: "motivation" as const, label: "Motivation" },
+            ] as const
+          ).map(({ key, label }) => (
+            <Card key={key}>
+              <CardHeader className="pb-2">
+                <CardTitle className="flex items-baseline gap-2 text-base">
+                  {label}
+                  {effectiveDisplayMode === "projected" && selectedDiscipline && (
+                    <span className="text-sm font-normal text-muted-foreground">
+                      Hochrechnung
+                    </span>
+                  )}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
                 <ResponsiveContainer width="100%" height={180}>
-                  <ScatterChart margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                  <ScatterChart margin={{ top: 5, right: 16, bottom: 16, left: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
                     <XAxis
                       dataKey={key}
                       type="number"
                       domain={[0, 10]}
-                      label={{ value: label, position: "insideBottom", offset: -2, fontSize: 11 }}
-                      tick={{ fontSize: 11 }}
+                      ticks={[0, 2, 4, 6, 8, 10]}
+                      label={{
+                        value: label,
+                        position: "insideBottom",
+                        offset: -8,
+                        fontSize: 11,
+                        fill: "var(--muted-foreground)",
+                      }}
+                      tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
+                      axisLine={false}
+                      tickLine={false}
                     />
                     <YAxis
                       dataKey="displayScore"
                       type="number"
                       domain={["auto", "auto"]}
-                      tick={{ fontSize: 11 }}
+                      tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
+                      axisLine={false}
+                      tickLine={false}
+                      width={40}
                       tickFormatter={(v: number) =>
                         effectiveDisplayMode === "projected" && selectedDiscipline
                           ? formatDisplayValue(v)
@@ -520,7 +581,14 @@ export function StatistikCharts({
                       }
                     />
                     <Tooltip
-                      cursor={{ strokeDasharray: "3 3" }}
+                      contentStyle={{
+                        backgroundColor: "var(--card)",
+                        border: "1px solid var(--border)",
+                        borderRadius: "8px",
+                        color: "var(--card-foreground)",
+                        fontSize: "12px",
+                      }}
+                      cursor={{ fill: "var(--muted)", opacity: 0.3 }}
                       formatter={(value, name) => [
                         typeof value === "number" && name === "displayScore"
                           ? formatDisplayValue(value)
@@ -528,15 +596,37 @@ export function StatistikCharts({
                         name === "displayScore" ? wellbeingScoreLabel : label,
                       ]}
                     />
-                    <Scatter data={wellbeingDisplayData} fill="var(--chart-1)" opacity={0.7} />
+                    {/* Größere Punkte: wenige x-Werte (0–10) → Punkte sollen gut sichtbar sein */}
+                    <Scatter
+                      data={wellbeingDisplayData}
+                      fill="var(--chart-1)"
+                      shape={(props: { cx?: number; cy?: number }) => (
+                        <circle
+                          cx={props.cx}
+                          cy={props.cy}
+                          r={6}
+                          fill="var(--chart-1)"
+                          opacity={0.75}
+                        />
+                      )}
+                    />
                   </ScatterChart>
                 </ResponsiveContainer>
-              </div>
-            ))}
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      ) : (
+        <Card>
+          <CardContent className="py-12 text-center text-muted-foreground">
+            Keine Befinden-Daten für den gewählten Filter.
           </CardContent>
         </Card>
       )}
+        </TabsContent>
 
+        {/* Tab 3: Ausführungsqualität + Schussverteilung */}
+        <TabsContent value="qualitaet" className="space-y-4">
       {/* Schussqualität vs. Serienergebnis — nach Disziplin gefiltert, normalisiert auf Ringe/Sch. */}
       {filteredQuality.length > 1 && (
         <Card>
@@ -553,7 +643,7 @@ export function StatistikCharts({
           <CardContent>
             <ResponsiveContainer width="100%" height={240}>
               <ScatterChart margin={{ top: 5, right: 20, bottom: 15, left: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
                 <XAxis
                   dataKey="quality"
                   type="number"
@@ -562,19 +652,25 @@ export function StatistikCharts({
                   tickFormatter={(v) =>
                     ["", "Schlecht", "Mässig", "Mittel", "Gut", "Sehr gut"][v] ?? v
                   }
-                  tick={{ fontSize: 10 }}
+                  tick={{ fontSize: 10, fill: "var(--muted-foreground)" }}
+                  axisLine={false}
+                  tickLine={false}
                   label={{
                     value: "Ausführung",
                     position: "insideBottom",
                     offset: -8,
                     fontSize: 11,
+                    fill: "var(--muted-foreground)",
                   }}
                 />
                 <YAxis
                   dataKey="displayScore"
                   type="number"
                   domain={["auto", "auto"]}
-                  tick={{ fontSize: 11 }}
+                  tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
+                  axisLine={false}
+                  tickLine={false}
+                  width={40}
                   tickFormatter={(v: number) =>
                     effectiveDisplayMode === "projected" && selectedDiscipline
                       ? formatDisplayValue(v)
@@ -582,6 +678,14 @@ export function StatistikCharts({
                   }
                 />
                 <Tooltip
+                  contentStyle={{
+                    backgroundColor: "var(--card)",
+                    border: "1px solid var(--border)",
+                    borderRadius: "8px",
+                    color: "var(--card-foreground)",
+                    fontSize: "12px",
+                  }}
+                  cursor={{ fill: "var(--muted)", opacity: 0.3 }}
                   formatter={(value, name) => [
                     typeof value === "number" && name === "displayScore"
                       ? formatDisplayValue(value)
@@ -589,7 +693,20 @@ export function StatistikCharts({
                     name === "displayScore" ? qualityScoreLabel : "Ausführung",
                   ]}
                 />
-                <Scatter data={qualityDisplayData} fill="var(--chart-2)" opacity={0.7} />
+                {/* Größere Punkte: X-Achse hat nur 5 diskrete Werte (Ausführung 1–5) */}
+                <Scatter
+                  data={qualityDisplayData}
+                  fill="var(--chart-2)"
+                  shape={(props: { cx?: number; cy?: number }) => (
+                    <circle
+                      cx={props.cx}
+                      cy={props.cy}
+                      r={7}
+                      fill="var(--chart-2)"
+                      opacity={0.7}
+                    />
+                  )}
+                />
               </ScatterChart>
             </ResponsiveContainer>
           </CardContent>
@@ -613,7 +730,7 @@ export function StatistikCharts({
                 data={filteredShotDistribution}
                 margin={{ top: 5, right: 20, bottom: 5, left: 0 }}
               >
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
                 <XAxis
                   dataKey="date"
                   tickFormatter={(d: Date) =>
@@ -622,12 +739,16 @@ export function StatistikCharts({
                       month: "2-digit",
                     }).format(new Date(d))
                   }
-                  tick={{ fontSize: 11 }}
+                  tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
+                  axisLine={false}
+                  tickLine={false}
                 />
                 <YAxis
                   domain={[0, 100]}
                   tickFormatter={(v: number) => `${v}%`}
-                  tick={{ fontSize: 11 }}
+                  tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
+                  axisLine={false}
+                  tickLine={false}
                   width={38}
                 />
                 {/* Custom Tooltip: Payload ist r0→r10 (Stack-Reihenfolge) —
@@ -657,12 +778,13 @@ export function StatistikCharts({
                     return (
                       <div
                         style={{
-                          background: "white",
-                          border: "1px solid #e5e7eb",
+                          backgroundColor: "var(--card)",
+                          border: "1px solid var(--border)",
                           padding: "8px 12px",
-                          borderRadius: 6,
+                          borderRadius: 8,
                           fontSize: 12,
                           minWidth: 120,
+                          color: "var(--card-foreground)",
                         }}
                       >
                         <p style={{ fontWeight: 600, marginBottom: 6 }}>{date}</p>
@@ -680,7 +802,7 @@ export function StatistikCharts({
                                 flexShrink: 0,
                               }}
                             />
-                            <span style={{ color: "#6b7280" }}>{p.name.replace("r", "")}er</span>
+                            <span style={{ color: "var(--muted-foreground)" }}>{p.name.replace("r", "")}er</span>
                             <span style={{ marginLeft: "auto", paddingLeft: 16, fontWeight: 500 }}>
                               {p.value.toFixed(1)} %
                             </span>
@@ -711,6 +833,7 @@ export function StatistikCharts({
                           gap: "4px 12px",
                           paddingTop: 8,
                           fontSize: 11,
+                          color: "var(--muted-foreground)",
                         }}
                       >
                         {items.map((entry) => (
@@ -752,6 +875,9 @@ export function StatistikCharts({
           </CardContent>
         </Card>
       )}
+        </TabsContent>
+
+      </Tabs>
     </div>
   )
 }
