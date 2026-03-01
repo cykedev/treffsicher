@@ -6,6 +6,7 @@ import { redirect } from "next/navigation"
 import { db } from "@/lib/db"
 import { getAuthSession } from "@/lib/auth-helpers"
 import { saveUpload } from "@/lib/uploads/upload"
+import { assertPublicImportTarget, validatePdfBuffer } from "@/lib/sessions/importGuards"
 import {
   extractMeytonDateTime,
   extractTextFromPdfBuffer,
@@ -155,13 +156,29 @@ async function loadPdfFromUrl(urlValue: string): Promise<Buffer> {
     throw new Error("Nur http(s)-URLs sind erlaubt.")
   }
 
+  await assertPublicImportTarget(parsedUrl.hostname)
+
   const controller = new AbortController()
   const timeout = setTimeout(() => controller.abort(), 15_000)
 
   try {
-    const response = await fetch(parsedUrl, { signal: controller.signal })
+    const response = await fetch(parsedUrl, {
+      signal: controller.signal,
+      // Redirects nicht folgen, damit kein ungeprüftes Ziel nachgeladen wird.
+      redirect: "manual",
+    })
+
+    if (response.status >= 300 && response.status < 400) {
+      throw new Error("Weiterleitungen sind nicht erlaubt.")
+    }
+
     if (!response.ok) {
       throw new Error(`PDF konnte nicht geladen werden (HTTP ${response.status}).`)
+    }
+
+    const contentType = (response.headers.get("content-type") ?? "").toLowerCase()
+    if (contentType && !contentType.includes("application/pdf")) {
+      throw new Error("Die URL liefert kein PDF (Content-Type ungueltig).")
     }
 
     const arrayBuffer = await response.arrayBuffer()
@@ -173,6 +190,8 @@ async function loadPdfFromUrl(urlValue: string): Promise<Buffer> {
     if (buffer.length > MAX_MEYTON_PDF_SIZE_BYTES) {
       throw new Error("Die PDF-Datei ist groesser als 10 MB.")
     }
+
+    validatePdfBuffer(buffer)
 
     return buffer
   } catch (error) {
