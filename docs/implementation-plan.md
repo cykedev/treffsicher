@@ -13,7 +13,7 @@ steht, wird das zuerst geklärt. Code wird erst geschrieben, wenn die Basis stim
 
 ---
 
-## Phase 1 — Fundament
+## Phase 1 — Fundament ✅ abgeschlossen
 
 **Ziel**: Eine lauffähige App mit Login, Disziplin-Verwaltung und minimaler Einheitserfassung.
 
@@ -473,7 +473,7 @@ Folgende Punkte manuell prüfen:
 
 ---
 
-## Phase 2 — Ergebnisse & Uploads
+## Phase 2 — Ergebnisse & Uploads ✅ abgeschlossen
 
 **Ziel**: Vollständige Ergebniserfassung, Datei-Uploads, Basis-Statistiken.
 
@@ -547,7 +547,7 @@ Pakete: `npm install recharts`
 
 ---
 
-## Phase 3 — Mentaltraining
+## Phase 3 — Mentaltraining ✅ abgeschlossen
 
 **Ziel**: Einheiten bearbeiten & löschen, Befinden-Tracking, Reflexion, Prognose/Feedback, Schuss-Ablauf.
 
@@ -728,6 +728,22 @@ Editierbares Dokument (kein Versionsverlauf — bewusste Entscheidung):
 4. Reflexion nach einer Einheit ausfüllen, gespeichert und lesbar
 5. Prognose + Feedback für eine Einheit durchspielen, Vergleich angezeigt
 6. Schuss-Ablauf anlegen, Schritte ordnen, speichern
+
+---
+
+## Phase 3.9 — UI-Überarbeitung ✅ abgeschlossen
+
+**Ziel**: Konsistentes Dark-Mode-Design, Lucide-Icons, shadcn-Komponenten, lesbare Charts.
+
+- Dark Mode erzwungen (`class="dark"` auf `<html>`, kein Toggle)
+- Schatten entfernt (Cards nur noch durch Hintergrundfarbe + Border unterschieden)
+- Lucide-Icons in Navigation, Dashboard, Detailansicht und Disziplinen
+- Schieberegler mit `@radix-ui/react-slider` (eigene `Slider`-Komponente) — native range inputs ersetzt
+- Statistik-Charts in 3 Tabs (Verlauf / Befinden / Qualität & Schüsse)
+- ShotHistogram auf shadcn `ChartContainer` umgestellt
+- Farbige Typ-Badges (blau = Training, amber = Wettkampf, grün = Trockentraining, lila = Mental)
+- `QualityDots`: immer 5 Kreise, konsistente Spaltenbreite
+- Schüsse-Spalte in Ergebnis-Tabelle nur rendern wenn Einzelschüsse erfasst wurden
 
 ---
 
