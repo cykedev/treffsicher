@@ -1,7 +1,7 @@
 import { getAuthSession } from "@/lib/auth-helpers"
 import { redirect } from "next/navigation"
 import Link from "next/link"
-import { Plus } from "lucide-react"
+import { Plus, Heart } from "lucide-react"
 import { getSessions } from "@/lib/sessions/actions"
 import { calculateTotalScore } from "@/lib/sessions/calculateScore"
 import { Button } from "@/components/ui/button"
@@ -115,6 +115,9 @@ export default async function EinheitenPage() {
                   <CardContent className="flex items-center justify-between py-4">
                     <div className="space-y-1.5">
                       <div className="flex flex-wrap items-center gap-1.5">
+                        {s.isFavourite && (
+                          <Heart className="h-3.5 w-3.5 fill-red-500 text-red-500 shrink-0" />
+                        )}
                         <Badge
                           variant="outline"
                           className={typeBadgeClass[s.type] ?? ""}
