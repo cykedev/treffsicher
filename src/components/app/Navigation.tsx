@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { signOut } from "next-auth/react"
+import { signOut, useSession } from "next-auth/react"
 import {
   Crosshair,
   LayoutDashboard,
@@ -11,10 +11,11 @@ import {
   Target,
   Goal,
   ListChecks,
+  Shield,
   LogOut,
 } from "lucide-react"
 
-const navLinks = [
+const baseNavLinks = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/einheiten", label: "Tagebuch", icon: BookOpen },
   { href: "/statistiken", label: "Statistiken", icon: TrendingUp },
@@ -27,6 +28,11 @@ const navLinks = [
 // Client-Komponente weil usePathname() (aktiver Link) nur im Browser verfügbar ist.
 export function Navigation() {
   const pathname = usePathname()
+  const { data: session } = useSession()
+  const isAdmin = session?.user?.role === "ADMIN"
+  const navLinks = isAdmin
+    ? [...baseNavLinks, { href: "/admin", label: "Admin", icon: Shield }]
+    : baseNavLinks
 
   return (
     <nav className="border-b border-border/50 bg-background">
@@ -38,7 +44,7 @@ export function Navigation() {
             className="flex items-center gap-2 text-lg font-semibold tracking-tight"
           >
             <Crosshair className="h-5 w-5 text-primary" />
-            <span className="hidden md:inline">Treffsicher</span>
+            <span className="hidden lg:inline">Treffsicher</span>
           </Link>
 
           {/* Navigations-Links */}
@@ -57,7 +63,7 @@ export function Navigation() {
                   }`}
                 >
                   <Icon className="h-4 w-4 shrink-0" />
-                  <span className="hidden md:inline">{link.label}</span>
+                  <span className="hidden lg:inline">{link.label}</span>
                 </Link>
               )
             })}
@@ -69,7 +75,7 @@ export function Navigation() {
             className="flex items-center gap-1.5 rounded-md px-2 py-2 text-sm font-medium text-muted-foreground transition-colors sm:px-2.5 md:px-3 hover:bg-secondary/50 hover:text-foreground"
           >
             <LogOut className="h-4 w-4 shrink-0" />
-            <span className="hidden lg:inline">Abmelden</span>
+            <span className="hidden xl:inline">Abmelden</span>
           </button>
         </div>
       </div>

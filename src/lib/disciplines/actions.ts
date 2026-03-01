@@ -30,6 +30,7 @@ const CreateDisciplineSchema = z.object({
   scoringType: z.enum(["WHOLE", "TENTH"] as const, {
     message: "Ungültige Wertungsart",
   }),
+  isSystem: z.boolean().default(false),
 })
 
 export type ActionResult = {
@@ -59,6 +60,26 @@ export async function getDisciplines(): Promise<Discipline[]> {
       { name: "asc" },
     ],
   })
+}
+
+/**
+ * Gibt Disziplinen fuer die Disziplin-Verwaltung zurueck.
+ * Admins sehen hier auch archivierte System-Disziplinen fuer Reaktivierung und Pflege.
+ */
+export async function getDisciplinesForManagement(): Promise<Discipline[]> {
+  const session = await getAuthSession()
+  if (!session) return []
+
+  if (session.user.role === "ADMIN") {
+    return db.discipline.findMany({
+      where: {
+        OR: [{ isSystem: true }, { ownerId: session.user.id, isArchived: false }],
+      },
+      orderBy: [{ isSystem: "desc" }, { isArchived: "asc" }, { name: "asc" }],
+    })
+  }
+
+  return getDisciplines()
 }
 
 /**
@@ -155,18 +176,21 @@ export async function createDiscipline(
     shotsPerSeries: Number(formData.get("shotsPerSeries")),
     practiceSeries: Number(formData.get("practiceSeries") ?? 0),
     scoringType: formData.get("scoringType"),
+    isSystem: String(formData.get("isSystem") ?? "false") === "true",
   })
 
   if (!parsed.success) {
     return { error: parsed.error.flatten().fieldErrors as Record<string, string[]> }
   }
 
+  const canCreateSystem = session.user.role === "ADMIN" && parsed.data.isSystem
+
   // Schritt 3: Disziplin in DB anlegen — gehört dem eingeloggten Nutzer
   await db.discipline.create({
     data: {
       ...parsed.data,
-      isSystem: false,
-      ownerId: session.user.id,
+      isSystem: canCreateSystem,
+      ownerId: canCreateSystem ? null : session.user.id,
     },
   })
 
@@ -185,6 +209,17 @@ export async function createDiscipline(
 export async function getDisciplineById(id: string): Promise<Discipline | null> {
   const session = await getAuthSession()
   if (!session) return null
+
+  const isAdmin = session.user.role === "ADMIN"
+
+  if (isAdmin) {
+    return db.discipline.findFirst({
+      where: {
+        id,
+        OR: [{ isSystem: true }, { ownerId: session.user.id }],
+      },
+    })
+  }
 
   return db.discipline.findFirst({
     where: {
@@ -209,11 +244,14 @@ export async function updateDiscipline(
   const session = await getAuthSession()
   if (!session) return { error: "Nicht angemeldet" }
 
-  // Sicherstellen dass die Disziplin dem Nutzer gehört und nicht System ist
-  const discipline = await db.discipline.findFirst({
-    where: { id, ownerId: session.user.id, isSystem: false },
-  })
+  const discipline = await db.discipline.findUnique({ where: { id } })
   if (!discipline) return { error: "Disziplin nicht gefunden oder keine Berechtigung." }
+
+  const canEditSystem = session.user.role === "ADMIN" && discipline.isSystem
+  const canEditOwn = !discipline.isSystem && discipline.ownerId === session.user.id
+  if (!canEditSystem && !canEditOwn) {
+    return { error: "Disziplin nicht gefunden oder keine Berechtigung." }
+  }
 
   const parsed = CreateDisciplineSchema.safeParse({
     name: formData.get("name"),
@@ -221,6 +259,8 @@ export async function updateDiscipline(
     shotsPerSeries: Number(formData.get("shotsPerSeries")),
     practiceSeries: Number(formData.get("practiceSeries") ?? 0),
     scoringType: formData.get("scoringType"),
+    // Bestehende Zugehoerigkeit bleibt erhalten; fuer Bearbeiten nicht aus dem Formular lesen.
+    isSystem: discipline.isSystem,
   })
 
   if (!parsed.success) {
@@ -254,35 +294,60 @@ export async function updateDiscipline(
  * aber bestehende Einheiten bleiben lesbar (keine Datenlöschung).
  */
 export async function archiveDiscipline(id: string): Promise<ActionResult> {
+  return setDisciplineArchived(id, true)
+}
+
+/**
+ * Archiviert oder aktiviert eine Disziplin.
+ * System-Disziplinen duerfen nur von Admins geaendert werden.
+ */
+export async function setDisciplineArchived(
+  id: string,
+  nextArchived: boolean
+): Promise<ActionResult> {
   const session = await getAuthSession()
   if (!session) return { error: "Nicht angemeldet" }
 
-  // Prüfen ob die Disziplin dem Nutzer gehört — System-Disziplinen können nicht archiviert werden
-  const discipline = await db.discipline.findFirst({
-    where: {
-      id,
-      ownerId: session.user.id, // Sicherheit: nur eigene Disziplinen
-      isSystem: false,
-    },
+  const discipline = await db.discipline.findUnique({
+    where: { id },
+    select: { id: true, ownerId: true, isSystem: true, isArchived: true },
   })
 
   if (!discipline) {
     return { error: "Disziplin nicht gefunden oder keine Berechtigung." }
   }
 
-  await db.$transaction([
-    db.discipline.update({
+  const canManageSystem = discipline.isSystem && session.user.role === "ADMIN"
+  const canManageOwn = !discipline.isSystem && discipline.ownerId === session.user.id
+  if (!canManageSystem && !canManageOwn) {
+    return { error: "Disziplin nicht gefunden oder keine Berechtigung." }
+  }
+
+  if (discipline.isArchived === nextArchived) {
+    return { success: true }
+  }
+
+  if (nextArchived) {
+    await db.$transaction([
+      db.discipline.update({
+        where: { id },
+        data: { isArchived: true },
+      }),
+      db.user.updateMany({
+        where: {
+          favouriteDisciplineId: id,
+          // Bei eigenen Disziplinen reicht der eigene Nutzer; bei System-Disziplinen alle.
+          ...(discipline.isSystem ? {} : { id: session.user.id }),
+        },
+        data: { favouriteDisciplineId: null },
+      }),
+    ])
+  } else {
+    await db.discipline.update({
       where: { id },
-      data: { isArchived: true },
-    }),
-    db.user.updateMany({
-      where: {
-        id: session.user.id,
-        favouriteDisciplineId: id,
-      },
-      data: { favouriteDisciplineId: null },
-    }),
-  ])
+      data: { isArchived: false },
+    })
+  }
 
   revalidatePath("/disziplinen")
   revalidatePath("/einheiten", "layout")

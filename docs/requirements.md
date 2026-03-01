@@ -290,9 +290,9 @@ Analog zu Meyton-Schiessständen — einheitlich in Detailansicht und Statistik:
 
 - Mehrere Nutzer können die gleiche Instanz verwenden
 - Jeder Schütze hat seine eigene, abgeschottete Datenwelt
-- Administratoren können Nutzer anlegen, deaktivieren und Passwörter zurücksetzen
+- Administratoren können Nutzer anlegen, bearbeiten (E-Mail, Rolle, Status) und Passwörter zurücksetzen
 - Standarddisziplinen sind systemweit für alle Nutzer sichtbar
-- Administratoren können neue systemweite Disziplinen für alle Nutzer bereitstellen
+- Administratoren können systemweite Disziplinen bereitstellen, bearbeiten und archivieren
 
 ---
 

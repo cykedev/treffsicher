@@ -594,21 +594,23 @@ Nach dem Löschen: Redirect zu `/einheiten`.
 
 **Einschränkungen**:
 
-- System-Disziplinen (`isSystem: true`) können **nicht** bearbeitet werden (nur eigene Disziplinen)
+- System-Disziplinen (`isSystem: true`) können von normalen Nutzern **nicht** bearbeitet werden
+  (seit Phase 5.1 koennen Admins sie im Bereich `Disziplinen` bearbeiten/archivieren)
 - Die Wertungsart (`scoringType`) einer Disziplin, die bereits in Einheiten verwendet wird, kann nicht mehr geändert werden — sonst würden gespeicherte Werte falsch interpretiert
 
 **Server Action** in `src/lib/disciplines/actions.ts`:
 
 - `updateDiscipline(id, formData)` — Name, `seriesCount`, `shotsPerSeries`, `practiceSeries`, `scoringType` aktualisieren
-  Auth-Check + `userId`-Filter (nur eigene, nicht-archivierte Disziplinen)
+  Auth-Check + Berechtigungspruefung (eigene Disziplinen; System-Disziplinen nur fuer Admin)
   Falls Disziplin bereits in Sessions verwendet: `scoringType`-Änderung ablehnen (Fehlermeldung)
 
 **Neue Route**: `src/app/(app)/disziplinen/[id]/bearbeiten/page.tsx`
 
 Server Component — lädt die Disziplin via `getDisciplineById`, zeigt vorausgefülltes Formular.
-`notFound()` wenn Disziplin nicht gefunden oder nicht dem Nutzer gehört.
+`notFound()` wenn Disziplin nicht gefunden oder keine Berechtigung besteht.
 
-**Disziplinenliste erweitern**: Link/Button "Bearbeiten" bei eigenen Disziplinen (bei System-Disziplinen ausgeblendet).
+**Disziplinenliste erweitern**: Link/Button "Bearbeiten" bei eigenen Disziplinen;
+bei System-Disziplinen nur fuer Admin sichtbar.
 
 ---
 
@@ -728,7 +730,7 @@ Editierbares Dokument (kein Versionsverlauf — bewusste Entscheidung):
 1. Einheit bearbeiten: Typ, Datum, Serien ändern → gespeichert und in Detailansicht sichtbar
 2. Einheit löschen: Bestätigung → Einheit weg, Attachments vom Disk entfernt
 3. Disziplin bearbeiten: Name und Serienkonfiguration ändern → gespeichert und in Liste sichtbar
-4. System-Disziplinen haben keinen Bearbeiten-Button
+4. System-Disziplinen: kein Bearbeiten-Button fuer normale Nutzer; Bearbeiten fuer Admin verfuegbar
 5. Wertungsart-Änderung bei verwendeter Disziplin → Fehlermeldung
 6. Befinden vor einer Einheit erfassen, in Statistik sichtbar
 7. Reflexion nach einer Einheit ausfüllen, gespeichert und lesbar
@@ -902,11 +904,11 @@ Zeigt die Selbsteinschätzung in den 7 Dimensionen über Zeit:
 
 ---
 
-## Phase 5 — Vereinsbetrieb & Admin
+## Phase 5 — Vereinsbetrieb & Admin 🔄 teilweise umgesetzt
 
 **Ziel**: Admin-Bereich, Nutzerverwaltung, Offline-Vorbereitung.
 
-### Schritt 5.1 — Admin-Bereich
+### Schritt 5.1 — Admin-Bereich ✅ abgeschlossen
 
 `src/app/(app)/admin/` (nur für ADMIN-Rolle zugänglich — Proxy prüft)
 
@@ -914,9 +916,18 @@ Zeigt die Selbsteinschätzung in den 7 Dimensionen über Zeit:
 
 - Nutzerliste anzeigen (ohne Passwörter)
 - Neuen Nutzer anlegen (Email + temporäres Passwort)
+- Nutzer bearbeiten (Email, Rolle, Status)
 - Nutzer deaktivieren (`isActive: false`) — keine Datenlöschung
-- Passwort zurücksetzen (neues temporäres Passwort)
-- System-Disziplinen verwalten (für alle Nutzer sichtbar)
+- Optionales Passwort-Reset direkt im Nutzer-Bearbeiten
+- System-Disziplinen verwalten im bestehenden Bereich `src/app/(app)/disziplinen/`
+  (nur fuer Admins; normale Nutzer sehen System-Disziplinen nur lesend)
+
+**Aktueller UI-Flow (konsistent mit anderen Bereichen)**:
+
+- `/admin` = direkte Nutzerverwaltung (lesende Uebersicht + Aktionen)
+- `/admin/nutzer/neu` = neuen Nutzer anlegen
+- `/admin/nutzer/[id]/bearbeiten` = Nutzer bearbeiten + optional Passwort setzen
+- `/admin/nutzer` und `/admin/nutzer/passwort` leiten auf `/admin` um (kompatible Alt-URLs)
 
 ### Schritt 5.2 — Offline-Unterstützung (PWA)
 
@@ -931,10 +942,10 @@ Dies ist die komplexeste Phase — ausführlich testen auf mobilen Geräten.
 
 ### Verifikation Phase 5
 
-1. Admin kann Nutzer anlegen, Nutzer kann sich einloggen
-2. Nutzer sieht ausschliesslich eigene Daten (andere Nutzer anlegen und prüfen)
-3. Admin-Bereich für normale Nutzer nicht zugänglich (403/Redirect)
-4. PWA: Einheit im Offline-Modus erfassen, nach Reconnect synchronisiert
+1. ✅ Admin kann Nutzer anlegen, bearbeiten und optional Passwort neu setzen
+2. ⏳ Nutzer sieht ausschliesslich eigene Daten (erneut end-to-end pruefen)
+3. ✅ Admin-Bereich für normale Nutzer nicht zugänglich (403/Redirect)
+4. ⏳ PWA: Einheit im Offline-Modus erfassen, nach Reconnect synchronisiert
 
 ---
 
