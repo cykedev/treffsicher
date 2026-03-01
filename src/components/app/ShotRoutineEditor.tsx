@@ -27,15 +27,11 @@ interface Props {
 // Beim Submit werden die Schritte als JSON-String übertragen.
 export function ShotRoutineEditor({ initialName, initialSteps, routineId }: Props) {
   const router = useRouter()
-  const action = routineId
-    ? updateShotRoutine.bind(null, routineId)
-    : createShotRoutine
+  const action = routineId ? updateShotRoutine.bind(null, routineId) : createShotRoutine
 
   const [state, formAction, pending] = useActionState<ActionResult | null, FormData>(action, null)
 
-  const [steps, setSteps] = useState<RoutineStep[]>(
-    initialSteps ?? []
-  )
+  const [steps, setSteps] = useState<RoutineStep[]>(initialSteps ?? [])
 
   // Nach erfolgreichem Update zur Liste weiterleiten
   useEffect(() => {
@@ -45,10 +41,7 @@ export function ShotRoutineEditor({ initialName, initialSteps, routineId }: Prop
   }, [state, router])
 
   function addStep() {
-    setSteps((prev) => [
-      ...prev,
-      { order: prev.length + 1, title: "", description: undefined },
-    ])
+    setSteps((prev) => [...prev, { order: prev.length + 1, title: "", description: undefined }])
   }
 
   function removeStep(index: number) {
@@ -174,11 +167,7 @@ export function ShotRoutineEditor({ initialName, initialSteps, routineId }: Prop
 
       <div className="flex gap-3">
         <Button type="submit" disabled={pending || steps.length === 0}>
-          {pending
-            ? "Speichern..."
-            : routineId
-              ? "Änderungen speichern"
-              : "Ablauf erstellen"}
+          {pending ? "Speichern..." : routineId ? "Änderungen speichern" : "Ablauf erstellen"}
         </Button>
         <Button
           type="button"

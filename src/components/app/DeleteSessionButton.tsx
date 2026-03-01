@@ -16,7 +16,11 @@ export function DeleteSessionButton({ sessionId }: Props) {
   const [isPending, startTransition] = useTransition()
 
   function handleDelete() {
-    if (!window.confirm("Einheit wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.")) {
+    if (
+      !window.confirm(
+        "Einheit wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden."
+      )
+    ) {
       return
     }
     startTransition(async () => {

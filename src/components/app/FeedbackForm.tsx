@@ -58,10 +58,7 @@ export function FeedbackForm({ sessionId, initialData, onCancel, onSuccess }: Pr
         {dimensions.map((dim) => (
           // Gleiche Ausrichtung wie Lese-Ansicht: Label (w-32) | Slider (flex-1) | Wert (w-8)
           <div key={dim.name} className="flex items-center gap-3">
-            <Label
-              htmlFor={`feedback-${dim.name}`}
-              className="w-32 shrink-0 truncate text-sm"
-            >
+            <Label htmlFor={`feedback-${dim.name}`} className="w-32 shrink-0 truncate text-sm">
               {dim.label}
             </Label>
             <input type="hidden" name={dim.name} value={values[dim.name]} />
@@ -71,9 +68,7 @@ export function FeedbackForm({ sessionId, initialData, onCancel, onSuccess }: Pr
               max={100}
               step={1}
               value={[values[dim.name]]}
-              onValueChange={([v]) =>
-                setValues((prev) => ({ ...prev, [dim.name]: v }))
-              }
+              onValueChange={([v]) => setValues((prev) => ({ ...prev, [dim.name]: v }))}
               disabled={pending}
               className="flex-1"
             />

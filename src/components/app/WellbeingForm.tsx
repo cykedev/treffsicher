@@ -57,9 +57,7 @@ export function WellbeingForm({ sessionId, initialData, onSuccess, onCancel }: P
               max={10}
               step={1}
               value={[values[field.name]]}
-              onValueChange={([v]) =>
-                setValues((prev) => ({ ...prev, [field.name]: v }))
-              }
+              onValueChange={([v]) => setValues((prev) => ({ ...prev, [field.name]: v }))}
               disabled={pending}
               className="flex-1"
             />

@@ -5,11 +5,7 @@ import { useRouter } from "next/navigation"
 import { createSession, updateSession } from "@/lib/sessions/actions"
 import type { SessionDetail } from "@/lib/sessions/actions"
 import { calculateSumFromShots } from "@/lib/sessions/calculateScore"
-import {
-  isValidShotValue,
-  isValidSeriesTotal,
-  formatSeriesMax,
-} from "@/lib/sessions/validation"
+import { isValidShotValue, isValidSeriesTotal, formatSeriesMax } from "@/lib/sessions/validation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -75,15 +71,19 @@ export function EinheitForm({ disciplines, initialData, sessionId }: Props) {
   // Einzelschuss-Modus: aktiv wenn mindestens eine Serie shots-Daten hat
   const [showShots, setShowShots] = useState<boolean>(() => {
     if (!initialData) return false
-    return sortedInitialSeries.some((s) => Array.isArray(s.shots) && (s.shots as string[]).length > 0)
+    return sortedInitialSeries.some(
+      (s) => Array.isArray(s.shots) && (s.shots as string[]).length > 0
+    )
   })
 
   // shots vorbelegen aus initialData (falls vorhanden)
   const [shots, setShots] = useState<string[][]>(() => {
-    if (!initialData || !sortedInitialSeries.some((s) => Array.isArray(s.shots) && (s.shots as string[]).length > 0)) return []
-    return sortedInitialSeries.map((s) =>
-      Array.isArray(s.shots) ? (s.shots as string[]) : []
+    if (
+      !initialData ||
+      !sortedInitialSeries.some((s) => Array.isArray(s.shots) && (s.shots as string[]).length > 0)
     )
+      return []
+    return sortedInitialSeries.map((s) => (Array.isArray(s.shots) ? (s.shots as string[]) : []))
   })
 
   // Serienanzahl aus initialData oder 0
@@ -106,9 +106,7 @@ export function EinheitForm({ disciplines, initialData, sessionId }: Props) {
   // Ermöglicht Echtzeit-Validierung ohne nativen Browser-Validation-Dialog
   const [seriesTotals, setSeriesTotals] = useState<string[]>(() => {
     if (!initialData) return []
-    return sortedInitialSeries.map((s) =>
-      s.scoreTotal != null ? String(s.scoreTotal) : ""
-    )
+    return sortedInitialSeries.map((s) => (s.scoreTotal != null ? String(s.scoreTotal) : ""))
   })
 
   // isPractice-Flag pro Serie — ermöglicht manuelles Hinzufügen von Probeschuss-Serien,
@@ -119,9 +117,7 @@ export function EinheitForm({ disciplines, initialData, sessionId }: Props) {
 
   // Stabile Keys pro Serie: verhindert ungewollte Re-Renders (und Wertverlust in unkontrollierten
   // Inputs) wenn Serien eingefügt oder verschoben werden — neue Serien erhalten generierte IDs
-  const [seriesKeys, setSeriesKeys] = useState<string[]>(() =>
-    sortedInitialSeries.map((s) => s.id)
-  )
+  const [seriesKeys, setSeriesKeys] = useState<string[]>(() => sortedInitialSeries.map((s) => s.id))
 
   // Datum vorbelegen: aus initialData oder aktuelle Zeit
   const [defaultDate] = useState(() => {
@@ -139,22 +135,29 @@ export function EinheitForm({ disciplines, initialData, sessionId }: Props) {
   // aktuellen Eingabe-State. Leere Felder gelten nicht als Fehler.
 
   // Shot-Modus: Für jeden Schuss prüfen ob der Wert für die Wertungsart gültig ist
-  const invalidShots: boolean[][] = showShots && scoringType
-    ? shots.map((serieShots) =>
-        serieShots.map((v) => v !== "" && !isValidShotValue(v, scoringType))
-      )
-    : shots.map((serieShots) => serieShots.map(() => false))
+  const invalidShots: boolean[][] =
+    showShots && scoringType
+      ? shots.map((serieShots) =>
+          serieShots.map((v) => v !== "" && !isValidShotValue(v, scoringType))
+        )
+      : shots.map((serieShots) => serieShots.map(() => false))
 
   // Summen-Modus: Seriensumme darf den Maximalwert nicht überschreiten
-  const invalidTotals: boolean[] = !showShots && scoringType
-    ? seriesTotals.map((v, i) =>
-        v !== "" && !isValidSeriesTotal(v, scoringType, shotCounts[i] ?? (selectedDiscipline?.shotsPerSeries ?? 10))
-      )
-    : seriesTotals.map(() => false)
+  const invalidTotals: boolean[] =
+    !showShots && scoringType
+      ? seriesTotals.map(
+          (v, i) =>
+            v !== "" &&
+            !isValidSeriesTotal(
+              v,
+              scoringType,
+              shotCounts[i] ?? selectedDiscipline?.shotsPerSeries ?? 10
+            )
+        )
+      : seriesTotals.map(() => false)
 
   const hasValidationErrors =
-    invalidShots.some((serie) => serie.some(Boolean)) ||
-    invalidTotals.some(Boolean)
+    invalidShots.some((serie) => serie.some(Boolean)) || invalidTotals.some(Boolean)
 
   // ─── Handler ─────────────────────────────────────────────────────────────────
 
@@ -491,179 +494,187 @@ export function EinheitForm({ disciplines, initialData, sessionId }: Props) {
                     className={isPractice ? "bg-muted/30" : ""}
                     style={
                       isPractice
-                        ? { clipPath: "polygon(0 0, calc(100% - 50px) 0, 100% 50px, 100% 100%, 0 100%)" }
+                        ? {
+                            clipPath:
+                              "polygon(0 0, calc(100% - 50px) 0, 100% 50px, 100% 100%, 0 100%)",
+                          }
                         : undefined
                     }
                   >
-                  <CardContent className="space-y-3 pt-4">
-                    {/* Verstecktes Feld für isPractice */}
-                    <input
-                      type="hidden"
-                      name={`series[${i}][isPractice]`}
-                      value={isPractice ? "true" : "false"}
-                    />
+                    <CardContent className="space-y-3 pt-4">
+                      {/* Verstecktes Feld für isPractice */}
+                      <input
+                        type="hidden"
+                        name={`series[${i}][isPractice]`}
+                        value={isPractice ? "true" : "false"}
+                      />
 
-                    {/* Serien-Header mit Label, Typ-Toggle und Entfernen-Button */}
-                    <div className="flex items-center justify-between gap-2">
-                      <Label htmlFor={`series-${i}`} className="leading-none">
-                        {seriesLabel}
-                        {isPractice && (
-                          <span className="ml-2 text-xs font-normal text-muted-foreground">
-                            (zählt nicht)
-                          </span>
-                        )}
-                      </Label>
-                      <div className="flex items-center gap-1">
-                        <button
-                          type="button"
-                          onClick={() => handleTogglePractice(i)}
-                          disabled={pending}
-                          aria-label={isPractice ? "Als Wertungsserie markieren" : "Als Probeschuss-Serie markieren"}
-                          className="rounded border border-border px-1.5 py-0.5 text-xs text-muted-foreground hover:border-foreground hover:text-foreground disabled:cursor-not-allowed disabled:opacity-30"
-                        >
-                          {isPractice ? "→ Wertung" : "→ Probe"}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveSeries(i)}
-                          disabled={pending || totalSeries <= 1}
-                          aria-label={`${seriesLabel} entfernen`}
-                          className="h-5 w-5 rounded text-xs text-muted-foreground hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-30"
-                        >
-                          ×
-                        </button>
+                      {/* Serien-Header mit Label, Typ-Toggle und Entfernen-Button */}
+                      <div className="flex items-center justify-between gap-2">
+                        <Label htmlFor={`series-${i}`} className="leading-none">
+                          {seriesLabel}
+                          {isPractice && (
+                            <span className="ml-2 text-xs font-normal text-muted-foreground">
+                              (zählt nicht)
+                            </span>
+                          )}
+                        </Label>
+                        <div className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => handleTogglePractice(i)}
+                            disabled={pending}
+                            aria-label={
+                              isPractice
+                                ? "Als Wertungsserie markieren"
+                                : "Als Probeschuss-Serie markieren"
+                            }
+                            className="rounded border border-border px-1.5 py-0.5 text-xs text-muted-foreground hover:border-foreground hover:text-foreground disabled:cursor-not-allowed disabled:opacity-30"
+                          >
+                            {isPractice ? "→ Wertung" : "→ Probe"}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveSeries(i)}
+                            disabled={pending || totalSeries <= 1}
+                            aria-label={`${seriesLabel} entfernen`}
+                            className="h-5 w-5 rounded text-xs text-muted-foreground hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-30"
+                          >
+                            ×
+                          </button>
+                        </div>
                       </div>
-                    </div>
 
-                    <div className="space-y-2">
-                      {showShots ? (
-                        // Einzelschuss-Modus: Schussanzahl-Selector + N Eingabefelder + Summe
-                        <div className="space-y-2">
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs text-muted-foreground">Schüsse:</span>
-                            <Input
-                              type="number"
-                              min="1"
-                              max="99"
-                              value={currentShotCount}
-                              onChange={(e) =>
-                                handleShotCountChange(i, parseInt(e.target.value, 10) || 1)
-                              }
-                              disabled={pending}
-                              className="h-7 w-16 px-2 text-center text-xs"
-                              aria-label={`Schussanzahl Serie ${i + 1}`}
-                            />
-                          </div>
-                          <div className="grid grid-cols-5 gap-1">
-                            {Array.from({ length: currentShotCount }, (_, j) => {
-                              const isInvalid = invalidShots[i]?.[j] ?? false
-                              return (
-                                <Input
-                                  key={j}
-                                  type="number"
-                                  min="0"
-                                  max={selectedDiscipline.scoringType === "WHOLE" ? "10" : "10.9"}
-                                  step={selectedDiscipline.scoringType === "TENTH" ? "0.1" : "1"}
-                                  placeholder="-"
-                                  value={shotsForSeries[j] ?? ""}
-                                  onChange={(e) => handleShotChange(i, j, e.target.value)}
-                                  disabled={pending}
-                                  className={`px-1 text-center text-sm ${
-                                    isInvalid ? "border-destructive focus-visible:ring-destructive" : ""
-                                  }`}
-                                  aria-label={`Serie ${i + 1} Schuss ${j + 1}`}
-                                  aria-invalid={isInvalid}
-                                />
-                              )
-                            })}
-                          </div>
+                      <div className="space-y-2">
+                        {showShots ? (
+                          // Einzelschuss-Modus: Schussanzahl-Selector + N Eingabefelder + Summe
+                          <div className="space-y-2">
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs text-muted-foreground">Schüsse:</span>
+                              <Input
+                                type="number"
+                                min="1"
+                                max="99"
+                                value={currentShotCount}
+                                onChange={(e) =>
+                                  handleShotCountChange(i, parseInt(e.target.value, 10) || 1)
+                                }
+                                disabled={pending}
+                                className="h-7 w-16 px-2 text-center text-xs"
+                                aria-label={`Schussanzahl Serie ${i + 1}`}
+                              />
+                            </div>
+                            <div className="grid grid-cols-5 gap-1">
+                              {Array.from({ length: currentShotCount }, (_, j) => {
+                                const isInvalid = invalidShots[i]?.[j] ?? false
+                                return (
+                                  <Input
+                                    key={j}
+                                    type="number"
+                                    min="0"
+                                    max={selectedDiscipline.scoringType === "WHOLE" ? "10" : "10.9"}
+                                    step={selectedDiscipline.scoringType === "TENTH" ? "0.1" : "1"}
+                                    placeholder="-"
+                                    value={shotsForSeries[j] ?? ""}
+                                    onChange={(e) => handleShotChange(i, j, e.target.value)}
+                                    disabled={pending}
+                                    className={`px-1 text-center text-sm ${
+                                      isInvalid
+                                        ? "border-destructive focus-visible:ring-destructive"
+                                        : ""
+                                    }`}
+                                    aria-label={`Serie ${i + 1} Schuss ${j + 1}`}
+                                    aria-invalid={isInvalid}
+                                  />
+                                )
+                              })}
+                            </div>
 
-                          {/* Fehlermeldung bei ungültigen Schüssen */}
-                          {invalidShotCount > 0 && (
-                            <p className="text-xs text-destructive">
-                              {selectedDiscipline.scoringType === "TENTH"
-                                ? `${invalidShotCount} ungültige${invalidShotCount === 1 ? "r" : ""} Wert — erlaubt: 0.0 oder 1.0–10.9`
-                                : `${invalidShotCount} ungültige${invalidShotCount === 1 ? "r" : ""} Wert — erlaubt: 0–10 (ganzzahlig)`}
-                            </p>
-                          )}
+                            {/* Fehlermeldung bei ungültigen Schüssen */}
+                            {invalidShotCount > 0 && (
+                              <p className="text-xs text-destructive">
+                                {selectedDiscipline.scoringType === "TENTH"
+                                  ? `${invalidShotCount} ungültige${invalidShotCount === 1 ? "r" : ""} Wert — erlaubt: 0.0 oder 1.0–10.9`
+                                  : `${invalidShotCount} ungültige${invalidShotCount === 1 ? "r" : ""} Wert — erlaubt: 0–10 (ganzzahlig)`}
+                              </p>
+                            )}
 
-                          {/* Seriensumme live berechnet und read-only angezeigt */}
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm text-muted-foreground">Summe:</span>
-                            <span className="font-medium">
-                              {computedTotal !== null ? computedTotal : "–"}
-                            </span>
-                            <span className="text-sm text-muted-foreground">
-                              / {maxLabel}
-                            </span>
-                            {/* Berechnete Summe als Hidden-Field für den Server */}
-                            <input
-                              type="hidden"
-                              name={`series[${i}][scoreTotal]`}
-                              value={computedTotal !== null ? String(computedTotal) : ""}
-                            />
+                            {/* Seriensumme live berechnet und read-only angezeigt */}
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm text-muted-foreground">Summe:</span>
+                              <span className="font-medium">
+                                {computedTotal !== null ? computedTotal : "–"}
+                              </span>
+                              <span className="text-sm text-muted-foreground">/ {maxLabel}</span>
+                              {/* Berechnete Summe als Hidden-Field für den Server */}
+                              <input
+                                type="hidden"
+                                name={`series[${i}][scoreTotal]`}
+                                value={computedTotal !== null ? String(computedTotal) : ""}
+                              />
+                            </div>
                           </div>
-                        </div>
-                      ) : (
-                        // Summen-Modus: Seriensumme direkt eingeben (kontrolliertes Input)
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-2">
-                            <Input
-                              id={`series-${i}`}
-                              name={`series[${i}][scoreTotal]`}
-                              type="number"
-                              min="0"
-                              max={maxLabel}
-                              step={selectedDiscipline.scoringType === "TENTH" ? "0.1" : "1"}
-                              placeholder="Ringe"
-                              className={`w-28 ${
-                                totalIsInvalid ? "border-destructive focus-visible:ring-destructive" : ""
-                              }`}
-                              value={seriesTotals[i] ?? ""}
-                              onChange={(e) => handleTotalChange(i, e.target.value)}
-                              disabled={pending}
-                              aria-invalid={totalIsInvalid}
-                            />
-                            <span className="text-sm text-muted-foreground">
-                              / {maxLabel}
-                            </span>
+                        ) : (
+                          // Summen-Modus: Seriensumme direkt eingeben (kontrolliertes Input)
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-2">
+                              <Input
+                                id={`series-${i}`}
+                                name={`series[${i}][scoreTotal]`}
+                                type="number"
+                                min="0"
+                                max={maxLabel}
+                                step={selectedDiscipline.scoringType === "TENTH" ? "0.1" : "1"}
+                                placeholder="Ringe"
+                                className={`w-28 ${
+                                  totalIsInvalid
+                                    ? "border-destructive focus-visible:ring-destructive"
+                                    : ""
+                                }`}
+                                value={seriesTotals[i] ?? ""}
+                                onChange={(e) => handleTotalChange(i, e.target.value)}
+                                disabled={pending}
+                                aria-invalid={totalIsInvalid}
+                              />
+                              <span className="text-sm text-muted-foreground">/ {maxLabel}</span>
+                            </div>
+                            {/* Fehlermeldung bei überschrittenem Maximum */}
+                            {totalIsInvalid && (
+                              <p className="text-xs text-destructive">
+                                Maximum: {maxLabel}{" "}
+                                {selectedDiscipline.scoringType === "TENTH" ? "Zehntel" : "Ringe"}
+                              </p>
+                            )}
                           </div>
-                          {/* Fehlermeldung bei überschrittenem Maximum */}
-                          {totalIsInvalid && (
-                            <p className="text-xs text-destructive">
-                              Maximum: {maxLabel} {selectedDiscipline.scoringType === "TENTH" ? "Zehntel" : "Ringe"}
-                            </p>
-                          )}
-                        </div>
-                      )}
-                    </div>
+                        )}
+                      </div>
 
-                    {/* Ausführungsqualität — optional */}
-                    <div className="space-y-1">
-                      <Label htmlFor={`quality-${i}`} className="text-xs text-muted-foreground">
-                        Ausführung (optional)
-                      </Label>
-                      <Select
-                        name={`series[${i}][executionQuality]`}
-                        defaultValue={
-                          sortedInitialSeries[i]?.executionQuality != null
-                            ? String(sortedInitialSeries[i].executionQuality)
-                            : undefined
-                        }
-                      >
-                        <SelectTrigger id={`quality-${i}`} className="h-8 text-xs">
-                          <SelectValue placeholder="Bewertung wählen" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {Object.entries(executionQualityLabels).map(([value, label]) => (
-                            <SelectItem key={value} value={value} className="text-xs">
-                              {label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </CardContent>
+                      {/* Ausführungsqualität — optional */}
+                      <div className="space-y-1">
+                        <Label htmlFor={`quality-${i}`} className="text-xs text-muted-foreground">
+                          Ausführung (optional)
+                        </Label>
+                        <Select
+                          name={`series[${i}][executionQuality]`}
+                          defaultValue={
+                            sortedInitialSeries[i]?.executionQuality != null
+                              ? String(sortedInitialSeries[i].executionQuality)
+                              : undefined
+                          }
+                        >
+                          <SelectTrigger id={`quality-${i}`} className="h-8 text-xs">
+                            <SelectValue placeholder="Bewertung wählen" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {Object.entries(executionQualityLabels).map(([value, label]) => (
+                              <SelectItem key={value} value={value} className="text-xs">
+                                {label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </CardContent>
                   </Card>
                 </div>
               )
@@ -698,9 +709,7 @@ export function EinheitForm({ disciplines, initialData, sessionId }: Props) {
           {pending ? "Speichern..." : sessionId ? "Änderungen speichern" : "Einheit speichern"}
         </Button>
         {hasValidationErrors && (
-          <p className="self-center text-sm text-destructive">
-            Bitte ungültige Werte korrigieren.
-          </p>
+          <p className="self-center text-sm text-destructive">Bitte ungültige Werte korrigieren.</p>
         )}
         <Button
           type="button"

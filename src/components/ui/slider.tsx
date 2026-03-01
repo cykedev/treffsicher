@@ -10,10 +10,7 @@ const Slider = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <SliderPrimitive.Root
     ref={ref}
-    className={cn(
-      "relative flex w-full touch-none select-none items-center",
-      className
-    )}
+    className={cn("relative flex w-full touch-none select-none items-center", className)}
     {...props}
   >
     {/* Track: bg-muted (dunkelgrau im Dark Mode, hellgrau im Light Mode) */}

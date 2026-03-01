@@ -623,6 +623,7 @@ Optional vor jeder Einheit, 4 Schieberegler (0–10):
 Wird beim Anlegen der Einheit oder danach erfasst.
 
 **UI-Pattern (view/edit)**: `WellbeingSection` ist ein Client Component das den Zustand verwaltet:
+
 - Kein Datensatz: Leerzustand + "Befinden erfassen"-Button
 - Datensatz vorhanden: Leseanzeige (4 Balken mit Werten) + "Bearbeiten"-Button
 - Bearbeitungsmodus: `WellbeingForm` inline + "Abbrechen"-Button
@@ -683,32 +684,38 @@ Editierbares Dokument (kein Versionsverlauf — bewusste Entscheidung):
 - Schusszahl pro Serie: aus `shots`-Array (wenn Einzelschüsse erfasst), sonst Disziplin-Standard
 
 **Hochrechnung** (optionaler Anzeigemodus, nur bei gewählter Disziplin):
+
 - `Hochrechnung = avgPerShot × shotsPerSeries × seriesCount`
 - Zehntelwertung: 1 Dezimalstelle; Ganzringwertung: ganzzahlig gerundet
 
 **Disziplin-Filter**: Client-seitiger Filter — verhindert das Mischen unterschiedlicher Disziplinen in Charts. `availableDisciplines` wird aus den geladenen Sessions abgeleitet (kein separater DB-Query).
 
 **Neue Statistik-Ansichten**:
+
 - **Befinden-Korrelation**: `avgPerShot` vs. Befinden-Dimensionen (ScatterChart)
 - **Schussqualität vs. Ringe**: `scorePerShot` (Ringe/Schuss je Serie) vs. Ausführungsqualität (ScatterChart)
 
 ### Schritt 3.8 — Schuss-Histogramm (Detailansicht + Statistik)
 
 **Neue Komponente `src/components/app/ShotHistogram.tsx`** (Client Component):
+
 - Props: `shots: string[]`, `isDecimal: boolean`
 - Recharts `BarChart`, X-Achse: 10 links → 0 rechts, alle 11 Buckets immer sichtbar
 - Balkenfarbe grün (10) bis rot (0) via `Cell`-Komponente, Buckets mit 0 Treffern transparent
 
 **`src/app/(app)/einheiten/[id]/page.tsx`**:
+
 - `allShots` aus allen Serien sammeln (nutzt bestehende `parseShotsJson`)
 - Card "Schussverteilung" unterhalb Ergebnis-Card, nur wenn `hasScoring && hasShots`
 
 **`getShotDistributionData(filters)` + `ShotDistributionPoint`** in `src/lib/stats/actions.ts`:
+
 - Pro Einheit: Schüsse aller Wertungsserien sammeln, in Buckets zählen, auf Prozent normalisieren
 - Einheiten ohne Einzelschüsse werden übersprungen
 - Gibt `ShotDistributionPoint[]` mit Feldern `r0`–`r10` (Prozentsatz) zurück
 
 **`StatistikCharts.tsx`** — neue Card "Schussverteilung im Zeitverlauf":
+
 - Recharts `AreaChart` mit 11 gestapelten `Area`-Komponenten (`stackId="rings"`)
 - Farben: rot (r0) bis grün (r10); X-Achse: Datum, Y-Achse: 0–100 %
 - Tooltip zeigt nur Buckets mit Wert > 0
@@ -724,10 +731,10 @@ Editierbares Dokument (kein Versionsverlauf — bewusste Entscheidung):
 3. Disziplin bearbeiten: Name und Serienkonfiguration ändern → gespeichert und in Liste sichtbar
 4. System-Disziplinen haben keinen Bearbeiten-Button
 5. Wertungsart-Änderung bei verwendeter Disziplin → Fehlermeldung
-3. Befinden vor einer Einheit erfassen, in Statistik sichtbar
-4. Reflexion nach einer Einheit ausfüllen, gespeichert und lesbar
-5. Prognose + Feedback für eine Einheit durchspielen, Vergleich angezeigt
-6. Schuss-Ablauf anlegen, Schritte ordnen, speichern
+6. Befinden vor einer Einheit erfassen, in Statistik sichtbar
+7. Reflexion nach einer Einheit ausfüllen, gespeichert und lesbar
+8. Prognose + Feedback für eine Einheit durchspielen, Vergleich angezeigt
+9. Schuss-Ablauf anlegen, Schritte ordnen, speichern
 
 ---
 

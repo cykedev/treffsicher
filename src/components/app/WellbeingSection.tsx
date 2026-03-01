@@ -13,9 +13,9 @@ interface Props {
 }
 
 const fields = [
-  { key: "sleep"      as const, label: "Schlaf",     icon: Moon  },
-  { key: "energy"     as const, label: "Energie",    icon: Zap   },
-  { key: "stress"     as const, label: "Stress",     icon: Brain },
+  { key: "sleep" as const, label: "Schlaf", icon: Moon },
+  { key: "energy" as const, label: "Energie", icon: Zap },
+  { key: "stress" as const, label: "Stress", icon: Brain },
   { key: "motivation" as const, label: "Motivation", icon: Flame },
 ]
 

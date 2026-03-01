@@ -23,9 +23,7 @@ export function ReflectionForm({ sessionId, initialData, onSuccess, onCancel }: 
   const [state, formAction, pending] = useActionState<ActionResult | null, FormData>(action, null)
 
   // Lokaler State für Ablauf-Checkbox — bestimmt ob Abweichungsfeld angezeigt wird
-  const [routineFollowed, setRoutineFollowed] = useState(
-    initialData?.routineFollowed ?? true
-  )
+  const [routineFollowed, setRoutineFollowed] = useState(initialData?.routineFollowed ?? true)
 
   // Nach erfolgreichem Speichern Callback aufrufen (für Section-Wrapper)
   useEffect(() => {

@@ -93,7 +93,13 @@ export async function getStatsData(filters: StatsFilters): Promise<StatsSession[
     include: {
       // Disziplin für Metadaten (Schusszahl, Wertungsart) und Hochrechnung
       discipline: {
-        select: { id: true, name: true, seriesCount: true, shotsPerSeries: true, scoringType: true },
+        select: {
+          id: true,
+          name: true,
+          seriesCount: true,
+          shotsPerSeries: true,
+          scoringType: true,
+        },
       },
       series: {
         select: {
@@ -329,8 +335,7 @@ export async function getShotDistributionData(
     }
 
     // Prozentsatz pro Bucket berechnen (auf 1 Dezimalstelle gerundet)
-    const toPercent = (count: number) =>
-      Math.round((count / totalShots) * 1000) / 10
+    const toPercent = (count: number) => Math.round((count / totalShots) * 1000) / 10
 
     result.push({
       date: s.date,
@@ -366,18 +371,13 @@ export type QualityVsScorePoint = {
  * Lädt Serien mit Ausführungsqualität für die Qualitäts-/Ergebnis-Korrelation.
  * Normalisiert auf Ringe/Schuss damit Serien unterschiedlicher Länge vergleichbar sind.
  */
-export async function getQualityVsScoreData(
-  filters: StatsFilters
-): Promise<QualityVsScorePoint[]> {
+export async function getQualityVsScoreData(filters: StatsFilters): Promise<QualityVsScorePoint[]> {
   const session = await getAuthSession()
   if (!session) return []
 
   const sessionFilter: Record<string, unknown> = {
     userId: session.user.id,
-    type:
-      filters.type && filters.type !== "all"
-        ? filters.type
-        : { in: ["TRAINING", "WETTKAMPF"] },
+    type: filters.type && filters.type !== "all" ? filters.type : { in: ["TRAINING", "WETTKAMPF"] },
   }
 
   if (filters.disciplineId && filters.disciplineId !== "all") {

@@ -3,11 +3,7 @@
 import { useActionState } from "react"
 import { useRouter } from "next/navigation"
 import { useEffect } from "react"
-import {
-  createDiscipline,
-  updateDiscipline,
-  type ActionResult,
-} from "@/lib/disciplines/actions"
+import { createDiscipline, updateDiscipline, type ActionResult } from "@/lib/disciplines/actions"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -33,14 +29,9 @@ export function DisziplinForm({ initialData, disciplineId }: Props) {
   const router = useRouter()
 
   // Im Bearbeiten-Modus die action via bind an die ID binden
-  const action = disciplineId
-    ? updateDiscipline.bind(null, disciplineId)
-    : createDiscipline
+  const action = disciplineId ? updateDiscipline.bind(null, disciplineId) : createDiscipline
 
-  const [state, formAction, pending] = useActionState<ActionResult | null, FormData>(
-    action,
-    null
-  )
+  const [state, formAction, pending] = useActionState<ActionResult | null, FormData>(action, null)
 
   // Nach erfolgreicher Erstellung zur Disziplin-Liste navigieren
   useEffect(() => {

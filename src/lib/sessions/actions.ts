@@ -252,9 +252,7 @@ export async function getSessionById(id: string): Promise<SessionDetail | null> 
       ? {
           ...result.prognosis,
           expectedScore:
-            result.prognosis.expectedScore !== null
-              ? String(result.prognosis.expectedScore)
-              : null,
+            result.prognosis.expectedScore !== null ? String(result.prognosis.expectedScore) : null,
         }
       : null,
   }
@@ -583,9 +581,7 @@ export async function saveReflection(
     learningQuestion: (formData.get("learningQuestion") as string) || null,
     routineFollowed,
     // Abweichung nur speichern wenn Ablauf nicht eingehalten wurde
-    routineDeviation: routineFollowed
-      ? null
-      : ((formData.get("routineDeviation") as string) || null),
+    routineDeviation: routineFollowed ? null : (formData.get("routineDeviation") as string) || null,
   }
 
   await db.reflection.upsert({

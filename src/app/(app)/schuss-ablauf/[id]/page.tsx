@@ -18,9 +18,7 @@ export default async function SchussAblaufDetailPage({
   if (!routine) notFound()
 
   // steps aus Json-Feld in typisiertes Array umwandeln
-  const steps: RoutineStep[] = Array.isArray(routine.steps)
-    ? (routine.steps as RoutineStep[])
-    : []
+  const steps: RoutineStep[] = Array.isArray(routine.steps) ? (routine.steps as RoutineStep[]) : []
 
   return (
     <div className="space-y-6">
@@ -28,11 +26,7 @@ export default async function SchussAblaufDetailPage({
         <h1 className="text-2xl font-bold tracking-tight">Schuss-Ablauf bearbeiten</h1>
         <p className="text-muted-foreground">Schritte anpassen, umordnen oder neue hinzufügen.</p>
       </div>
-      <ShotRoutineEditor
-        initialName={routine.name}
-        initialSteps={steps}
-        routineId={id}
-      />
+      <ShotRoutineEditor initialName={routine.name} initialSteps={steps} routineId={id} />
     </div>
   )
 }
