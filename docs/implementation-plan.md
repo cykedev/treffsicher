@@ -747,6 +747,41 @@ Editierbares Dokument (kein Versionsverlauf — bewusste Entscheidung):
 
 ---
 
+## Phase 3.10 — Kleine Ergänzungen ✅ abgeschlossen
+
+**Ziel**: Usability-Verbesserungen, die nicht zur grossen UI-Überarbeitung gehören.
+
+### Favorit-Markierung
+
+- Neues Feld `isFavourite Boolean @default(false)` in `TrainingSession`
+- Server Action `toggleFavourite(sessionId)` — optimistischer Client-Toggle via `FavouriteButton`-Komponente
+- Tagebuch: rotes Herz-Icon vor dem Type-Badge bei Favoriten
+- Detailansicht: `FavouriteButton` im Header
+
+### Trainingsziel
+
+- Neues Feld `trainingGoal String?` in `TrainingSession`
+- Textarea im EinheitForm bei Typ TRAINING, TROCKENTRAINING und MENTAL (nicht bei WETTKAMPF)
+- Detailansicht: Anzeige mit Target-Icon unterhalb von Disziplin/Ort
+
+### Tagebuch — Schuss- und Probeschussanzahl
+
+- `shots: true` im `getSessions`-Select — ermöglicht Prüfung ob Einzelschüsse erfasst wurden
+- "Einzelschüsse"-Badge in der Indikatoren-Zeile wenn mindestens eine Serie Einzelschüsse hat
+- Probeschuss-Schussanzahl im Ergebnis-Untertitel: "40 Sch. + 10 Probe"
+
+### Eingabevalidierung für Schuss- und Serienwerte
+
+- Neue Datei `src/lib/sessions/validation.ts` mit `isValidShotValue`, `isValidSeriesTotal`, `formatSeriesMax`
+- TENTH: 0.0 gültig, 0.1–0.9 ungültig, 1.0–10.9 gültig; WHOLE: 0–10 ganzzahlig
+- EinheitForm: `seriesTotals: string[]` als kontrolliertes paralleles State-Array
+- Inline-Validierung (kein separater Error-State) — rot markierte Inputs, Fehlermeldung unterhalb
+- Submit-Button disabled solange Fehler vorhanden; `noValidate` am Form
+
+**Migration**: `20260301100230_add_favourite_and_training_goal` (beide Felder in einer Migration)
+
+---
+
 ## Phase 4 — Tiefe & Ziele
 
 **Ziel**: Saisonziele, erweiterte Statistiken, PDF/CSV-Export.
