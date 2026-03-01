@@ -4,6 +4,7 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { createSession, updateSession } from "@/lib/sessions/actions"
 import type { SessionDetail } from "@/lib/sessions/actions"
+import type { MeytonImportPrefill } from "@/lib/sessions/actions"
 import { calculateSumFromShots } from "@/lib/sessions/calculateScore"
 import { isValidShotValue, isValidSeriesTotal, formatSeriesMax } from "@/lib/sessions/validation"
 import { Button } from "@/components/ui/button"
@@ -25,6 +26,8 @@ interface Props {
   // Wenn gesetzt: Bearbeiten-Modus — Formular wird mit bestehender Einheit vorbelegt
   initialData?: SessionDetail
   sessionId?: string
+  // Meyton-Import liefert eine Draft-Vorbelegung fuer "Neue Einheit"
+  prefillData?: MeytonImportPrefill
 }
 
 const sessionTypeLabels: Record<string, string> = {
@@ -45,24 +48,51 @@ const executionQualityLabels: Record<number, string> = {
 // Einheitentypen die eine Disziplin erfordern
 const typesWithDiscipline = ["TRAINING", "WETTKAMPF"]
 
+interface FormSeriesSeed {
+  id: string
+  isPractice: boolean
+  scoreTotal: number | null
+  shots: string[]
+  executionQuality: number | null
+}
+
 // Formular für neue oder bestehende Einheit.
 // Im Bearbeiten-Modus (sessionId gesetzt) wird initialData zur Vorbelegen verwendet.
 // Bei Auswahl von Typ und Disziplin werden die Serienfelder dynamisch generiert.
 // Die Serienanzahl und Schussanzahl pro Serie kann vom Disziplin-Standard abweichen.
 // Optional: Einzelschüsse erfassen (Toggle) und Ausführungsqualität pro Serie.
-export function EinheitForm({ disciplines, initialData, sessionId }: Props) {
+export function EinheitForm({ disciplines, initialData, sessionId, prefillData }: Props) {
   const router = useRouter()
   const [pending, setPending] = useState(false)
 
   // Lazy initializer: Werte aus initialData (Bearbeiten) oder Leerwerte (Neu)
-  const [type, setType] = useState<string>(() => initialData?.type ?? "")
-  const [disciplineId, setDisciplineId] = useState<string>(() => initialData?.disciplineId ?? "")
+  const [type, setType] = useState<string>(() => prefillData?.type ?? initialData?.type ?? "")
+  const [disciplineId, setDisciplineId] = useState<string>(
+    () => prefillData?.disciplineId ?? initialData?.disciplineId ?? ""
+  )
 
   // Serien sortiert: Probeschüsse immer zuerst — wird einmalig beim Mount berechnet
   // und als Referenz für alle State-Initialisierungen verwendet
-  const [sortedInitialSeries] = useState(() => {
-    if (!initialData) return []
-    return [...initialData.series].sort((a, b) => {
+  const [sortedInitialSeries] = useState<FormSeriesSeed[]>(() => {
+    const sourceSeries: FormSeriesSeed[] = initialData
+      ? initialData.series.map((serie) => ({
+          id: serie.id,
+          isPractice: serie.isPractice,
+          scoreTotal: serie.scoreTotal,
+          shots: Array.isArray(serie.shots) ? (serie.shots as string[]) : [],
+          executionQuality: serie.executionQuality,
+        }))
+      : prefillData
+        ? prefillData.series.map((serie, index) => ({
+            id: `meyton-${index}-${serie.nr}`,
+            isPractice: false,
+            scoreTotal: Number(serie.scoreTotal),
+            shots: serie.shots,
+            executionQuality: null,
+          }))
+        : []
+
+    return [...sourceSeries].sort((a, b) => {
       if (a.isPractice === b.isPractice) return 0
       return a.isPractice ? -1 : 1
     })
@@ -70,20 +100,14 @@ export function EinheitForm({ disciplines, initialData, sessionId }: Props) {
 
   // Einzelschuss-Modus: aktiv wenn mindestens eine Serie shots-Daten hat
   const [showShots, setShowShots] = useState<boolean>(() => {
-    if (!initialData) return false
-    return sortedInitialSeries.some(
-      (s) => Array.isArray(s.shots) && (s.shots as string[]).length > 0
-    )
+    if (!initialData && !prefillData) return false
+    return sortedInitialSeries.some((s) => Array.isArray(s.shots) && s.shots.length > 0)
   })
 
   // shots vorbelegen aus initialData (falls vorhanden)
   const [shots, setShots] = useState<string[][]>(() => {
-    if (
-      !initialData ||
-      !sortedInitialSeries.some((s) => Array.isArray(s.shots) && (s.shots as string[]).length > 0)
-    )
-      return []
-    return sortedInitialSeries.map((s) => (Array.isArray(s.shots) ? (s.shots as string[]) : []))
+    if (!sortedInitialSeries.some((s) => Array.isArray(s.shots) && s.shots.length > 0)) return []
+    return sortedInitialSeries.map((s) => (Array.isArray(s.shots) ? s.shots : []))
   })
 
   // Serienanzahl aus initialData oder 0
@@ -92,11 +116,12 @@ export function EinheitForm({ disciplines, initialData, sessionId }: Props) {
   // Schussanzahl pro Serie: aus shots-Array-Länge ableiten (falls shots vorhanden),
   // sonst Disziplin-Standard (aus disciplines-Array nachschlagen) oder 10
   const [shotCounts, setShotCounts] = useState<number[]>(() => {
-    if (!initialData) return []
-    const disc = disciplines.find((d) => d.id === initialData.disciplineId)
+    if (!initialData && !prefillData) return []
+    const seedDisciplineId = prefillData?.disciplineId ?? initialData?.disciplineId
+    const disc = disciplines.find((d) => d.id === seedDisciplineId)
     return sortedInitialSeries.map((s) => {
-      if (Array.isArray(s.shots) && (s.shots as string[]).length > 0) {
-        return (s.shots as string[]).length
+      if (Array.isArray(s.shots) && s.shots.length > 0) {
+        return s.shots.length
       }
       return disc?.shotsPerSeries ?? 10
     })
@@ -105,7 +130,7 @@ export function EinheitForm({ disciplines, initialData, sessionId }: Props) {
   // Seriensummen im Summen-Modus: kontrolliertes State-Array (parallel zu shotCounts etc.)
   // Ermöglicht Echtzeit-Validierung ohne nativen Browser-Validation-Dialog
   const [seriesTotals, setSeriesTotals] = useState<string[]>(() => {
-    if (!initialData) return []
+    if (!initialData && !prefillData) return []
     return sortedInitialSeries.map((s) => (s.scoreTotal != null ? String(s.scoreTotal) : ""))
   })
 
@@ -121,7 +146,8 @@ export function EinheitForm({ disciplines, initialData, sessionId }: Props) {
 
   // Datum vorbelegen: aus initialData oder aktuelle Zeit
   const [defaultDate] = useState(() => {
-    const base = initialData?.date ? new Date(initialData.date) : new Date()
+    const seedDate = prefillData?.date ?? initialData?.date
+    const base = seedDate ? new Date(seedDate) : new Date()
     base.setMinutes(base.getMinutes() - base.getTimezoneOffset())
     return base.toISOString().slice(0, 16)
   })
@@ -414,7 +440,7 @@ export function EinheitForm({ disciplines, initialData, sessionId }: Props) {
               id="location"
               name="location"
               placeholder="z.B. Schützenhaus Muster"
-              defaultValue={initialData?.location ?? ""}
+              defaultValue={prefillData?.location ?? initialData?.location ?? ""}
               disabled={pending}
             />
           </div>
@@ -427,7 +453,7 @@ export function EinheitForm({ disciplines, initialData, sessionId }: Props) {
                 id="trainingGoal"
                 name="trainingGoal"
                 placeholder="Was soll heute gelingen?"
-                defaultValue={initialData?.trainingGoal ?? ""}
+                defaultValue={prefillData?.trainingGoal ?? initialData?.trainingGoal ?? ""}
                 disabled={pending}
                 rows={2}
               />

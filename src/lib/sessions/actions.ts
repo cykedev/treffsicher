@@ -6,6 +6,7 @@ import { redirect } from "next/navigation"
 import { db } from "@/lib/db"
 import { getAuthSession } from "@/lib/auth-helpers"
 import { saveUpload } from "@/lib/uploads/upload"
+import { extractTextFromPdfBuffer, parseMeytonSeriesFromText } from "@/lib/sessions/meytonImport"
 import type {
   TrainingSession,
   Discipline,
@@ -15,6 +16,7 @@ import type {
   Reflection,
   Prognosis,
   Feedback,
+  ScoringType,
   PrismaClient,
 } from "@/generated/prisma/client"
 
@@ -60,6 +62,28 @@ export type ActionResult = {
   success?: boolean
 }
 
+export type MeytonImportPrefillSeries = {
+  nr: number
+  isPractice: boolean
+  scoreTotal: string
+  shots: string[]
+  executionQuality: null
+}
+
+export type MeytonImportPrefill = {
+  type: "TRAINING" | "WETTKAMPF"
+  disciplineId: string
+  date: string
+  location: string
+  trainingGoal: string
+  series: MeytonImportPrefillSeries[]
+}
+
+export type MeytonImportResult = {
+  error?: string
+  data?: MeytonImportPrefill
+}
+
 // ─────────────────────────────────────────────
 // Schemas
 // ─────────────────────────────────────────────
@@ -71,6 +95,96 @@ const CreateSessionSchema = z.object({
   disciplineId: z.string().optional(),
   trainingGoal: z.string().optional(),
 })
+
+const MeytonImportSchema = z.object({
+  type: z.enum(["TRAINING", "WETTKAMPF"] as const, {
+    message: "Bitte Modus waehlen",
+  }),
+  disciplineId: z.string().min(1, "Bitte Disziplin waehlen"),
+  source: z.enum(["URL", "UPLOAD"] as const, {
+    message: "Bitte Quelle waehlen",
+  }),
+  pdfUrl: z.string().optional(),
+})
+
+const MAX_MEYTON_PDF_SIZE_BYTES = 10 * 1024 * 1024
+
+function mapShotToScoringType(value: number, scoringType: ScoringType): string {
+  if (scoringType === "WHOLE") {
+    return String(Math.floor(value))
+  }
+
+  return value.toFixed(1)
+}
+
+function calculateSeriesTotal(shots: string[], scoringType: ScoringType): string {
+  const sum = shots.reduce((total, shot) => total + Number(shot), 0)
+
+  if (scoringType === "WHOLE") {
+    return String(Math.floor(sum))
+  }
+
+  return (Math.round(sum * 10) / 10).toFixed(1)
+}
+
+async function loadPdfFromUrl(urlValue: string): Promise<Buffer> {
+  let parsedUrl: URL
+  try {
+    parsedUrl = new URL(urlValue)
+  } catch {
+    throw new Error("Die URL ist ungueltig.")
+  }
+
+  if (parsedUrl.protocol !== "http:" && parsedUrl.protocol !== "https:") {
+    throw new Error("Nur http(s)-URLs sind erlaubt.")
+  }
+
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), 15_000)
+
+  try {
+    const response = await fetch(parsedUrl, { signal: controller.signal })
+    if (!response.ok) {
+      throw new Error(`PDF konnte nicht geladen werden (HTTP ${response.status}).`)
+    }
+
+    const arrayBuffer = await response.arrayBuffer()
+    const buffer = Buffer.from(arrayBuffer)
+
+    if (buffer.length === 0) {
+      throw new Error("Die PDF-Datei ist leer.")
+    }
+    if (buffer.length > MAX_MEYTON_PDF_SIZE_BYTES) {
+      throw new Error("Die PDF-Datei ist groesser als 10 MB.")
+    }
+
+    return buffer
+  } catch (error) {
+    if (error instanceof Error && error.name === "AbortError") {
+      throw new Error("Timeout beim Laden der PDF-URL.")
+    }
+    throw error
+  } finally {
+    clearTimeout(timeout)
+  }
+}
+
+async function loadPdfFromUpload(file: File): Promise<Buffer> {
+  const fileName = file.name.toLowerCase()
+
+  if (file.size === 0) {
+    throw new Error("Die hochgeladene PDF-Datei ist leer.")
+  }
+  if (file.size > MAX_MEYTON_PDF_SIZE_BYTES) {
+    throw new Error("Die hochgeladene PDF-Datei ist groesser als 10 MB.")
+  }
+  if (file.type !== "application/pdf" && !fileName.endsWith(".pdf")) {
+    throw new Error("Bitte eine gueltige PDF-Datei hochladen.")
+  }
+
+  const arrayBuffer = await file.arrayBuffer()
+  return Buffer.from(arrayBuffer)
+}
 
 // Schema für eine einzelne Serie inkl. Phase-2-Felder
 const SeriesInputSchema = z.object({
@@ -203,6 +317,105 @@ export async function createSession(formData: FormData): Promise<void> {
   revalidatePath("/einheiten")
   // Nach Erstellung direkt zur Detailansicht — dort können Uploads hinzugefügt werden
   redirect(`/einheiten/${created.id}`)
+}
+
+/**
+ * Liest ein Meyton-PDF (URL oder Upload), extrahiert Serien + Schuesse
+ * und liefert eine Vorbelegung fuer das Einheit-Formular.
+ */
+export async function importMeytonPdf(formData: FormData): Promise<MeytonImportResult> {
+  const session = await getAuthSession()
+  if (!session) return { error: "Nicht angemeldet" }
+
+  const parsed = MeytonImportSchema.safeParse({
+    type: formData.get("type"),
+    disciplineId: formData.get("disciplineId"),
+    source: formData.get("source"),
+    pdfUrl: formData.get("pdfUrl") || undefined,
+  })
+
+  if (!parsed.success) {
+    return { error: "Bitte Modus, Disziplin und Quelle korrekt auswaehlen." }
+  }
+
+  const discipline = await db.discipline.findFirst({
+    where: {
+      id: parsed.data.disciplineId,
+      isArchived: false,
+      OR: [{ isSystem: true }, { ownerId: session.user.id }],
+    },
+    select: {
+      id: true,
+      scoringType: true,
+    },
+  })
+
+  if (!discipline) {
+    return { error: "Disziplin nicht gefunden oder keine Berechtigung." }
+  }
+
+  let pdfBuffer: Buffer
+  try {
+    if (parsed.data.source === "URL") {
+      const pdfUrl = (parsed.data.pdfUrl ?? "").trim()
+      if (!pdfUrl) return { error: "Bitte eine PDF-URL angeben." }
+      pdfBuffer = await loadPdfFromUrl(pdfUrl)
+    } else {
+      const uploaded = formData.get("file")
+      if (!(uploaded instanceof File)) {
+        return { error: "Bitte eine PDF-Datei hochladen." }
+      }
+      pdfBuffer = await loadPdfFromUpload(uploaded)
+    }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "PDF konnte nicht geladen werden."
+    return { error: message }
+  }
+
+  let extractedText: string
+  try {
+    extractedText = await extractTextFromPdfBuffer(pdfBuffer)
+  } catch (error) {
+    console.error("Meyton-Import: PDF-Text konnte nicht extrahiert werden:", error)
+    return {
+      error:
+        "Die PDF konnte nicht gelesen werden (kein textbasiertes Meyton-PDF oder defekte Datei).",
+    }
+  }
+
+  const parsedSeries = parseMeytonSeriesFromText(extractedText)
+  if (parsedSeries.serien.length === 0) {
+    return { error: "Keine Meyton-Serien im PDF gefunden." }
+  }
+
+  const importedSeries: MeytonImportPrefillSeries[] = parsedSeries.serien.map((serie) => {
+    const convertedShots = serie.shots.map((value) =>
+      mapShotToScoringType(value, discipline.scoringType)
+    )
+    return {
+      nr: serie.nr,
+      isPractice: false,
+      scoreTotal: calculateSeriesTotal(convertedShots, discipline.scoringType),
+      shots: convertedShots,
+      executionQuality: null,
+    }
+  })
+
+  const hasAnyShots = importedSeries.some((serie) => serie.shots.length > 0)
+  if (!hasAnyShots) {
+    return { error: "Es wurden Serien erkannt, aber keine gueltigen Schusswerte gefunden." }
+  }
+
+  return {
+    data: {
+      type: parsed.data.type,
+      disciplineId: discipline.id,
+      date: new Date().toISOString(),
+      location: "",
+      trainingGoal: "",
+      series: importedSeries,
+    },
+  }
 }
 
 /**
