@@ -58,6 +58,11 @@ Das System wird mit gängigen Standarddisziplinen vorinstalliert geliefert (z.B.
 ### Optionale Basisfelder
 
 - Ort (Freitext oder aus früheren Einträgen)
+- **Trainingsziel** (Freitext, bei Training, Trockentraining und Mentaltraining): Was soll heute gelingen? Bei Wettkampf entfällt dieses Feld — das Leistungsziel wird stattdessen in der Prognose erfasst.
+
+### Favorit-Markierung
+
+Einheiten können als Favorit markiert werden. Im Tagebuch werden Favoriten durch ein rotes Herz-Icon hervorgehoben. Die Markierung ist ein reines Anzeigehilfsmittel und hat keine funktionale Auswirkung.
 
 ---
 
@@ -81,6 +86,19 @@ Gilt für Einheitentypen "Training" und "Wettkampf".
 
 - Wird automatisch aus den Serienergebnissen berechnet
 - Anzeige: Ringe gesamt, Ringe je Serie, Durchschnitt
+
+### Validierung der Eingabewerte
+
+Schuss- und Serienwerte werden clientseitig validiert; ungültige Felder werden rot markiert und das Speichern wird blockiert. Leere Felder gelten nicht als Fehler.
+
+| Wertungsart  | Gültige Schusswerte                                         |
+| ------------ | ----------------------------------------------------------- |
+| Ganzringe    | 0–10 (ganzzahlig, keine Dezimalstellen)                     |
+| Zehntelringe | 0.0 oder 1.0–10.9 (0.1–0.9 existieren gemäss ISSF nicht) |
+
+Seriensummen dürfen den Maximalwert der Serie nicht überschreiten:
+- Ganzringe: `Schussanzahl × 10`
+- Zehntelringe: `Schussanzahl × 10.9`
 
 ---
 

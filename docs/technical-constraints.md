@@ -688,7 +688,7 @@ Nutzer können eigene Disziplinen hinzufügen.
 
 - **Responsiv**: Mobile und Desktop gleichwertig
 - **Sprache**: Deutsch
-- **Dark Mode**: Nicht im ersten Schritt — nur Light Mode
+- **Dark Mode**: Ausschliesslich Dark Mode — kein Light Mode, kein Toggle. `class="dark"` ist fest auf `<html>` gesetzt.
 - **Offline**: Kein Offline-Support im ersten Schritt
 
 ---
