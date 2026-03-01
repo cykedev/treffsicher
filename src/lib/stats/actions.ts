@@ -143,6 +143,7 @@ export async function getStatsData(filters: StatsFilters): Promise<StatsSession[
 }
 
 export type WellbeingCorrelationPoint = {
+  sessionId: string
   // Normalisierter Durchschnitt pro Schuss — vergleichbar über Disziplinen
   avgPerShot: number
   disciplineId: string | null
@@ -216,6 +217,7 @@ export async function getWellbeingCorrelationData(
     if (avgPerShot === null || avgPerShot <= 0) continue
 
     result.push({
+      sessionId: s.id,
       avgPerShot,
       disciplineId: s.disciplineId,
       sleep: s.wellbeing.sleep,
@@ -353,6 +355,7 @@ export async function getShotDistributionData(
 }
 
 export type QualityVsScorePoint = {
+  sessionId: string
   quality: number
   // Normalisiert: Ringe/Schuss dieser Serie — vergleichbar über Serien unterschiedlicher Länge
   scorePerShot: number
@@ -405,6 +408,7 @@ export async function getQualityVsScoreData(
       shots: true,
       session: {
         select: {
+          id: true,
           disciplineId: true,
           discipline: { select: { shotsPerSeries: true } },
         },
@@ -419,6 +423,7 @@ export async function getQualityVsScoreData(
       const fallback = s.session.discipline?.shotsPerSeries ?? 10
       const shotCount = resolveSeriesShotCount(s.shots, fallback)
       return {
+        sessionId: s.session.id,
         quality: s.executionQuality!,
         scorePerShot: score / shotCount,
         disciplineId: s.session.disciplineId,

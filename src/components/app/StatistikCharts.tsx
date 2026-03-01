@@ -137,23 +137,26 @@ export function StatistikCharts({
     })
   }, [sessions, typeFilter, disciplineFilter, from, to])
 
-  // Wellbeing-Daten nach Disziplin filtern — keine Disziplin-Vermischung
+  // Alle weiteren Charts anhand derselben gefilterten Einheiten einschränken,
+  // damit Typ-/Disziplin-/Zeitraum-Filter überall konsistent wirken.
+  const filteredSessionIds = useMemo(() => {
+    return new Set(filtered.map((s) => s.id))
+  }, [filtered])
+
+  // Wellbeing-Daten konsistent zu den aktiven Filtern einschränken
   const filteredWellbeing = useMemo(() => {
-    if (disciplineFilter === "all") return wellbeingData
-    return wellbeingData.filter((p) => p.disciplineId === disciplineFilter)
-  }, [wellbeingData, disciplineFilter])
+    return wellbeingData.filter((p) => filteredSessionIds.has(p.sessionId))
+  }, [wellbeingData, filteredSessionIds])
 
-  // Ausführungsqualität-Daten nach Disziplin filtern
+  // Ausführungsqualität-Daten konsistent zu den aktiven Filtern einschränken
   const filteredQuality = useMemo(() => {
-    if (disciplineFilter === "all") return qualityData
-    return qualityData.filter((p) => p.disciplineId === disciplineFilter)
-  }, [qualityData, disciplineFilter])
+    return qualityData.filter((p) => filteredSessionIds.has(p.sessionId))
+  }, [qualityData, filteredSessionIds])
 
-  // Schussverteilungs-Daten nach Disziplin filtern
+  // Schussverteilungs-Daten konsistent zu den aktiven Filtern einschränken
   const filteredShotDistribution = useMemo(() => {
-    if (disciplineFilter === "all") return shotDistributionData
-    return shotDistributionData.filter((p) => p.disciplineId === disciplineFilter)
-  }, [shotDistributionData, disciplineFilter])
+    return shotDistributionData.filter((p) => filteredSessionIds.has(p.sessionId))
+  }, [shotDistributionData, filteredSessionIds])
 
   // Befinden-Anzeigedaten: bei Hochrechnung auf Gesamtschusszahl der Disziplin projizieren
   const wellbeingDisplayData = useMemo(() => {
