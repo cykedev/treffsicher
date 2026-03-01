@@ -682,6 +682,19 @@ Nutzer können eigene Disziplinen hinzufügen.
 - **Wahl gilt pro Einheit**: Nicht global konfigurierbar — jede Einheit kann anders erfasst werden
 - **Probeschuss-Serien**: Immer als Seriensumme, fliessen nicht in Gesamtergebnis ein
 
+### Meyton-PDF Import (verbindlich)
+
+- Import-Startpunkt: separater Dialog in `Neue Einheit`
+- Quelle: `URL` oder Datei-Upload (`application/pdf`)
+- Verarbeitung: strikt textbasiert (kein OCR)
+- Architekturtrennung: **PDF laden** -> **Text extrahieren** -> **Meyton-Parsing**
+- Serienerkennung: über `Serie <n>:`; Reihenfolge entspricht Dokumentreihenfolge
+- Schussparser: nur Werte im Bereich `0.0` bis `10.9`; Marker (`*`, `T`) und Footer-Texte werden ignoriert
+- Importierte Serien sind initial immer `isPractice: false`
+- Bei Disziplin `WHOLE`: jeder importierte Schusswert wird per `Math.floor()` umgerechnet
+- Import speichert nicht direkt in der DB: zuerst Formular-Vorbefuellung, Speichern erst durch Nutzeraktion
+- Fehlerstrategie: harter Abbruch mit deutscher Fehlermeldung, kein Teilimport
+
 ---
 
 ## Design & UI
@@ -705,7 +718,7 @@ Nutzer können eigene Disziplinen hinzufügen.
 ## Datensicherung & Import
 
 - **Backup**: TrueNAS-seitig via Volume-Snapshots — kein app-seitiger Mechanismus nötig
-- **Import**: Kein Datenimport — Neustart ohne Altdaten
+- **Import**: Kein Massenimport von Bestandsdaten; einzige Ausnahme ist der manuelle Meyton-PDF-Import pro einzelner Einheit
 
 ---
 

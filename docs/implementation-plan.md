@@ -789,6 +789,50 @@ Editierbares Dokument (kein Versionsverlauf — bewusste Entscheidung):
 
 ---
 
+## Phase 3.11 — Meyton-PDF Import ✅ abgeschlossen
+
+**Ziel**: Meyton-Ergebnis-PDFs als Vorbefuellung fuer neue Einheiten importieren (URL oder Upload).
+
+### Umsetzung
+
+- Neuer Dialog in `src/app/(app)/einheiten/neu/page.tsx` via `NeueEinheitClient`
+- Dialogfelder:
+  - Modus (`TRAINING` oder `WETTKAMPF`)
+  - Disziplin
+  - Quelle (`URL` oder `UPLOAD`)
+- Neue Server Action `importMeytonPdf` in `src/lib/sessions/actions.ts`
+  - Auth-Check und Disziplin-Berechtigungspruefung
+  - PDF laden (URL mit Timeout oder Upload)
+  - Text extrahieren (`extractTextFromPdfBuffer`)
+  - Meyton-Parsing (`parseMeytonSeriesFromText`)
+  - Umrechnung fuer Ganzring-Disziplinen per `Math.floor()`
+  - Rueckgabe als Formular-Draft, kein direktes DB-Schreiben
+- Neues Parser-Modul `src/lib/sessions/meytonImport.ts`
+  - Trennt Text-Extraktion und Parsing
+  - Serienerkennung via `Serie <n>:`
+  - Schusswerte 0.0–10.9, Marker/Footers ignoriert
+- `EinheitForm` erweitert um `prefillData`-Unterstuetzung fuer importierte Serien/Schuesse
+
+### Tests
+
+- Neue Testdatei: `src/lib/sessions/meytonImport.test.ts`
+  - mehrere Serien + Reihenfolge
+  - Marker (`*`, `T`) und Stopbereiche
+  - leere Serien
+  - out-of-range Werte
+
+### Verifikation Phase 3.11
+
+1. In `Neue Einheit` Dialog "Meyton-PDF importieren" sichtbar und oeffnbar
+2. Import per URL funktioniert mit textbasiertem Meyton-PDF
+3. Import per Upload funktioniert mit PDF-Datei
+4. Bei `WHOLE`-Disziplin werden Zehntelwerte per Floor umgerechnet
+5. Formular wird nach Import vorausgefuellt angezeigt, Speichern erfolgt erst nach Nutzer-Submit
+6. Fehlerfall (ungueltige URL/kein Meyton-Text) bricht mit Meldung ab, kein Teilimport
+7. `npm run lint`, `npm run format:check`, `npm run test` sind gruen
+
+---
+
 ## Phase 4 — Tiefe & Ziele
 
 **Ziel**: Saisonziele, erweiterte Statistiken, PDF/CSV-Export.

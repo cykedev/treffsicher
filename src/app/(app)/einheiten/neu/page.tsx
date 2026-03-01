@@ -1,7 +1,7 @@
 import { getAuthSession } from "@/lib/auth-helpers"
 import { redirect } from "next/navigation"
 import { getDisciplines } from "@/lib/disciplines/actions"
-import { EinheitForm } from "@/components/app/EinheitForm"
+import { NeueEinheitClient } from "@/components/app/NeueEinheitClient"
 
 export default async function NeueEinheitPage() {
   const session = await getAuthSession()
@@ -17,7 +17,7 @@ export default async function NeueEinheitPage() {
           Training, Wettkampf, Trockentraining oder Mentaltraining erfassen.
         </p>
       </div>
-      <EinheitForm disciplines={disciplines} />
+      <NeueEinheitClient disciplines={disciplines} />
     </div>
   )
 }
