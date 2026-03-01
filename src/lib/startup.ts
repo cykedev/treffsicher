@@ -1,5 +1,6 @@
 import bcrypt from "bcryptjs"
 import { db } from "@/lib/db"
+import { ensureSystemDisciplines } from "@/lib/disciplines/systemDisciplines"
 
 // Wird beim App-Start einmalig aufgerufen (aus root layout.tsx).
 // Legt den ersten Admin-Account an, wenn noch kein Admin in der Datenbank existiert.
@@ -14,6 +15,13 @@ export async function runStartup(): Promise<void> {
   // Verhindert mehrfache Ausführung im gleichen Prozess (z.B. bei Hot-Reload)
   if (hasRun) return
   hasRun = true
+
+  // Standarddisziplinen sicherstellen (idempotent).
+  // Wenn sie bereits vorhanden sind, passiert nichts.
+  const createdDisciplines = await ensureSystemDisciplines(db)
+  if (createdDisciplines > 0) {
+    console.warn(`Standarddisziplinen angelegt: ${createdDisciplines}`)
+  }
 
   const adminEmail = process.env.ADMIN_EMAIL
   const adminPassword = process.env.ADMIN_PASSWORD

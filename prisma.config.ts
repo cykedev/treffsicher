@@ -7,7 +7,9 @@ export default defineConfig({
   schema: "prisma/schema.prisma",
   migrations: {
     path: "prisma/migrations",
-    seed: "tsx prisma/seed.ts",
+    // Seed benötigt den generierten Prisma-Client (src/generated/prisma).
+    // Bei frischem Clone ist der noch nicht vorhanden.
+    seed: "npx prisma generate && tsx prisma/seed.ts",
   },
   datasource: {
     url: process.env["DATABASE_URL"],

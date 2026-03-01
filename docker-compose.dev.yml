@@ -4,9 +4,11 @@ services:
       context: .
       # Nur die deps-Stufe bauen — kein vollständiger Build für Entwicklung
       target: deps
-    # prisma generate beim Start: stellt sicher, dass der Prisma-Client nach
-    # Schema-Änderungen aktuell ist (Watch: sync+restart-Trigger für schema.prisma)
-    command: sh -c "npx prisma generate && npm run dev"
+    # Dev-Automatismus:
+    # - eingecheckte Migrationen anwenden
+    # - lokale Schemaänderungen ohne manuelle Schritte auf die DB pushen
+    # - Prisma Client generieren
+    command: sh -c "npx prisma migrate deploy && npx prisma db push && npx prisma generate && npm run dev"
     ports:
       - "3000:3000"
     volumes:
@@ -27,22 +29,19 @@ services:
         condition: service_healthy
     develop:
       watch:
-        # Prisma-Schema: Neustart → prisma generate wird im Command ausgeführt
-        # sync ist mit Bind-Mount ein No-Op, aber restart ist das Ziel
+        # Schemaänderung -> Container neu starten -> db push + generate laufen automatisch
         - path: ./prisma/schema.prisma
-          action: sync+restart
-          target: /app/prisma/schema.prisma
+          action: restart
+
+        # Next.js-Konfiguration wird beim Start eingelesen -> Restart nötig
+        - path: ./next.config.ts
+          action: restart
 
         # Abhängigkeiten geändert → Image neu bauen (npm ci) + Container neu starten
         - path: ./package.json
           action: rebuild
         - path: ./package-lock.json
           action: rebuild
-
-        # Next.js-Konfiguration: Neustart nötig, da Next.js die Config beim Start einliest
-        - path: ./next.config.ts
-          action: sync+restart
-          target: /app/next.config.ts
 
   db:
     image: postgres:15-alpine
