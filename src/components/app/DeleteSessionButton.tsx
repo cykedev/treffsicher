@@ -2,6 +2,7 @@
 
 import { useTransition } from "react"
 import { useRouter } from "next/navigation"
+import { Trash2 } from "lucide-react"
 import { deleteSession } from "@/lib/sessions/actions"
 import { Button } from "@/components/ui/button"
 
@@ -32,8 +33,16 @@ export function DeleteSessionButton({ sessionId }: Props) {
   }
 
   return (
-    <Button variant="destructive" size="sm" onClick={handleDelete} disabled={isPending}>
-      {isPending ? "Löschen..." : "Löschen"}
+    <Button
+      variant="destructive"
+      size="sm"
+      className="px-2 sm:px-3"
+      onClick={handleDelete}
+      disabled={isPending}
+      aria-label={isPending ? "Löschen..." : "Löschen"}
+    >
+      <Trash2 className="h-4 w-4 sm:mr-1.5" />
+      <span className="hidden sm:inline">{isPending ? "Löschen..." : "Löschen"}</span>
     </Button>
   )
 }
