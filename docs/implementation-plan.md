@@ -2,6 +2,7 @@
 
 Dieser Plan beschreibt den Aufbau der Anwendung in Phasen. Jede Phase endet mit einer
 Verifikation, die prüft ob alles funktioniert, bevor die nächste Phase beginnt.
+Stand: 01.03.2026
 
 **Verbindliche Referenzdokumente:**
 
@@ -269,7 +270,7 @@ Verwendet `ADMIN_EMAIL` + `ADMIN_PASSWORD` aus Umgebungsvariablen.
 
 In `src/app/layout.tsx` aufrufen (nur serverseitig ausführbar).
 
-**Middleware**: `src/middleware.ts`
+**Route-Schutz**: `src/proxy.ts`
 Schützt alle Routen unter `/(app)/` — Weiterleitung zu `/login` wenn nicht eingeloggt.
 
 **Login-Seite**: `src/app/(auth)/login/page.tsx`
@@ -501,8 +502,6 @@ Zeigt alle Daten der Einheit:
 
 ### Schritt 2.3 — Datei-Uploads
 
-Paket installieren: `npm install sharp` (für Bildverarbeitung/Validierung)
-
 **Upload-Logik**: `src/lib/uploads/upload.ts`
 
 - Validierung: Typ (JPEG/PNG/WebP/PDF), Grösse (max 10 MB)
@@ -510,7 +509,7 @@ Paket installieren: `npm install sharp` (für Bildverarbeitung/Validierung)
 - Speichern im `UPLOAD_DIR` (`/app/uploads`)
 - Pfad in DB speichern (`Attachment.filePath`)
 
-**Server Action**: `src/lib/uploads/actions.ts`
+**Server Actions**: `src/lib/sessions/actions.ts`
 
 - `uploadAttachment(formData, sessionId)` — Upload + DB-Eintrag
 - `deleteAttachment(id)` — Datei löschen + DB-Eintrag löschen
@@ -701,7 +700,7 @@ Editierbares Dokument (kein Versionsverlauf — bewusste Entscheidung):
 
 - Props: `shots: string[]`, `isDecimal: boolean`
 - Recharts `BarChart`, X-Achse: 10 links → 0 rechts, alle 11 Buckets immer sichtbar
-- Balkenfarbe grün (10) bis rot (0) via `Cell`-Komponente, Buckets mit 0 Treffern transparent
+- Farbschema analog Meyton: 10 rot, 9 gelb, 8–0 Grauabstufungen
 
 **`src/app/(app)/einheiten/[id]/page.tsx`**:
 
@@ -717,7 +716,7 @@ Editierbares Dokument (kein Versionsverlauf — bewusste Entscheidung):
 **`StatistikCharts.tsx`** — neue Card "Schussverteilung im Zeitverlauf":
 
 - Recharts `AreaChart` mit 11 gestapelten `Area`-Komponenten (`stackId="rings"`)
-- Farben: rot (r0) bis grün (r10); X-Achse: Datum, Y-Achse: 0–100 %
+- Farben analog Meyton (10 rot, 9 gelb, 8–0 Grauabstufungen); X-Achse: Datum, Y-Achse: 0–100 %
 - Tooltip zeigt nur Buckets mit Wert > 0
 
 **Betroffene Dateien**: `ShotHistogram.tsx` (neu), `einheiten/[id]/page.tsx`, `lib/stats/actions.ts`, `StatistikCharts.tsx`, `StatistikChartsWrapper.tsx`, `statistiken/page.tsx`
@@ -784,6 +783,7 @@ Editierbares Dokument (kein Versionsverlauf — bewusste Entscheidung):
 - EinheitForm: `seriesTotals: string[]` als kontrolliertes paralleles State-Array
 - Inline-Validierung (kein separater Error-State) — rot markierte Inputs, Fehlermeldung unterhalb
 - Submit-Button disabled solange Fehler vorhanden; `noValidate` am Form
+- Tests ergänzt: `src/lib/sessions/validation.test.ts`
 
 **Migration**: `20260301100230_add_favourite_and_training_goal` (beide Felder in einer Migration)
 
@@ -836,44 +836,69 @@ Editierbares Dokument (kein Versionsverlauf — bewusste Entscheidung):
 
 ---
 
-## Phase 4 — Tiefe & Ziele
+## Phase 3.12 — Meyton-Import: Sicherheits-Härtung ✅ abgeschlossen
+
+**Ziel**: URL-Import gegen SSRF/unerwünschte Ziele absichern und PDF-Plausibilität prüfen.
+
+### Umsetzung
+
+- Neue Guard-Datei `src/lib/sessions/importGuards.ts`
+  - blockt lokale/private/link-local/loopback/ULA-Adressen (IPv4/IPv6)
+  - validiert Hostnamen zusätzlich über DNS-Auflösung
+  - blockt `localhost` und `.localhost`
+- URL-Import folgt keine Redirects mehr (`fetch(..., { redirect: "manual" })`)
+- URL-Import validiert Response-Content-Type auf `application/pdf`
+- PDF-Plausibilitätsprüfung ohne Ausführung von Code:
+  - Header muss mit `%PDF-` beginnen
+  - Dateiende muss `%%EOF` enthalten
+
+### Tests
+
+- Neue Testdatei: `src/lib/sessions/importGuards.test.ts`
+  - erlaubte/gesperrte IP-Bereiche
+  - DNS-Auflösung auf private Netze
+  - PDF-Header/EOF-Validierung
+
+---
+
+## Phase 4 — Tiefe & Ziele 🔄 teilweise umgesetzt
 
 **Ziel**: Saisonziele, erweiterte Statistiken, PDF/CSV-Export.
 
-### Schritt 4.1 — Saisonziele
+### Schritt 4.1 — Saisonziele ✅ abgeschlossen
 
 `src/app/(app)/ziele/page.tsx`
 
 - Ziel anlegen: Titel, Beschreibung, Typ (RESULT / PROCESS), Zeitraum (Von–Bis)
 - Einheiten mit Zielen verknüpfen (Many-to-Many via SessionGoal)
 - Übersicht: wie viele Einheiten einem Ziel gewidmet?
+- UI-Konsistenz: Ziel-Typauswahl verwendet `shadcn` `Select` (neu + bearbeiten)
 
-### Schritt 4.2 — Radarchart (7 Dimensionen)
+### Schritt 4.2 — Radarchart (7 Dimensionen) ✅ abgeschlossen
 
 Zeigt die Selbsteinschätzung in den 7 Dimensionen über Zeit:
 
 - Prognose-Werte vs. tatsächliche Feedback-Werte
 - `recharts` RadarChart
 
-### Schritt 4.3 — PDF/CSV-Export
+### Schritt 4.3 — PDF/CSV-Export 🔄 teilweise umgesetzt
 
-Pakete: `npm install @react-pdf/renderer` (PDF) oder `jspdf`
-
-**Einzelne Einheit exportieren**:
+**Einzelne Einheit exportieren (✅ umgesetzt)**:
 
 - PDF: Alle Daten der Einheit (Serien, Reflexion, Prognose/Feedback)
 - Gedacht zur Weitergabe an Trainer
 
-**Zeitraum-Export (CSV)**:
+**Zeitraum-Export (CSV) (⏳ offen)**:
 
 - Ergebnisse aller Einheiten in einem Zeitraum
 - Datum, Typ, Disziplin, Gesamtergebnis, Serien
 
 ### Verifikation Phase 4
 
-1. Saisonziel anlegen, Einheiten verknüpfen, Übersicht korrekt
-2. Radarchart mit mehreren Einheiten mit Prognose/Feedback
-3. PDF-Export einer Einheit, lesbar im Browser
+1. ✅ Saisonziel anlegen, Einheiten verknüpfen, Übersicht korrekt
+2. ✅ Radarchart mit mehreren Einheiten mit Prognose/Feedback
+3. ✅ PDF-Export einer Einheit, lesbar im Browser
+4. ⏳ CSV-Zeitraum-Export implementieren und verifizieren
 
 ---
 
@@ -883,7 +908,7 @@ Pakete: `npm install @react-pdf/renderer` (PDF) oder `jspdf`
 
 ### Schritt 5.1 — Admin-Bereich
 
-`src/app/(app)/admin/` (nur für ADMIN-Rolle zugänglich — Middleware/Middleware prüft)
+`src/app/(app)/admin/` (nur für ADMIN-Rolle zugänglich — Proxy prüft)
 
 **Funktionen**:
 
@@ -957,7 +982,7 @@ technischen Regeln (`docs/technical-constraints.md`) widersprechen:
 │   └── migrations/
 │       └── 20xx_init/
 ├── src/
-│   ├── middleware.ts
+│   ├── proxy.ts
 │   ├── lib/
 │   │   ├── db.ts
 │   │   ├── auth.ts

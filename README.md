@@ -1,6 +1,6 @@
 # Treffsicher
 
-Trainingsunterstützungs-App für Schiesssportler. Trainingstagebuch, Ergebniserfassung, Mentaltraining und Statistiken in einer Web-App (PWA-fähig).
+Trainingsunterstützungs-App für Schiesssportler. Trainingstagebuch, Ergebniserfassung, Mentaltraining und Statistiken in einer Web-App (PWA ist als späterer Schritt geplant).
 
 ---
 
@@ -152,6 +152,19 @@ export DATABASE_URL=postgresql://treffsicher:treffsicher@localhost:5432/treffsic
 cp .env.example .env
 # .env editieren und echte Werte eintragen
 ```
+
+---
+
+## Meyton-PDF-Import (Sicherheit)
+
+Der URL-Import für Meyton-PDFs ist bewusst eingeschränkt:
+
+- Nur `http://` und `https://`
+- Keine Redirects (`3xx` wird abgebrochen)
+- Keine lokalen/privaten Ziele (z.B. `localhost`, `127.0.0.1`, `10.x.x.x`, `192.168.x.x`, `fc00::/7`)
+- Bei Hostnamen wird zusätzlich die DNS-Auflösung geprüft (keine private Ziel-IP erlaubt)
+- Response muss ein PDF liefern (`Content-Type`)
+- Datei wird als PDF plausibilisiert (`%PDF-` Header + `%%EOF` Marker)
 
 ---
 
