@@ -1,6 +1,7 @@
 # Treffsicher Production Deployment (Registry + TrueNAS 25.10.1)
 
 Dieses Runbook beschreibt den kompletten Weg:
+
 1. Production-Image bauen
 2. in eine Registry pushen
 3. auf TrueNAS SCALE 25.10.1 (Goldeye) als Custom App deployen
@@ -139,6 +140,7 @@ volumes:
 4. Testeinheit anlegen und einen Test-Anhang hochladen
 
 Hinweis:
+
 - Das Image startet mit `prisma migrate deploy` und startet dann die App.
 - Standarddisziplinen/Admin werden bei Bedarf automatisch initialisiert.
 

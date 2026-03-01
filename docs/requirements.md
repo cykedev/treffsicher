@@ -91,12 +91,13 @@ Gilt für Einheitentypen "Training" und "Wettkampf".
 
 Schuss- und Serienwerte werden clientseitig validiert; ungültige Felder werden rot markiert und das Speichern wird blockiert. Leere Felder gelten nicht als Fehler.
 
-| Wertungsart  | Gültige Schusswerte                                         |
-| ------------ | ----------------------------------------------------------- |
-| Ganzringe    | 0–10 (ganzzahlig, keine Dezimalstellen)                     |
+| Wertungsart  | Gültige Schusswerte                                      |
+| ------------ | -------------------------------------------------------- |
+| Ganzringe    | 0–10 (ganzzahlig, keine Dezimalstellen)                  |
 | Zehntelringe | 0.0 oder 1.0–10.9 (0.1–0.9 existieren gemäss ISSF nicht) |
 
 Seriensummen dürfen den Maximalwert der Serie nicht überschreiten:
+
 - Ganzringe: `Schussanzahl × 10`
 - Zehntelringe: `Schussanzahl × 10.9`
 
@@ -251,13 +252,13 @@ In der Einheitenliste wird bei Einheiten mit erfasstem Ergebnis neben der Ringza
 
 Analog zu Meyton-Schiessständen — einheitlich in Detailansicht und Statistik:
 
-| Ringwert | Farbe                                    |
-| -------- | ---------------------------------------- |
-| 10       | Rot                                      |
-| 9        | Gelb                                     |
-| 8        | Dunkelgrau (dunkelst der Graureihe)      |
-| 7–1      | Abgestufte Grautöne (heller werdend)     |
-| 0        | Sehr hellgrau (hellst der Graureihe)     |
+| Ringwert | Farbe                                |
+| -------- | ------------------------------------ |
+| 10       | Rot                                  |
+| 9        | Gelb                                 |
+| 8        | Dunkelgrau (dunkelst der Graureihe)  |
+| 7–1      | Abgestufte Grautöne (heller werdend) |
+| 0        | Sehr hellgrau (hellst der Graureihe) |
 
 ---
 

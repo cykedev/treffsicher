@@ -45,7 +45,9 @@ export default async function DisziplinenPage() {
                   <div className="flex items-center gap-2">
                     <span className="font-medium">{d.name}</span>
                     {d.isSystem && (
-                      <Badge variant="secondary" className="text-xs">Standard</Badge>
+                      <Badge variant="secondary" className="text-xs">
+                        Standard
+                      </Badge>
                     )}
                   </div>
                   <p className="text-sm text-muted-foreground">

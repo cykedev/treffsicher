@@ -14,11 +14,11 @@ import {
 } from "lucide-react"
 
 const navLinks = [
-  { href: "/dashboard",    label: "Dashboard",   icon: LayoutDashboard },
-  { href: "/einheiten",    label: "Tagebuch",    icon: BookOpen        },
-  { href: "/statistiken",  label: "Statistiken", icon: TrendingUp      },
-  { href: "/disziplinen",  label: "Disziplinen", icon: Target          },
-  { href: "/schuss-ablauf", label: "Ablauf",     icon: ListChecks      },
+  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/einheiten", label: "Tagebuch", icon: BookOpen },
+  { href: "/statistiken", label: "Statistiken", icon: TrendingUp },
+  { href: "/disziplinen", label: "Disziplinen", icon: Target },
+  { href: "/schuss-ablauf", label: "Ablauf", icon: ListChecks },
 ]
 
 // Haupt-Navigation der App.

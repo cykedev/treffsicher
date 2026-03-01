@@ -1,6 +1,15 @@
 import { notFound, redirect } from "next/navigation"
 import Link from "next/link"
-import { Pencil, ArrowLeft, Heart, Target, Gauge, CheckCircle2, MessageSquare, Paperclip } from "lucide-react"
+import {
+  Pencil,
+  ArrowLeft,
+  Heart,
+  Target,
+  Gauge,
+  CheckCircle2,
+  MessageSquare,
+  Paperclip,
+} from "lucide-react"
 import { getAuthSession } from "@/lib/auth-helpers"
 import { getSessionById } from "@/lib/sessions/actions"
 import { calculateTotalScore } from "@/lib/sessions/calculateScore"
@@ -19,10 +28,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
 // Farbige Badges je Einheitentyp — gleiche Konstante wie im Tagebuch
 const typeBadgeClass: Record<string, string> = {
-  TRAINING:        "border-blue-800   bg-blue-950   text-blue-300",
-  WETTKAMPF:       "border-amber-800  bg-amber-950  text-amber-300",
+  TRAINING: "border-blue-800   bg-blue-950   text-blue-300",
+  WETTKAMPF: "border-amber-800  bg-amber-950  text-amber-300",
   TROCKENTRAINING: "border-emerald-800 bg-emerald-950 text-emerald-300",
-  MENTAL:          "border-purple-800  bg-purple-950  text-purple-300",
+  MENTAL: "border-purple-800  bg-purple-950  text-purple-300",
 }
 
 const sessionTypeLabels: Record<string, string> = {
@@ -137,10 +146,7 @@ export default async function EinheitDetailPage({ params }: { params: Promise<{ 
       {/* Header */}
       <div className="flex items-start justify-between gap-4">
         <div className="space-y-1.5">
-          <Badge
-            variant="outline"
-            className={typeBadgeClass[einheit.type] ?? ""}
-          >
+          <Badge variant="outline" className={typeBadgeClass[einheit.type] ?? ""}>
             {sessionTypeLabels[einheit.type] ?? einheit.type}
           </Badge>
           <h1 className="text-2xl font-bold">{formatDate(einheit.date)}</h1>
@@ -208,7 +214,9 @@ export default async function EinheitDetailPage({ params }: { params: Promise<{ 
                         : null
 
                     // Laufende Nummerierung je Serientyp — unabhängig von der Position
-                    const practicesBefore = sortedSeries.slice(0, idx).filter((s) => s.isPractice).length
+                    const practicesBefore = sortedSeries
+                      .slice(0, idx)
+                      .filter((s) => s.isPractice).length
                     const regularsBefore = idx - practicesBefore
                     const seriesLabel = serie.isPractice
                       ? `Probe ${practicesBefore + 1}`
@@ -221,9 +229,7 @@ export default async function EinheitDetailPage({ params }: { params: Promise<{ 
                       >
                         <td className="py-2 pr-4">
                           {seriesLabel}
-                          {serie.isPractice && (
-                            <span className="ml-1 text-xs">(P)</span>
-                          )}
+                          {serie.isPractice && <span className="ml-1 text-xs">(P)</span>}
                         </td>
                         <td className="py-2 pr-4 font-medium tabular-nums">
                           {scoreValue !== null

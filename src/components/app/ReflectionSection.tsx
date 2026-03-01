@@ -93,7 +93,8 @@ export function ReflectionSection({ sessionId, initialData }: Props) {
           }`}
         />
         <span className="text-muted-foreground">
-          Schuss-Ablauf {initialData.routineFollowed !== false ? "eingehalten" : "nicht eingehalten"}
+          Schuss-Ablauf{" "}
+          {initialData.routineFollowed !== false ? "eingehalten" : "nicht eingehalten"}
         </span>
       </div>
 
@@ -107,9 +108,7 @@ export function ReflectionSection({ sessionId, initialData }: Props) {
       )}
 
       {/* Fallback wenn alles leer (nur routineFollowed gesetzt) */}
-      {!hasContent && (
-        <p className="text-sm text-muted-foreground">Keine weiteren Angaben.</p>
-      )}
+      {!hasContent && <p className="text-sm text-muted-foreground">Keine weiteren Angaben.</p>}
 
       <Button variant="outline" size="sm" onClick={() => setEditing(true)}>
         Bearbeiten

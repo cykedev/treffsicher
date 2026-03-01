@@ -84,12 +84,11 @@ export function FeedbackSection({ sessionId, initialData }: Props) {
                 <span className="w-32 shrink-0 truncate text-muted-foreground">{dim.label}</span>
                 <div className="flex flex-1 items-center gap-2">
                   <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
-                    <div
-                      className="h-1.5 rounded-full bg-primary"
-                      style={{ width: `${value}%` }}
-                    />
+                    <div className="h-1.5 rounded-full bg-primary" style={{ width: `${value}%` }} />
                   </div>
-                  <span className="w-8 shrink-0 text-right text-sm font-semibold tabular-nums">{value}</span>
+                  <span className="w-8 shrink-0 text-right text-sm font-semibold tabular-nums">
+                    {value}
+                  </span>
                 </div>
               </div>
             )

@@ -24,7 +24,9 @@ export default async function StatistikenPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Statistiken</h1>
-        <p className="text-muted-foreground">Ergebnisverlauf, Serienanalyse und Befinden-Korrelation</p>
+        <p className="text-muted-foreground">
+          Ergebnisverlauf, Serienanalyse und Befinden-Korrelation
+        </p>
       </div>
 
       <StatistikChartsWrapper

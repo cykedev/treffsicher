@@ -73,9 +73,7 @@ function computeDisplayValue(
   if (mode === "projected" && discipline) {
     const total = avgPerShot * discipline.shotsPerSeries * discipline.seriesCount
     // Zehntelwertung: 1 Dezimalstelle; Ganzringe: auf ganze Ringe runden
-    return discipline.scoringType === "TENTH"
-      ? Math.round(total * 10) / 10
-      : Math.round(total)
+    return discipline.scoringType === "TENTH" ? Math.round(total * 10) / 10 : Math.round(total)
   }
   return avgPerShot
 }
@@ -218,9 +216,7 @@ export function StatistikCharts({
   // Tooltip-Formatierung: 2 Stellen für Ringe/Schuss, disziplinabhängig für Hochrechnung
   function formatDisplayValue(value: number): string {
     if (effectiveDisplayMode === "projected" && selectedDiscipline) {
-      return selectedDiscipline.scoringType === "TENTH"
-        ? value.toFixed(1)
-        : String(value)
+      return selectedDiscipline.scoringType === "TENTH" ? value.toFixed(1) : String(value)
     }
     return value.toFixed(2)
   }
@@ -393,181 +389,294 @@ export function StatistikCharts({
 
         {/* Tab 1: Verlauf — Ergebnisverlauf + Serienwertungen */}
         <TabsContent value="verlauf" className="space-y-4">
-      {!hasData ? (
-        <Card>
-          <CardContent className="py-12 text-center text-muted-foreground">
-            Keine Daten für den gewählten Filter.
-          </CardContent>
-        </Card>
-      ) : (
-        <>
-          {/* Ergebnisverlauf */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-baseline gap-2">
-                Ergebnisverlauf
-                <span className="text-base font-normal text-muted-foreground">
-                  {effectiveDisplayMode === "projected" && selectedDiscipline
-                    ? `Hochrechnung auf ${totalDisciplineShots} Schuss`
-                    : "Ringe pro Schuss"}
-                </span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={280}>
-                <LineChart data={lineData} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
-                  {/* dataKey="i" statt "datum" — verhindert Kollision wenn zwei Einheiten
+          {!hasData ? (
+            <Card>
+              <CardContent className="py-12 text-center text-muted-foreground">
+                Keine Daten für den gewählten Filter.
+              </CardContent>
+            </Card>
+          ) : (
+            <>
+              {/* Ergebnisverlauf */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-baseline gap-2">
+                    Ergebnisverlauf
+                    <span className="text-base font-normal text-muted-foreground">
+                      {effectiveDisplayMode === "projected" && selectedDiscipline
+                        ? `Hochrechnung auf ${totalDisciplineShots} Schuss`
+                        : "Ringe pro Schuss"}
+                    </span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ResponsiveContainer width="100%" height={280}>
+                    <LineChart data={lineData} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
+                      <CartesianGrid
+                        strokeDasharray="3 3"
+                        stroke="var(--border)"
+                        vertical={false}
+                      />
+                      {/* dataKey="i" statt "datum" — verhindert Kollision wenn zwei Einheiten
                       am selben Tag existieren (gleicher Datumsstring → gleicher x-Slot) */}
-                  <XAxis
-                    dataKey="i"
-                    tickFormatter={(i: number) => lineData[i]?.datum ?? ""}
-                    tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
-                    axisLine={false}
-                    tickLine={false}
-                  />
-                  <YAxis
-                    domain={["auto", "auto"]}
-                    tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
-                    axisLine={false}
-                    tickLine={false}
-                    width={40}
-                  />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: "var(--card)",
-                      border: "1px solid var(--border)",
-                      borderRadius: "8px",
-                      color: "var(--card-foreground)",
-                      fontSize: "12px",
-                    }}
-                    labelFormatter={(i) => lineData[i as number]?.datum ?? ""}
-                    formatter={(value, name) => [
-                      typeof value === "number" ? formatDisplayValue(value) : String(value ?? ""),
-                      name === "wert" ? metricLabel : "Trend",
-                    ]}
-                  />
-                  <Legend formatter={(value) => (value === "wert" ? metricLabel : "Trend")} />
-                  <Line
-                    type="monotone"
-                    dataKey="wert"
-                    name="wert"
-                    stroke="var(--chart-1)"
-                    strokeWidth={2}
-                    dot={{ r: 3 }}
-                    connectNulls={false}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="trend"
-                    name="trend"
-                    stroke="var(--muted-foreground)"
-                    strokeWidth={1.5}
-                    strokeDasharray="4 2"
-                    dot={false}
-                    connectNulls={false}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
+                      <XAxis
+                        dataKey="i"
+                        tickFormatter={(i: number) => lineData[i]?.datum ?? ""}
+                        tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
+                        axisLine={false}
+                        tickLine={false}
+                      />
+                      <YAxis
+                        domain={["auto", "auto"]}
+                        tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
+                        axisLine={false}
+                        tickLine={false}
+                        width={40}
+                      />
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: "var(--card)",
+                          border: "1px solid var(--border)",
+                          borderRadius: "8px",
+                          color: "var(--card-foreground)",
+                          fontSize: "12px",
+                        }}
+                        labelFormatter={(i) => lineData[i as number]?.datum ?? ""}
+                        formatter={(value, name) => [
+                          typeof value === "number"
+                            ? formatDisplayValue(value)
+                            : String(value ?? ""),
+                          name === "wert" ? metricLabel : "Trend",
+                        ]}
+                      />
+                      <Legend formatter={(value) => (value === "wert" ? metricLabel : "Trend")} />
+                      <Line
+                        type="monotone"
+                        dataKey="wert"
+                        name="wert"
+                        stroke="var(--chart-1)"
+                        strokeWidth={2}
+                        dot={{ r: 3 }}
+                        connectNulls={false}
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="trend"
+                        name="trend"
+                        stroke="var(--muted-foreground)"
+                        strokeWidth={1.5}
+                        strokeDasharray="4 2"
+                        dot={false}
+                        connectNulls={false}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
 
-          {/* Serienwertungen — nur wenn Serien vorhanden */}
-          {barData.length > 0 && (
+              {/* Serienwertungen — nur wenn Serien vorhanden */}
+              {barData.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-baseline gap-2">
+                      Serienwertungen
+                      {/* Hinweis wenn Disziplinen vermischt werden könnten */}
+                      {disciplineFilter === "all" && (
+                        <span className="text-sm font-normal text-muted-foreground">
+                          (Disziplin wählen für vergleichbare Werte)
+                        </span>
+                      )}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <ResponsiveContainer width="100%" height={240}>
+                      <BarChart data={barData} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
+                        <CartesianGrid
+                          strokeDasharray="3 3"
+                          stroke="var(--border)"
+                          vertical={false}
+                        />
+                        <XAxis
+                          dataKey="name"
+                          tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
+                          axisLine={false}
+                          tickLine={false}
+                        />
+                        <YAxis
+                          tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
+                          axisLine={false}
+                          tickLine={false}
+                          width={36}
+                        />
+                        <Tooltip
+                          contentStyle={{
+                            backgroundColor: "var(--card)",
+                            border: "1px solid var(--border)",
+                            borderRadius: "8px",
+                            color: "var(--card-foreground)",
+                            fontSize: "12px",
+                          }}
+                          // cursor-Rect beim Hover — dunkles Highlight statt hellem Standard
+                          cursor={{ fill: "var(--muted)", opacity: 0.4 }}
+                        />
+                        <Legend
+                          wrapperStyle={{ fontSize: "12px", color: "var(--muted-foreground)" }}
+                        />
+                        <Bar dataKey="Min" fill="var(--chart-2)" opacity={0.5} />
+                        <Bar dataKey="Avg" fill="var(--chart-1)" />
+                        <Bar dataKey="Max" fill="var(--chart-1)" opacity={0.4} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </CardContent>
+                </Card>
+              )}
+            </>
+          )}
+        </TabsContent>
+
+        {/* Tab 2: Befinden-Korrelation — je Dimension eine eigene Card (2 Spalten auf Desktop) */}
+        <TabsContent value="befinden">
+          {filteredWellbeing.length > 1 ? (
+            <div className="grid gap-4 sm:grid-cols-2">
+              {(
+                [
+                  { key: "sleep" as const, label: "Schlaf" },
+                  { key: "energy" as const, label: "Energie" },
+                  { key: "stress" as const, label: "Stress" },
+                  { key: "motivation" as const, label: "Motivation" },
+                ] as const
+              ).map(({ key, label }) => (
+                <Card key={key}>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="flex items-baseline gap-2 text-base">
+                      {label}
+                      {effectiveDisplayMode === "projected" && selectedDiscipline && (
+                        <span className="text-sm font-normal text-muted-foreground">
+                          Hochrechnung
+                        </span>
+                      )}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <ResponsiveContainer width="100%" height={180}>
+                      <ScatterChart margin={{ top: 5, right: 16, bottom: 16, left: 0 }}>
+                        <CartesianGrid
+                          strokeDasharray="3 3"
+                          stroke="var(--border)"
+                          vertical={false}
+                        />
+                        <XAxis
+                          dataKey={key}
+                          type="number"
+                          domain={[0, 10]}
+                          ticks={[0, 2, 4, 6, 8, 10]}
+                          label={{
+                            value: label,
+                            position: "insideBottom",
+                            offset: -8,
+                            fontSize: 11,
+                            fill: "var(--muted-foreground)",
+                          }}
+                          tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
+                          axisLine={false}
+                          tickLine={false}
+                        />
+                        <YAxis
+                          dataKey="displayScore"
+                          type="number"
+                          domain={["auto", "auto"]}
+                          tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
+                          axisLine={false}
+                          tickLine={false}
+                          width={40}
+                          tickFormatter={(v: number) =>
+                            effectiveDisplayMode === "projected" && selectedDiscipline
+                              ? formatDisplayValue(v)
+                              : v.toFixed(2)
+                          }
+                        />
+                        <Tooltip
+                          contentStyle={{
+                            backgroundColor: "var(--card)",
+                            border: "1px solid var(--border)",
+                            borderRadius: "8px",
+                            color: "var(--card-foreground)",
+                            fontSize: "12px",
+                          }}
+                          cursor={{ fill: "var(--muted)", opacity: 0.3 }}
+                          formatter={(value, name) => [
+                            typeof value === "number" && name === "displayScore"
+                              ? formatDisplayValue(value)
+                              : String(value ?? ""),
+                            name === "displayScore" ? wellbeingScoreLabel : label,
+                          ]}
+                        />
+                        {/* Größere Punkte: wenige x-Werte (0–10) → Punkte sollen gut sichtbar sein */}
+                        <Scatter
+                          data={wellbeingDisplayData}
+                          fill="var(--chart-1)"
+                          shape={(props: { cx?: number; cy?: number }) => (
+                            <circle
+                              cx={props.cx}
+                              cy={props.cy}
+                              r={6}
+                              fill="var(--chart-1)"
+                              opacity={0.75}
+                            />
+                          )}
+                        />
+                      </ScatterChart>
+                    </ResponsiveContainer>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <Card>
+              <CardContent className="py-12 text-center text-muted-foreground">
+                Keine Befinden-Daten für den gewählten Filter.
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
+
+        {/* Tab 3: Ausführungsqualität + Schussverteilung */}
+        <TabsContent value="qualitaet" className="space-y-4">
+          {/* Schussqualität vs. Serienergebnis — nach Disziplin gefiltert, normalisiert auf Ringe/Sch. */}
+          {filteredQuality.length > 1 && (
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-baseline gap-2">
-                  Serienwertungen
-                  {/* Hinweis wenn Disziplinen vermischt werden könnten */}
-                  {disciplineFilter === "all" && (
-                    <span className="text-sm font-normal text-muted-foreground">
-                      (Disziplin wählen für vergleichbare Werte)
+                  Ausführungsqualität vs. Serienergebnis
+                  {effectiveDisplayMode === "projected" && selectedDiscipline && (
+                    <span className="text-base font-normal text-muted-foreground">
+                      Hochrechnung auf {selectedDiscipline.shotsPerSeries} Sch./Serie
                     </span>
                   )}
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={240}>
-                  <BarChart data={barData} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
+                  <ScatterChart margin={{ top: 5, right: 20, bottom: 15, left: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
                     <XAxis
-                      dataKey="name"
-                      tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
-                      axisLine={false}
-                      tickLine={false}
-                    />
-                    <YAxis
-                      tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
-                      axisLine={false}
-                      tickLine={false}
-                      width={36}
-                    />
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: "var(--card)",
-                        border: "1px solid var(--border)",
-                        borderRadius: "8px",
-                        color: "var(--card-foreground)",
-                        fontSize: "12px",
-                      }}
-                      // cursor-Rect beim Hover — dunkles Highlight statt hellem Standard
-                      cursor={{ fill: "var(--muted)", opacity: 0.4 }}
-                    />
-                    <Legend wrapperStyle={{ fontSize: "12px", color: "var(--muted-foreground)" }} />
-                    <Bar dataKey="Min" fill="var(--chart-2)" opacity={0.5} />
-                    <Bar dataKey="Avg" fill="var(--chart-1)" />
-                    <Bar dataKey="Max" fill="var(--chart-1)" opacity={0.4} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
-          )}
-        </>
-      )}
-        </TabsContent>
-
-        {/* Tab 2: Befinden-Korrelation — je Dimension eine eigene Card (2 Spalten auf Desktop) */}
-        <TabsContent value="befinden">
-      {filteredWellbeing.length > 1 ? (
-        <div className="grid gap-4 sm:grid-cols-2">
-          {(
-            [
-              { key: "sleep" as const, label: "Schlaf" },
-              { key: "energy" as const, label: "Energie" },
-              { key: "stress" as const, label: "Stress" },
-              { key: "motivation" as const, label: "Motivation" },
-            ] as const
-          ).map(({ key, label }) => (
-            <Card key={key}>
-              <CardHeader className="pb-2">
-                <CardTitle className="flex items-baseline gap-2 text-base">
-                  {label}
-                  {effectiveDisplayMode === "projected" && selectedDiscipline && (
-                    <span className="text-sm font-normal text-muted-foreground">
-                      Hochrechnung
-                    </span>
-                  )}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ResponsiveContainer width="100%" height={180}>
-                  <ScatterChart margin={{ top: 5, right: 16, bottom: 16, left: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
-                    <XAxis
-                      dataKey={key}
+                      dataKey="quality"
                       type="number"
-                      domain={[0, 10]}
-                      ticks={[0, 2, 4, 6, 8, 10]}
+                      domain={[0.5, 5.5]}
+                      ticks={[1, 2, 3, 4, 5]}
+                      tickFormatter={(v) =>
+                        ["", "Schlecht", "Mässig", "Mittel", "Gut", "Sehr gut"][v] ?? v
+                      }
+                      tick={{ fontSize: 10, fill: "var(--muted-foreground)" }}
+                      axisLine={false}
+                      tickLine={false}
                       label={{
-                        value: label,
+                        value: "Ausführung",
                         position: "insideBottom",
                         offset: -8,
                         fontSize: 11,
                         fill: "var(--muted-foreground)",
                       }}
-                      tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
-                      axisLine={false}
-                      tickLine={false}
                     />
                     <YAxis
                       dataKey="displayScore"
@@ -596,20 +705,20 @@ export function StatistikCharts({
                         typeof value === "number" && name === "displayScore"
                           ? formatDisplayValue(value)
                           : String(value ?? ""),
-                        name === "displayScore" ? wellbeingScoreLabel : label,
+                        name === "displayScore" ? qualityScoreLabel : "Ausführung",
                       ]}
                     />
-                    {/* Größere Punkte: wenige x-Werte (0–10) → Punkte sollen gut sichtbar sein */}
+                    {/* Größere Punkte: X-Achse hat nur 5 diskrete Werte (Ausführung 1–5) */}
                     <Scatter
-                      data={wellbeingDisplayData}
-                      fill="var(--chart-1)"
+                      data={qualityDisplayData}
+                      fill="var(--chart-2)"
                       shape={(props: { cx?: number; cy?: number }) => (
                         <circle
                           cx={props.cx}
                           cy={props.cy}
-                          r={6}
-                          fill="var(--chart-1)"
-                          opacity={0.75}
+                          r={7}
+                          fill="var(--chart-2)"
+                          opacity={0.7}
                         />
                       )}
                     />
@@ -617,269 +726,246 @@ export function StatistikCharts({
                 </ResponsiveContainer>
               </CardContent>
             </Card>
-          ))}
-        </div>
-      ) : (
-        <Card>
-          <CardContent className="py-12 text-center text-muted-foreground">
-            Keine Befinden-Daten für den gewählten Filter.
-          </CardContent>
-        </Card>
-      )}
-        </TabsContent>
+          )}
 
-        {/* Tab 3: Ausführungsqualität + Schussverteilung */}
-        <TabsContent value="qualitaet" className="space-y-4">
-      {/* Schussqualität vs. Serienergebnis — nach Disziplin gefiltert, normalisiert auf Ringe/Sch. */}
-      {filteredQuality.length > 1 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-baseline gap-2">
-            Ausführungsqualität vs. Serienergebnis
-            {effectiveDisplayMode === "projected" && selectedDiscipline && (
-              <span className="text-base font-normal text-muted-foreground">
-                Hochrechnung auf {selectedDiscipline.shotsPerSeries} Sch./Serie
-              </span>
-            )}
-          </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={240}>
-              <ScatterChart margin={{ top: 5, right: 20, bottom: 15, left: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
-                <XAxis
-                  dataKey="quality"
-                  type="number"
-                  domain={[0.5, 5.5]}
-                  ticks={[1, 2, 3, 4, 5]}
-                  tickFormatter={(v) =>
-                    ["", "Schlecht", "Mässig", "Mittel", "Gut", "Sehr gut"][v] ?? v
-                  }
-                  tick={{ fontSize: 10, fill: "var(--muted-foreground)" }}
-                  axisLine={false}
-                  tickLine={false}
-                  label={{
-                    value: "Ausführung",
-                    position: "insideBottom",
-                    offset: -8,
-                    fontSize: 11,
-                    fill: "var(--muted-foreground)",
-                  }}
-                />
-                <YAxis
-                  dataKey="displayScore"
-                  type="number"
-                  domain={["auto", "auto"]}
-                  tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
-                  axisLine={false}
-                  tickLine={false}
-                  width={40}
-                  tickFormatter={(v: number) =>
-                    effectiveDisplayMode === "projected" && selectedDiscipline
-                      ? formatDisplayValue(v)
-                      : v.toFixed(2)
-                  }
-                />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: "var(--card)",
-                    border: "1px solid var(--border)",
-                    borderRadius: "8px",
-                    color: "var(--card-foreground)",
-                    fontSize: "12px",
-                  }}
-                  cursor={{ fill: "var(--muted)", opacity: 0.3 }}
-                  formatter={(value, name) => [
-                    typeof value === "number" && name === "displayScore"
-                      ? formatDisplayValue(value)
-                      : String(value ?? ""),
-                    name === "displayScore" ? qualityScoreLabel : "Ausführung",
-                  ]}
-                />
-                {/* Größere Punkte: X-Achse hat nur 5 diskrete Werte (Ausführung 1–5) */}
-                <Scatter
-                  data={qualityDisplayData}
-                  fill="var(--chart-2)"
-                  shape={(props: { cx?: number; cy?: number }) => (
-                    <circle
-                      cx={props.cx}
-                      cy={props.cy}
-                      r={7}
-                      fill="var(--chart-2)"
-                      opacity={0.7}
+          {/* Schussverteilung im Zeitverlauf — normalisiert auf Prozent (Einheiten mit Einzelschüssen) */}
+          {filteredShotDistribution.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-baseline gap-2">
+                  Schussverteilung im Zeitverlauf
+                  <span className="text-base font-normal text-muted-foreground">
+                    Anteil je Ringwert in %
+                  </span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={300}>
+                  <AreaChart
+                    data={filteredShotDistribution}
+                    margin={{ top: 5, right: 20, bottom: 5, left: 0 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+                    <XAxis
+                      dataKey="date"
+                      tickFormatter={(d: Date) =>
+                        new Intl.DateTimeFormat("de-CH", {
+                          day: "2-digit",
+                          month: "2-digit",
+                        }).format(new Date(d))
+                      }
+                      tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
+                      axisLine={false}
+                      tickLine={false}
                     />
-                  )}
-                />
-              </ScatterChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Schussverteilung im Zeitverlauf — normalisiert auf Prozent (Einheiten mit Einzelschüssen) */}
-      {filteredShotDistribution.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-baseline gap-2">
-              Schussverteilung im Zeitverlauf
-              <span className="text-base font-normal text-muted-foreground">
-                Anteil je Ringwert in %
-              </span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <AreaChart
-                data={filteredShotDistribution}
-                margin={{ top: 5, right: 20, bottom: 5, left: 0 }}
-              >
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
-                <XAxis
-                  dataKey="date"
-                  tickFormatter={(d: Date) =>
-                    new Intl.DateTimeFormat("de-CH", {
-                      day: "2-digit",
-                      month: "2-digit",
-                    }).format(new Date(d))
-                  }
-                  tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
-                  axisLine={false}
-                  tickLine={false}
-                />
-                <YAxis
-                  domain={[0, 100]}
-                  tickFormatter={(v: number) => `${v}%`}
-                  tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
-                  axisLine={false}
-                  tickLine={false}
-                  width={38}
-                />
-                {/* Custom Tooltip: Payload ist r0→r10 (Stack-Reihenfolge) —
+                    <YAxis
+                      domain={[0, 100]}
+                      tickFormatter={(v: number) => `${v}%`}
+                      tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
+                      axisLine={false}
+                      tickLine={false}
+                      width={38}
+                    />
+                    {/* Custom Tooltip: Payload ist r0→r10 (Stack-Reihenfolge) —
                     umkehren damit r10 oben steht; Buckets mit 0 % ausblenden */}
-                <Tooltip
-                  content={(props) => {
-                    const { active, payload, label } = props as {
-                      active?: boolean
-                      payload?: Array<{ name: string; value: number; color: string }>
-                      label?: unknown
-                    }
-                    if (!active || !payload || payload.length === 0) return null
-                    const date = new Intl.DateTimeFormat("de-CH", {
-                      day: "2-digit",
-                      month: "2-digit",
-                      year: "numeric",
-                    }).format(new Date(label as Date))
-                    // Recharts sortiert Payload alphabetisch (r0, r1, r10, r2 ...) —
-                    // numerisch absteigend sortieren damit r10 zuerst steht
-                    const items = [...payload]
-                      .sort((a, b) => {
-                        const nA = parseInt(a.name.replace("r", ""), 10)
-                        const nB = parseInt(b.name.replace("r", ""), 10)
-                        return nB - nA
-                      })
-                      .filter((p) => p.value > 0)
-                    return (
-                      <div
-                        style={{
-                          backgroundColor: "var(--card)",
-                          border: "1px solid var(--border)",
-                          padding: "8px 12px",
-                          borderRadius: 8,
-                          fontSize: 12,
-                          minWidth: 120,
-                          color: "var(--card-foreground)",
-                        }}
-                      >
-                        <p style={{ fontWeight: 600, marginBottom: 6 }}>{date}</p>
-                        {items.map((p) => (
+                    <Tooltip
+                      content={(props) => {
+                        const { active, payload, label } = props as {
+                          active?: boolean
+                          payload?: Array<{ name: string; value: number; color: string }>
+                          label?: unknown
+                        }
+                        if (!active || !payload || payload.length === 0) return null
+                        const date = new Intl.DateTimeFormat("de-CH", {
+                          day: "2-digit",
+                          month: "2-digit",
+                          year: "numeric",
+                        }).format(new Date(label as Date))
+                        // Recharts sortiert Payload alphabetisch (r0, r1, r10, r2 ...) —
+                        // numerisch absteigend sortieren damit r10 zuerst steht
+                        const items = [...payload]
+                          .sort((a, b) => {
+                            const nA = parseInt(a.name.replace("r", ""), 10)
+                            const nB = parseInt(b.name.replace("r", ""), 10)
+                            return nB - nA
+                          })
+                          .filter((p) => p.value > 0)
+                        return (
                           <div
-                            key={p.name}
-                            style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}
+                            style={{
+                              backgroundColor: "var(--card)",
+                              border: "1px solid var(--border)",
+                              padding: "8px 12px",
+                              borderRadius: 8,
+                              fontSize: 12,
+                              minWidth: 120,
+                              color: "var(--card-foreground)",
+                            }}
                           >
-                            <div
-                              style={{
-                                width: 8,
-                                height: 8,
-                                background: p.color,
-                                borderRadius: 2,
-                                flexShrink: 0,
-                              }}
-                            />
-                            <span style={{ color: "var(--muted-foreground)" }}>{p.name.replace("r", "")}er</span>
-                            <span style={{ marginLeft: "auto", paddingLeft: 16, fontWeight: 500 }}>
-                              {p.value.toFixed(1)} %
-                            </span>
+                            <p style={{ fontWeight: 600, marginBottom: 6 }}>{date}</p>
+                            {items.map((p) => (
+                              <div
+                                key={p.name}
+                                style={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: 6,
+                                  marginBottom: 2,
+                                }}
+                              >
+                                <div
+                                  style={{
+                                    width: 8,
+                                    height: 8,
+                                    background: p.color,
+                                    borderRadius: 2,
+                                    flexShrink: 0,
+                                  }}
+                                />
+                                <span style={{ color: "var(--muted-foreground)" }}>
+                                  {p.name.replace("r", "")}er
+                                </span>
+                                <span
+                                  style={{ marginLeft: "auto", paddingLeft: 16, fontWeight: 500 }}
+                                >
+                                  {p.value.toFixed(1)} %
+                                </span>
+                              </div>
+                            ))}
                           </div>
-                        ))}
-                      </div>
-                    )
-                  }}
-                />
-                {/* Custom Legend: Payload umkehren → r10 links, r0 rechts */}
-                <Legend
-                  content={(props) => {
-                    const { payload } = props as {
-                      payload?: Array<{ value: string; color: string }>
-                    }
-                    // Numerisch absteigend sortieren (Recharts liefert alphabetische Reihenfolge)
-                    const items = [...(payload ?? [])].sort((a, b) => {
-                      const nA = parseInt(a.value.replace("r", ""), 10)
-                      const nB = parseInt(b.value.replace("r", ""), 10)
-                      return nB - nA
-                    })
-                    return (
-                      <div
-                        style={{
-                          display: "flex",
-                          flexWrap: "wrap",
-                          justifyContent: "center",
-                          gap: "4px 12px",
-                          paddingTop: 8,
-                          fontSize: 11,
-                          color: "var(--muted-foreground)",
-                        }}
-                      >
-                        {items.map((entry) => (
+                        )
+                      }}
+                    />
+                    {/* Custom Legend: Payload umkehren → r10 links, r0 rechts */}
+                    <Legend
+                      content={(props) => {
+                        const { payload } = props as {
+                          payload?: Array<{ value: string; color: string }>
+                        }
+                        // Numerisch absteigend sortieren (Recharts liefert alphabetische Reihenfolge)
+                        const items = [...(payload ?? [])].sort((a, b) => {
+                          const nA = parseInt(a.value.replace("r", ""), 10)
+                          const nB = parseInt(b.value.replace("r", ""), 10)
+                          return nB - nA
+                        })
+                        return (
                           <div
-                            key={entry.value}
-                            style={{ display: "flex", alignItems: "center", gap: 4 }}
+                            style={{
+                              display: "flex",
+                              flexWrap: "wrap",
+                              justifyContent: "center",
+                              gap: "4px 12px",
+                              paddingTop: 8,
+                              fontSize: 11,
+                              color: "var(--muted-foreground)",
+                            }}
                           >
-                            <div
-                              style={{
-                                width: 10,
-                                height: 10,
-                                background: entry.color,
-                                borderRadius: 2,
-                                flexShrink: 0,
-                              }}
-                            />
-                            <span>{entry.value.replace("r", "")}er</span>
+                            {items.map((entry) => (
+                              <div
+                                key={entry.value}
+                                style={{ display: "flex", alignItems: "center", gap: 4 }}
+                              >
+                                <div
+                                  style={{
+                                    width: 10,
+                                    height: 10,
+                                    background: entry.color,
+                                    borderRadius: 2,
+                                    flexShrink: 0,
+                                  }}
+                                />
+                                <span>{entry.value.replace("r", "")}er</span>
+                              </div>
+                            ))}
                           </div>
-                        ))}
-                      </div>
-                    )
-                  }}
-                />
-                {/* Stapelreihenfolge: r0 zuerst (unten) → r10 zuletzt (oben im Stack).
+                        )
+                      }}
+                    />
+                    {/* Stapelreihenfolge: r0 zuerst (unten) → r10 zuletzt (oben im Stack).
                     Farbschema analog Meyton: 10 rot, 9 gelb, 8–0 Grautöne (8 dunkelst, 0 hellst). */}
-                <Area type="monotone" dataKey="r0" stackId="rings" stroke="#edf1f5" fill="#edf1f5" />
-                <Area type="monotone" dataKey="r1" stackId="rings" stroke="#dae1e8" fill="#dae1e8" />
-                <Area type="monotone" dataKey="r2" stackId="rings" stroke="#c8d1da" fill="#c8d1da" />
-                <Area type="monotone" dataKey="r3" stackId="rings" stroke="#b5bec8" fill="#b5bec8" />
-                <Area type="monotone" dataKey="r4" stackId="rings" stroke="#9ca3af" fill="#9ca3af" />
-                <Area type="monotone" dataKey="r5" stackId="rings" stroke="#8896a0" fill="#8896a0" />
-                <Area type="monotone" dataKey="r6" stackId="rings" stroke="#6b7280" fill="#6b7280" />
-                <Area type="monotone" dataKey="r7" stackId="rings" stroke="#52606d" fill="#52606d" />
-                <Area type="monotone" dataKey="r8" stackId="rings" stroke="#374151" fill="#374151" />
-                <Area type="monotone" dataKey="r9" stackId="rings" stroke="#eab308" fill="#eab308" />
-                <Area type="monotone" dataKey="r10" stackId="rings" stroke="#ef4444" fill="#ef4444" />
-              </AreaChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-      )}
+                    <Area
+                      type="monotone"
+                      dataKey="r0"
+                      stackId="rings"
+                      stroke="#edf1f5"
+                      fill="#edf1f5"
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="r1"
+                      stackId="rings"
+                      stroke="#dae1e8"
+                      fill="#dae1e8"
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="r2"
+                      stackId="rings"
+                      stroke="#c8d1da"
+                      fill="#c8d1da"
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="r3"
+                      stackId="rings"
+                      stroke="#b5bec8"
+                      fill="#b5bec8"
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="r4"
+                      stackId="rings"
+                      stroke="#9ca3af"
+                      fill="#9ca3af"
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="r5"
+                      stackId="rings"
+                      stroke="#8896a0"
+                      fill="#8896a0"
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="r6"
+                      stackId="rings"
+                      stroke="#6b7280"
+                      fill="#6b7280"
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="r7"
+                      stackId="rings"
+                      stroke="#52606d"
+                      fill="#52606d"
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="r8"
+                      stackId="rings"
+                      stroke="#374151"
+                      fill="#374151"
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="r9"
+                      stackId="rings"
+                      stroke="#eab308"
+                      fill="#eab308"
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="r10"
+                      stackId="rings"
+                      stroke="#ef4444"
+                      fill="#ef4444"
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
-
       </Tabs>
     </div>
   )

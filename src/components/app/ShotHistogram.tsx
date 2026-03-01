@@ -9,8 +9,8 @@ import {
 } from "@/components/ui/chart"
 
 interface ShotHistogramProps {
-  shots: string[]     // Schüsse aus Wertungsserien — Probeschüsse werden nicht dargestellt
-  isDecimal: boolean  // TENTH-Wertung: Schusswerte flooren (9.5 → Bucket „9")
+  shots: string[] // Schüsse aus Wertungsserien — Probeschüsse werden nicht dargestellt
+  isDecimal: boolean // TENTH-Wertung: Schusswerte flooren (9.5 → Bucket „9")
 }
 
 // Farbschema analog zu Meyton-Schiessständen:
@@ -81,11 +81,7 @@ export function ShotHistogram({ shots, isDecimal }: ShotHistogramProps) {
       <p className="text-sm text-muted-foreground">{total} Schüsse</p>
       <ChartContainer config={chartConfig} className="h-44 w-full">
         <BarChart data={data} margin={{ top: 4, right: 8, bottom: 0, left: 0 }}>
-          <CartesianGrid
-            strokeDasharray="3 3"
-            stroke="var(--border)"
-            vertical={false}
-          />
+          <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
           <XAxis
             dataKey="label"
             tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
@@ -116,10 +112,7 @@ export function ShotHistogram({ shots, isDecimal }: ShotHistogramProps) {
           />
           <Bar dataKey="count" radius={[3, 3, 0, 0]}>
             {data.map((entry, index) => (
-              <Cell
-                key={`cell-${entry.ring}`}
-                fill={BUCKET_COLORS[index]}
-              />
+              <Cell key={`cell-${entry.ring}`} fill={BUCKET_COLORS[index]} />
             ))}
           </Bar>
         </BarChart>

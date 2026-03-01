@@ -11,10 +11,10 @@ import { Card, CardContent } from "@/components/ui/card"
 
 // Farbige Badges je Einheitentyp (dark-mode-optimiert)
 const typeBadgeClass: Record<string, string> = {
-  TRAINING:        "border-blue-800   bg-blue-950   text-blue-300",
-  WETTKAMPF:       "border-amber-800  bg-amber-950  text-amber-300",
+  TRAINING: "border-blue-800   bg-blue-950   text-blue-300",
+  WETTKAMPF: "border-amber-800  bg-amber-950  text-amber-300",
   TROCKENTRAINING: "border-emerald-800 bg-emerald-950 text-emerald-300",
-  MENTAL:          "border-purple-800  bg-purple-950  text-purple-300",
+  MENTAL: "border-purple-800  bg-purple-950  text-purple-300",
 }
 
 const sessionTypeLabels: Record<string, string> = {
@@ -103,15 +103,14 @@ export default async function EinheitenPage() {
               0
             )
 
-            const maxScore = scoringType && totalScoringShots > 0
-              ? getSeriesMax(scoringType, totalScoringShots)
-              : 0
-            const formattedTotalScore = scoringType === "TENTH"
-              ? totalScore.toFixed(1)
-              : String(totalScore)
-            const formattedMaxScore = scoringType === "TENTH"
-              ? maxScore.toFixed(1)
-              : String(maxScore)
+            const maxScore =
+              scoringType && totalScoringShots > 0
+                ? getSeriesMax(scoringType, totalScoringShots)
+                : 0
+            const formattedTotalScore =
+              scoringType === "TENTH" ? totalScore.toFixed(1) : String(totalScore)
+            const formattedMaxScore =
+              scoringType === "TENTH" ? maxScore.toFixed(1) : String(maxScore)
 
             // Einzelschüsse erfasst wenn mindestens eine Serie ein nicht-leeres shots-Array hat
             const hasIndividualShots = s.series.some(
@@ -137,16 +136,11 @@ export default async function EinheitenPage() {
                         {s.isFavourite && (
                           <Heart className="h-3.5 w-3.5 fill-red-500 text-red-500 shrink-0" />
                         )}
-                        <Badge
-                          variant="outline"
-                          className={typeBadgeClass[s.type] ?? ""}
-                        >
+                        <Badge variant="outline" className={typeBadgeClass[s.type] ?? ""}>
                           {sessionTypeLabels[s.type] ?? s.type}
                         </Badge>
                         {s.discipline && (
-                          <span className="text-sm text-muted-foreground">
-                            {s.discipline.name}
-                          </span>
+                          <span className="text-sm text-muted-foreground">{s.discipline.name}</span>
                         )}
                       </div>
                       <p className="text-sm text-muted-foreground">

@@ -27,16 +27,14 @@ const RoutineStepSchema = z.object({
 
 const ShotRoutineSchema = z.object({
   name: z.string().min(1, "Name ist erforderlich").max(100),
-  steps: z
-    .string()
-    .transform((v) => {
-      try {
-        const parsed = JSON.parse(v)
-        return z.array(RoutineStepSchema).parse(parsed)
-      } catch {
-        return []
-      }
-    }),
+  steps: z.string().transform((v) => {
+    try {
+      const parsed = JSON.parse(v)
+      return z.array(RoutineStepSchema).parse(parsed)
+    } catch {
+      return []
+    }
+  }),
 })
 
 /**
