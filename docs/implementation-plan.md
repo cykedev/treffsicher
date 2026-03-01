@@ -791,27 +791,27 @@ Editierbares Dokument (kein Versionsverlauf — bewusste Entscheidung):
 
 ## Phase 3.11 — Meyton-PDF Import ✅ abgeschlossen
 
-**Ziel**: Meyton-Ergebnis-PDFs als Vorbefuellung fuer neue Einheiten importieren (URL oder Upload).
+**Ziel**: Meyton-Ergebnis-PDFs in bestehende oder neue Einheiten importieren (URL oder Upload).
 
 ### Umsetzung
 
-- Neuer Dialog in `src/app/(app)/einheiten/neu/page.tsx` via `NeueEinheitClient`
+- Import-Dialog direkt in `src/components/app/EinheitForm.tsx` (neu + bearbeiten)
 - Dialogfelder:
-  - Modus (`TRAINING` oder `WETTKAMPF`)
-  - Disziplin
   - Quelle (`URL` oder `UPLOAD`)
-- Neue Server Action `importMeytonPdf` in `src/lib/sessions/actions.ts`
+- Neue Server Action `previewMeytonImport` in `src/lib/sessions/actions.ts`
   - Auth-Check und Disziplin-Berechtigungspruefung
   - PDF laden (URL mit Timeout oder Upload)
   - Text extrahieren (`extractTextFromPdfBuffer`)
   - Meyton-Parsing (`parseMeytonSeriesFromText`)
   - Umrechnung fuer Ganzring-Disziplinen per `Math.floor()`
-  - Rueckgabe als Formular-Draft, kein direktes DB-Schreiben
+  - Rueckgabe als Serien-Draft fuer das aktuelle Formular
 - Neues Parser-Modul `src/lib/sessions/meytonImport.ts`
   - Trennt Text-Extraktion und Parsing
   - Serienerkennung via `Serie <n>:`
   - Schusswerte 0.0–10.9, Marker/Footers ignoriert
-- `EinheitForm` erweitert um `prefillData`-Unterstuetzung fuer importierte Serien/Schuesse
+  - optionales Auslesen von Datum/Uhrzeit (`Wertung dd.mm.yyyy hh:mm`)
+- `EinheitForm` ersetzt beim Import alle aktuellen Serien durch die importierten Serien
+- Bei neuen (noch nicht gespeicherten) Einheiten wird Datum/Uhrzeit aus PDF in das Formular uebernommen
 
 ### Tests
 
@@ -820,16 +820,19 @@ Editierbares Dokument (kein Versionsverlauf — bewusste Entscheidung):
   - Marker (`*`, `T`) und Stopbereiche
   - leere Serien
   - out-of-range Werte
+  - letzter Serienblock wird nicht mit nachfolgenden Layout-Zahlen vermischt
+  - Datum/Uhrzeit-Extraktion aus Meyton-Header
 
 ### Verifikation Phase 3.11
 
-1. In `Neue Einheit` Dialog "Meyton-PDF importieren" sichtbar und oeffnbar
+1. In Einheit-Formularen (`neu` und `bearbeiten`) ist "Meyton importieren" sichtbar
 2. Import per URL funktioniert mit textbasiertem Meyton-PDF
 3. Import per Upload funktioniert mit PDF-Datei
 4. Bei `WHOLE`-Disziplin werden Zehntelwerte per Floor umgerechnet
-5. Formular wird nach Import vorausgefuellt angezeigt, Speichern erfolgt erst nach Nutzer-Submit
-6. Fehlerfall (ungueltige URL/kein Meyton-Text) bricht mit Meldung ab, kein Teilimport
-7. `npm run lint`, `npm run format:check`, `npm run test` sind gruen
+5. Import ersetzt alle aktuellen Serien im Formular, Speichern erfolgt erst nach Nutzer-Submit
+6. Bei neuer Einheit wird Datum/Uhrzeit aus PDF (falls vorhanden) ins Datumsfeld gesetzt
+7. Fehlerfall (ungueltige URL/kein Meyton-Text) bricht mit Meldung ab, kein Teilimport
+8. `npm run lint`, `npm run format:check`, `npm run test` sind gruen
 
 ---
 

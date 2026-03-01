@@ -2,9 +2,8 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { createSession, updateSession } from "@/lib/sessions/actions"
+import { createSession, previewMeytonImport, updateSession } from "@/lib/sessions/actions"
 import type { SessionDetail } from "@/lib/sessions/actions"
-import type { MeytonImportPrefill } from "@/lib/sessions/actions"
 import { calculateSumFromShots } from "@/lib/sessions/calculateScore"
 import { isValidShotValue, isValidSeriesTotal, formatSeriesMax } from "@/lib/sessions/validation"
 import { Button } from "@/components/ui/button"
@@ -26,8 +25,6 @@ interface Props {
   // Wenn gesetzt: Bearbeiten-Modus — Formular wird mit bestehender Einheit vorbelegt
   initialData?: SessionDetail
   sessionId?: string
-  // Meyton-Import liefert eine Draft-Vorbelegung fuer "Neue Einheit"
-  prefillData?: MeytonImportPrefill
 }
 
 const sessionTypeLabels: Record<string, string> = {
@@ -48,12 +45,12 @@ const executionQualityLabels: Record<number, string> = {
 // Einheitentypen die eine Disziplin erfordern
 const typesWithDiscipline = ["TRAINING", "WETTKAMPF"]
 
-interface FormSeriesSeed {
-  id: string
-  isPractice: boolean
-  scoreTotal: number | null
-  shots: string[]
-  executionQuality: number | null
+type ImportSourceType = "URL" | "UPLOAD"
+
+function toDateTimeLocalValue(value: Date | string): string {
+  const base = new Date(value)
+  base.setMinutes(base.getMinutes() - base.getTimezoneOffset())
+  return base.toISOString().slice(0, 16)
 }
 
 // Formular für neue oder bestehende Einheit.
@@ -61,38 +58,25 @@ interface FormSeriesSeed {
 // Bei Auswahl von Typ und Disziplin werden die Serienfelder dynamisch generiert.
 // Die Serienanzahl und Schussanzahl pro Serie kann vom Disziplin-Standard abweichen.
 // Optional: Einzelschüsse erfassen (Toggle) und Ausführungsqualität pro Serie.
-export function EinheitForm({ disciplines, initialData, sessionId, prefillData }: Props) {
+export function EinheitForm({ disciplines, initialData, sessionId }: Props) {
   const router = useRouter()
   const [pending, setPending] = useState(false)
+  const [isImportDialogOpen, setIsImportDialogOpen] = useState(false)
+  const [isImportPending, setIsImportPending] = useState(false)
+  const [importSource, setImportSource] = useState<ImportSourceType>("URL")
+  const [importError, setImportError] = useState<string | null>(null)
+  const [importUrl, setImportUrl] = useState("")
+  const [importFile, setImportFile] = useState<File | null>(null)
 
   // Lazy initializer: Werte aus initialData (Bearbeiten) oder Leerwerte (Neu)
-  const [type, setType] = useState<string>(() => prefillData?.type ?? initialData?.type ?? "")
-  const [disciplineId, setDisciplineId] = useState<string>(
-    () => prefillData?.disciplineId ?? initialData?.disciplineId ?? ""
-  )
+  const [type, setType] = useState<string>(() => initialData?.type ?? "")
+  const [disciplineId, setDisciplineId] = useState<string>(() => initialData?.disciplineId ?? "")
 
   // Serien sortiert: Probeschüsse immer zuerst — wird einmalig beim Mount berechnet
   // und als Referenz für alle State-Initialisierungen verwendet
-  const [sortedInitialSeries] = useState<FormSeriesSeed[]>(() => {
-    const sourceSeries: FormSeriesSeed[] = initialData
-      ? initialData.series.map((serie) => ({
-          id: serie.id,
-          isPractice: serie.isPractice,
-          scoreTotal: serie.scoreTotal,
-          shots: Array.isArray(serie.shots) ? (serie.shots as string[]) : [],
-          executionQuality: serie.executionQuality,
-        }))
-      : prefillData
-        ? prefillData.series.map((serie, index) => ({
-            id: `meyton-${index}-${serie.nr}`,
-            isPractice: false,
-            scoreTotal: Number(serie.scoreTotal),
-            shots: serie.shots,
-            executionQuality: null,
-          }))
-        : []
-
-    return [...sourceSeries].sort((a, b) => {
+  const [sortedInitialSeries] = useState(() => {
+    if (!initialData) return []
+    return [...initialData.series].sort((a, b) => {
       if (a.isPractice === b.isPractice) return 0
       return a.isPractice ? -1 : 1
     })
@@ -100,14 +84,20 @@ export function EinheitForm({ disciplines, initialData, sessionId, prefillData }
 
   // Einzelschuss-Modus: aktiv wenn mindestens eine Serie shots-Daten hat
   const [showShots, setShowShots] = useState<boolean>(() => {
-    if (!initialData && !prefillData) return false
-    return sortedInitialSeries.some((s) => Array.isArray(s.shots) && s.shots.length > 0)
+    if (!initialData) return false
+    return sortedInitialSeries.some(
+      (s) => Array.isArray(s.shots) && (s.shots as string[]).length > 0
+    )
   })
 
   // shots vorbelegen aus initialData (falls vorhanden)
   const [shots, setShots] = useState<string[][]>(() => {
-    if (!sortedInitialSeries.some((s) => Array.isArray(s.shots) && s.shots.length > 0)) return []
-    return sortedInitialSeries.map((s) => (Array.isArray(s.shots) ? s.shots : []))
+    if (
+      !initialData ||
+      !sortedInitialSeries.some((s) => Array.isArray(s.shots) && (s.shots as string[]).length > 0)
+    )
+      return []
+    return sortedInitialSeries.map((s) => (Array.isArray(s.shots) ? (s.shots as string[]) : []))
   })
 
   // Serienanzahl aus initialData oder 0
@@ -116,12 +106,11 @@ export function EinheitForm({ disciplines, initialData, sessionId, prefillData }
   // Schussanzahl pro Serie: aus shots-Array-Länge ableiten (falls shots vorhanden),
   // sonst Disziplin-Standard (aus disciplines-Array nachschlagen) oder 10
   const [shotCounts, setShotCounts] = useState<number[]>(() => {
-    if (!initialData && !prefillData) return []
-    const seedDisciplineId = prefillData?.disciplineId ?? initialData?.disciplineId
-    const disc = disciplines.find((d) => d.id === seedDisciplineId)
+    if (!initialData) return []
+    const disc = disciplines.find((d) => d.id === initialData.disciplineId)
     return sortedInitialSeries.map((s) => {
-      if (Array.isArray(s.shots) && s.shots.length > 0) {
-        return s.shots.length
+      if (Array.isArray(s.shots) && (s.shots as string[]).length > 0) {
+        return (s.shots as string[]).length
       }
       return disc?.shotsPerSeries ?? 10
     })
@@ -130,7 +119,7 @@ export function EinheitForm({ disciplines, initialData, sessionId, prefillData }
   // Seriensummen im Summen-Modus: kontrolliertes State-Array (parallel zu shotCounts etc.)
   // Ermöglicht Echtzeit-Validierung ohne nativen Browser-Validation-Dialog
   const [seriesTotals, setSeriesTotals] = useState<string[]>(() => {
-    if (!initialData && !prefillData) return []
+    if (!initialData) return []
     return sortedInitialSeries.map((s) => (s.scoreTotal != null ? String(s.scoreTotal) : ""))
   })
 
@@ -145,12 +134,9 @@ export function EinheitForm({ disciplines, initialData, sessionId, prefillData }
   const [seriesKeys, setSeriesKeys] = useState<string[]>(() => sortedInitialSeries.map((s) => s.id))
 
   // Datum vorbelegen: aus initialData oder aktuelle Zeit
-  const [defaultDate] = useState(() => {
-    const seedDate = prefillData?.date ?? initialData?.date
-    const base = seedDate ? new Date(seedDate) : new Date()
-    base.setMinutes(base.getMinutes() - base.getTimezoneOffset())
-    return base.toISOString().slice(0, 16)
-  })
+  const [dateValue, setDateValue] = useState<string>(() =>
+    toDateTimeLocalValue(initialData?.date ?? new Date())
+  )
 
   // Gewählte Disziplin aus der Liste suchen
   const selectedDiscipline = disciplines.find((d) => d.id === disciplineId)
@@ -325,6 +311,65 @@ export function EinheitForm({ disciplines, initialData, sessionId, prefillData }
     }
   }
 
+  async function handleMeytonImport() {
+    if (!disciplineId) {
+      setImportError("Bitte zuerst eine Disziplin wählen.")
+      return
+    }
+
+    setImportError(null)
+    setIsImportPending(true)
+
+    const formData = new FormData()
+    formData.set("disciplineId", disciplineId)
+    formData.set("source", importSource)
+
+    if (importSource === "URL") {
+      const trimmedUrl = importUrl.trim()
+      if (!trimmedUrl) {
+        setImportError("Bitte eine PDF-URL angeben.")
+        setIsImportPending(false)
+        return
+      }
+      formData.set("pdfUrl", trimmedUrl)
+    } else {
+      if (!importFile) {
+        setImportError("Bitte eine PDF-Datei hochladen.")
+        setIsImportPending(false)
+        return
+      }
+      formData.set("file", importFile)
+    }
+
+    const result = await previewMeytonImport(formData)
+    if (result.error || !result.data) {
+      setImportError(result.error ?? "Import fehlgeschlagen.")
+      setIsImportPending(false)
+      return
+    }
+
+    const imported = result.data.series
+    const newTotal = imported.length
+
+    setTotalSeries(newTotal)
+    setShowShots(true)
+    setShots(imported.map((serie) => [...serie.shots]))
+    setShotCounts(imported.map((serie) => Math.max(1, serie.shots.length)))
+    setSeriesIsPractice(Array(newTotal).fill(false))
+    setSeriesTotals(imported.map((serie) => serie.scoreTotal))
+    setSeriesKeys(imported.map((serie, index) => `m-${Date.now()}-${index}-${serie.nr}`))
+
+    // Nur bei neuen, noch nicht gespeicherten Einheiten wird Datum/Uhrzeit aus dem PDF übernommen.
+    if (!sessionId && result.data.date) {
+      setDateValue(toDateTimeLocalValue(result.data.date))
+    }
+
+    setImportUrl("")
+    setImportFile(null)
+    setIsImportPending(false)
+    setIsImportDialogOpen(false)
+  }
+
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
 
@@ -402,7 +447,8 @@ export function EinheitForm({ disciplines, initialData, sessionId, prefillData }
                 name="date"
                 type="datetime-local"
                 required
-                defaultValue={defaultDate}
+                value={dateValue}
+                onChange={(event) => setDateValue(event.target.value)}
                 disabled={pending}
               />
             </div>
@@ -440,7 +486,7 @@ export function EinheitForm({ disciplines, initialData, sessionId, prefillData }
               id="location"
               name="location"
               placeholder="z.B. Schützenhaus Muster"
-              defaultValue={prefillData?.location ?? initialData?.location ?? ""}
+              defaultValue={initialData?.location ?? ""}
               disabled={pending}
             />
           </div>
@@ -453,7 +499,7 @@ export function EinheitForm({ disciplines, initialData, sessionId, prefillData }
                 id="trainingGoal"
                 name="trainingGoal"
                 placeholder="Was soll heute gelingen?"
-                defaultValue={prefillData?.trainingGoal ?? initialData?.trainingGoal ?? ""}
+                defaultValue={initialData?.trainingGoal ?? ""}
                 disabled={pending}
                 rows={2}
               />
@@ -465,19 +511,35 @@ export function EinheitForm({ disciplines, initialData, sessionId, prefillData }
       {/* Serien — erscheinen erst wenn Disziplin gewählt */}
       {needsDiscipline && selectedDiscipline && totalSeries > 0 && (
         <div className="space-y-3">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-wrap items-center justify-between gap-2">
             <h2 className="text-lg font-semibold">Serien</h2>
-            {/* Einzelschuss-Toggle — erlaubt detailliertere Erfassung für Analyse */}
-            <label className="flex cursor-pointer items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                checked={showShots}
-                onChange={(e) => handleShotToggle(e.target.checked)}
-                disabled={pending}
-                className="h-4 w-4"
-              />
-              Einzelschüsse erfassen
-            </label>
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setImportError(null)
+                  setImportUrl("")
+                  setImportFile(null)
+                  setIsImportDialogOpen(true)
+                }}
+                disabled={pending || isImportPending}
+              >
+                Meyton importieren
+              </Button>
+              {/* Einzelschuss-Toggle — erlaubt detailliertere Erfassung für Analyse */}
+              <label className="flex cursor-pointer items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={showShots}
+                  onChange={(e) => handleShotToggle(e.target.checked)}
+                  disabled={pending}
+                  className="h-4 w-4"
+                />
+                Einzelschüsse erfassen
+              </label>
+            </div>
           </div>
 
           <div className="grid gap-3 sm:grid-cols-2">
@@ -727,6 +789,85 @@ export function EinheitForm({ disciplines, initialData, sessionId, prefillData }
               + Probeschuss-Serie
             </Button>
           </div>
+        </div>
+      )}
+
+      {isImportDialogOpen && selectedDiscipline && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <Card className="w-full max-w-xl">
+            <CardContent className="space-y-4 pt-6">
+              <div>
+                <h3 className="text-lg font-semibold">Meyton-Import</h3>
+                <p className="text-sm text-muted-foreground">
+                  Die importierten Daten ersetzen alle aktuellen Serien in dieser Einheit.
+                </p>
+              </div>
+
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="meyton-source">Quelle</Label>
+                  <Select
+                    value={importSource}
+                    onValueChange={(value) => {
+                      setImportSource(value as ImportSourceType)
+                      setImportError(null)
+                      setImportUrl("")
+                      setImportFile(null)
+                    }}
+                  >
+                    <SelectTrigger id="meyton-source" className="w-full">
+                      <SelectValue placeholder="Quelle wählen" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="URL">PDF-URL</SelectItem>
+                      <SelectItem value="UPLOAD">PDF-Upload</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {importSource === "URL" ? (
+                  <div className="space-y-2">
+                    <Label htmlFor="pdfUrl">PDF-URL</Label>
+                    <Input
+                      id="pdfUrl"
+                      type="url"
+                      placeholder="http://example.com/meyton.pdf"
+                      value={importUrl}
+                      onChange={(event) => setImportUrl(event.target.value)}
+                      disabled={isImportPending}
+                    />
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <Label htmlFor="file">PDF-Datei</Label>
+                    <Input
+                      id="file"
+                      type="file"
+                      accept="application/pdf,.pdf"
+                      onChange={(event) => setImportFile(event.target.files?.[0] ?? null)}
+                      disabled={isImportPending}
+                    />
+                  </div>
+                )}
+
+                {importError && <p className="text-sm text-destructive">{importError}</p>}
+
+                <div className="flex gap-2">
+                  <Button type="button" disabled={isImportPending} onClick={handleMeytonImport}>
+                    {isImportPending ? "Importiere..." : "Importieren"}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={isImportPending}
+                    onClick={() => setIsImportDialogOpen(false)}
+                  >
+                    Abbrechen
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       )}
 

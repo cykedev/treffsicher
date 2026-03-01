@@ -84,8 +84,9 @@ Gilt für Einheitentypen "Training" und "Wettkampf".
 
 ### Meyton-PDF Import (Training/Wettkampf)
 
-- In **Neue Einheit** gibt es einen separaten Meyton-Import-Dialog
-- Im Dialog werden **Modus** (Training oder Wettkampf) und **Disziplin** gewählt
+- Der Meyton-Import ist direkt in der **Einheit-Erfassung/Bearbeitung** verfügbar
+- Der Import funktioniert für neue Einheiten und für bereits bestehende Einheiten im Bearbeiten-Flow
+- Modus und Disziplin werden wie gewohnt in der Einheit gesetzt; der Import nutzt die aktuell gewählte Disziplin
 - Quelle kann entweder eine **PDF-URL** oder ein **PDF-Upload** sein
 - Es werden nur **textbasierte PDFs** verarbeitet (kein OCR)
 - Serien werden über `Serie <n>:` erkannt; `<n>` wird übernommen
@@ -93,7 +94,8 @@ Gilt für Einheitentypen "Training" und "Wettkampf".
 - Gültige Schusswerte für den Parser: **0.0 bis 10.9**; Marker wie `*`, `T`, Teiler- und Footerangaben werden ignoriert
 - Alle importierten Serien werden initial als **Wertungsserien** angelegt (keine Probeschüsse)
 - Bei Ganzring-Disziplinen werden importierte Zehntelwerte pro Schuss per **Floor** in Ganzringe umgerechnet
-- Nach dem Import wird das Einheit-Formular **vorausgefüllt angezeigt**; gespeichert wird erst durch den Nutzer
+- Beim Import werden bestehende Serien der aktuellen Einheit im Formular ersetzt; gespeichert wird erst durch den Nutzer
+- Bei neuen, noch nicht gespeicherten Einheiten darf Datum/Uhrzeit aus dem PDF übernommen werden (falls vorhanden)
 - Bei Lade-, Extraktions- oder Parsingfehlern erfolgt ein **harter Abbruch mit Fehlermeldung** (kein Teilimport)
 
 ### Gesamtergebnis
