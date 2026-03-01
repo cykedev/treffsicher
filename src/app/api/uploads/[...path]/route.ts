@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server"
 import { readFile } from "fs/promises"
-import { join, extname } from "path"
+import { extname, isAbsolute, relative, resolve } from "path"
 import { getAuthSession } from "@/lib/auth-helpers"
+import { db } from "@/lib/db"
 
 // Content-Type aus Dateiendung ableiten
 function getContentType(filename: string): string {
@@ -21,13 +22,22 @@ function getContentType(filename: string): string {
   }
 }
 
+function isValidRelativeUploadPath(path: string): boolean {
+  // Wir speichern Uploads als einzelne UUID-Dateien ohne Unterordner.
+  if (!path || path.includes("/") || path.includes("\\") || path.includes("..")) {
+    return false
+  }
+  return true
+}
+
 /**
  * Stellt hochgeladene Dateien aus dem Upload-Verzeichnis bereit.
- * Auth-Check: Nur eingeloggte Nutzer können Dateien abrufen.
- * UUID-Dateinamen machen Pfade praktisch unratbar — kein Ownership-Check nötig.
+ * Sicherheit:
+ * - Ownership-Check über Attachment -> Session.userId
+ * - Traversal-Schutz via resolve/relative (kein startsWith-Vergleich)
  */
 export async function GET(
-  request: NextRequest,
+  _request: NextRequest,
   { params }: { params: Promise<{ path: string[] }> }
 ) {
   const session = await getAuthSession()
@@ -36,17 +46,48 @@ export async function GET(
   }
 
   const { path } = await params
-  const uploadDir = process.env.UPLOAD_DIR ?? "/app/uploads"
-  const filePath = join(uploadDir, ...path)
+  if (path.length !== 1) {
+    return new NextResponse("Ungültiger Pfad", { status: 400 })
+  }
 
-  // Sicherstellen dass der Pfad innerhalb von UPLOAD_DIR liegt (verhindert Path-Traversal)
-  if (!filePath.startsWith(uploadDir)) {
+  const requestedFilePath = path[0]
+  if (!isValidRelativeUploadPath(requestedFilePath)) {
+    return new NextResponse("Ungültiger Pfad", { status: 400 })
+  }
+
+  // Zugriff nur auf eigene Anhänge erlauben (Cross-Tenant-Schutz).
+  const attachment = await db.attachment.findFirst({
+    where: {
+      filePath: requestedFilePath,
+      session: {
+        userId: session.user.id,
+      },
+    },
+    select: {
+      filePath: true,
+      fileType: true,
+    },
+  })
+
+  if (!attachment) {
+    // Keine Unterscheidung zwischen "existiert nicht" und "gehört anderem Nutzer".
+    return new NextResponse("Datei nicht gefunden", { status: 404 })
+  }
+
+  const uploadDir = process.env.UPLOAD_DIR ?? "/app/uploads"
+  const resolvedUploadDir = resolve(uploadDir)
+  const resolvedFilePath = resolve(resolvedUploadDir, attachment.filePath)
+  const relativeFilePath = relative(resolvedUploadDir, resolvedFilePath)
+
+  // Verhindert Path-Traversal, auch bei Prefix-Fallen wie "/app/uploads-secret".
+  if (relativeFilePath.startsWith("..") || isAbsolute(relativeFilePath)) {
     return new NextResponse("Ungültiger Pfad", { status: 400 })
   }
 
   try {
-    const fileBuffer = await readFile(filePath)
-    const contentType = getContentType(path[path.length - 1])
+    const fileBuffer = await readFile(resolvedFilePath)
+    const contentType =
+      attachment.fileType === "PDF" ? "application/pdf" : getContentType(attachment.filePath)
 
     return new NextResponse(fileBuffer, {
       headers: {
