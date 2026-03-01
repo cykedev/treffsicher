@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
+import { Check } from "lucide-react"
 import { createSession, previewMeytonImport, updateSession } from "@/lib/sessions/actions"
 import type { SessionDetail } from "@/lib/sessions/actions"
 import { calculateSumFromShots } from "@/lib/sessions/calculateScore"
@@ -19,9 +20,11 @@ import {
 import { Card, CardContent } from "@/components/ui/card"
 import { Textarea } from "@/components/ui/textarea"
 import type { Discipline } from "@/generated/prisma/client"
+import type { GoalForSelection } from "@/lib/goals/actions"
 
 interface Props {
   disciplines: Discipline[]
+  goals: GoalForSelection[]
   // Wenn gesetzt: Bearbeiten-Modus — Formular wird mit bestehender Einheit vorbelegt
   initialData?: SessionDetail
   sessionId?: string
@@ -88,7 +91,13 @@ function createSeriesDefaults(discipline: Discipline | undefined) {
 // Bei Auswahl von Typ und Disziplin werden die Serienfelder dynamisch generiert.
 // Die Serienanzahl und Schussanzahl pro Serie kann vom Disziplin-Standard abweichen.
 // Optional: Einzelschüsse erfassen (Toggle) und Ausführungsqualität pro Serie.
-export function EinheitForm({ disciplines, initialData, sessionId, defaultDisciplineId }: Props) {
+export function EinheitForm({
+  disciplines,
+  goals,
+  initialData,
+  sessionId,
+  defaultDisciplineId,
+}: Props) {
   const router = useRouter()
   const [pending, setPending] = useState(false)
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false)
@@ -162,7 +171,9 @@ export function EinheitForm({ disciplines, initialData, sessionId, defaultDiscip
   // isPractice-Flag pro Serie — ermöglicht manuelles Hinzufügen von Probeschuss-Serien,
   // unabhängig von der Anzahl in der Disziplin-Konfiguration
   const [seriesIsPractice, setSeriesIsPractice] = useState<boolean[]>(() =>
-    initialData ? sortedInitialSeries.map((s) => s.isPractice) : initialSeriesDefaults.seriesIsPractice
+    initialData
+      ? sortedInitialSeries.map((s) => s.isPractice)
+      : initialSeriesDefaults.seriesIsPractice
   )
 
   // Stabile Keys pro Serie: verhindert ungewollte Re-Renders (und Wertverlust in unkontrollierten
@@ -174,6 +185,9 @@ export function EinheitForm({ disciplines, initialData, sessionId, defaultDiscip
   // Datum vorbelegen: aus initialData oder aktuelle Zeit
   const [dateValue, setDateValue] = useState<string>(() =>
     toDateTimeLocalValue(initialData?.date ?? new Date())
+  )
+  const [selectedGoalIds, setSelectedGoalIds] = useState<string[]>(() =>
+    initialData ? initialData.goals.map((entry) => entry.goalId) : []
   )
 
   // Gewählte Disziplin aus der Liste suchen
@@ -208,6 +222,15 @@ export function EinheitForm({ disciplines, initialData, sessionId, defaultDiscip
 
   const hasValidationErrors =
     invalidShots.some((serie) => serie.some(Boolean)) || invalidTotals.some(Boolean)
+
+  function toggleGoal(goalId: string) {
+    setSelectedGoalIds((prev) => {
+      if (prev.includes(goalId)) {
+        return prev.filter((id) => id !== goalId)
+      }
+      return [...prev, goalId]
+    })
+  }
 
   // ─── Handler ─────────────────────────────────────────────────────────────────
 
@@ -531,6 +554,64 @@ export function EinheitForm({ disciplines, initialData, sessionId, defaultDiscip
                 disabled={pending}
                 rows={2}
               />
+            </div>
+          )}
+
+          {/* Saisonziele (optional): Markierung, auf welche Ziele die Einheit einzahlt */}
+          {goals.length > 0 && (
+            <div className="space-y-3">
+              <Label>Saisonziele (optional)</Label>
+              <p className="text-xs text-muted-foreground">
+                Markiere, auf welche Saisonziele diese Einheit einzahlt.
+              </p>
+              <div className="max-h-44 space-y-1 overflow-y-auto">
+                {goals.map((goal) => {
+                  const selected = selectedGoalIds.includes(goal.id)
+                  return (
+                    <button
+                      key={goal.id}
+                      type="button"
+                      onClick={() => toggleGoal(goal.id)}
+                      disabled={pending}
+                      className={`flex w-full items-start gap-2 rounded-md px-3 py-2.5 text-left text-sm transition-colors ${
+                        selected
+                          ? "bg-primary/10 ring-1 ring-primary/60"
+                          : "bg-muted/20 ring-1 ring-border/40 hover:bg-muted/40"
+                      }`}
+                      aria-pressed={selected}
+                    >
+                      <span
+                        className={`mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full ${
+                          selected
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-muted text-muted-foreground/40"
+                        }`}
+                      >
+                        <Check
+                          className={`h-3.5 w-3.5 ${selected ? "opacity-100" : "opacity-0"}`}
+                        />
+                      </span>
+                      <span className="leading-5">
+                        <span className="font-medium">{goal.title}</span>
+                        <span className="text-muted-foreground">
+                          {" "}
+                          · {goal.type === "RESULT" ? "Ergebnisziel" : "Prozessziel"}
+                        </span>
+                      </span>
+                    </button>
+                  )
+                })}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {selectedGoalIds.length === 0
+                  ? "Kein Ziel ausgewählt"
+                  : `${selectedGoalIds.length} Ziel${
+                      selectedGoalIds.length === 1 ? "" : "e"
+                    } ausgewählt`}
+              </p>
+              {selectedGoalIds.map((goalId) => (
+                <input key={goalId} type="hidden" name="goalIds" value={goalId} />
+              ))}
             </div>
           )}
         </CardContent>

@@ -5,6 +5,7 @@ import {
   getWellbeingCorrelationData,
   getQualityVsScoreData,
   getShotDistributionData,
+  getRadarComparisonData,
 } from "@/lib/stats/actions"
 import { StatistikChartsWrapper } from "@/components/app/StatistikChartsWrapper"
 
@@ -13,12 +14,15 @@ export default async function StatistikenPage() {
   if (!session) redirect("/login")
 
   // Alle Daten parallel laden — Client-Komponente filtert Ergebnisse in Memory
-  const [sessions, wellbeingData, qualityData, shotDistributionData] = await Promise.all([
-    getStatsData({}),
-    getWellbeingCorrelationData({}),
-    getQualityVsScoreData({}),
-    getShotDistributionData({}),
-  ])
+  const [sessions, wellbeingData, qualityData, shotDistributionData, radarData] = await Promise.all(
+    [
+      getStatsData({}),
+      getWellbeingCorrelationData({}),
+      getQualityVsScoreData({}),
+      getShotDistributionData({}),
+      getRadarComparisonData({}),
+    ]
+  )
 
   return (
     <div className="space-y-6">
@@ -34,6 +38,7 @@ export default async function StatistikenPage() {
         wellbeingData={wellbeingData}
         qualityData={qualityData}
         shotDistributionData={shotDistributionData}
+        radarData={radarData}
       />
     </div>
   )

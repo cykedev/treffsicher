@@ -6,6 +6,11 @@ import {
   Line,
   BarChart,
   Bar,
+  RadarChart,
+  Radar,
+  PolarGrid,
+  PolarAngleAxis,
+  PolarRadiusAxis,
   AreaChart,
   Area,
   ScatterChart,
@@ -37,6 +42,7 @@ import type {
   WellbeingCorrelationPoint,
   QualityVsScorePoint,
   ShotDistributionPoint,
+  RadarComparisonSession,
 } from "@/lib/stats/actions"
 
 interface Props {
@@ -44,10 +50,25 @@ interface Props {
   wellbeingData: WellbeingCorrelationPoint[]
   qualityData: QualityVsScorePoint[]
   shotDistributionData: ShotDistributionPoint[]
+  radarData: RadarComparisonSession[]
 }
 
 type TypeFilter = "all" | "TRAINING" | "WETTKAMPF"
 type DisplayMode = "per_shot" | "projected"
+
+const radarDimensions = [
+  { label: "Kondition", prognosisKey: "fitnessPrognosis", feedbackKey: "fitnessFeedback" },
+  { label: "Ernährung", prognosisKey: "nutritionPrognosis", feedbackKey: "nutritionFeedback" },
+  { label: "Technik", prognosisKey: "techniquePrognosis", feedbackKey: "techniqueFeedback" },
+  { label: "Taktik", prognosisKey: "tacticsPrognosis", feedbackKey: "tacticsFeedback" },
+  {
+    label: "Mentale Stärke",
+    prognosisKey: "mentalStrengthPrognosis",
+    feedbackKey: "mentalStrengthFeedback",
+  },
+  { label: "Umfeld", prognosisKey: "environmentPrognosis", feedbackKey: "environmentFeedback" },
+  { label: "Material", prognosisKey: "equipmentPrognosis", feedbackKey: "equipmentFeedback" },
+] as const
 
 // Datumsstring für Presets berechnen
 function daysAgo(days: number): string {
@@ -89,6 +110,7 @@ export function StatistikCharts({
   wellbeingData,
   qualityData,
   shotDistributionData,
+  radarData,
 }: Props) {
   const [typeFilter, setTypeFilter] = useState<TypeFilter>("all")
   const [from, setFrom] = useState("")
@@ -155,6 +177,11 @@ export function StatistikCharts({
   const filteredShotDistribution = useMemo(() => {
     return shotDistributionData.filter((p) => filteredSessionIds.has(p.sessionId))
   }, [shotDistributionData, filteredSessionIds])
+
+  // Prognose/Feedback-Daten konsistent zu den aktiven Filtern einschränken
+  const filteredRadarSessions = useMemo(() => {
+    return radarData.filter((p) => filteredSessionIds.has(p.sessionId))
+  }, [radarData, filteredSessionIds])
 
   // Befinden-Anzeigedaten: bei Hochrechnung auf Gesamtschusszahl der Disziplin projizieren
   const wellbeingDisplayData = useMemo(() => {
@@ -245,6 +272,40 @@ export function StatistikCharts({
   }))
 
   const hasData = withScore.length > 0
+
+  const radarChartData = useMemo(() => {
+    if (filteredRadarSessions.length === 0) return []
+    const count = filteredRadarSessions.length
+
+    return radarDimensions.map((dimension) => {
+      const prognosisSum = filteredRadarSessions.reduce(
+        (sum, entry) => sum + entry[dimension.prognosisKey],
+        0
+      )
+      const feedbackSum = filteredRadarSessions.reduce(
+        (sum, entry) => sum + entry[dimension.feedbackKey],
+        0
+      )
+
+      return {
+        dimension: dimension.label,
+        prognosis: Math.round((prognosisSum / count) * 10) / 10,
+        feedback: Math.round((feedbackSum / count) * 10) / 10,
+      }
+    })
+  }, [filteredRadarSessions])
+
+  const radarDateLabel = useMemo(() => {
+    if (filteredRadarSessions.length === 0) return null
+    const first = filteredRadarSessions[0]
+    const last = filteredRadarSessions[filteredRadarSessions.length - 1]
+    const format = new Intl.DateTimeFormat("de-CH", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    })
+    return `${format.format(new Date(first.date))} bis ${format.format(new Date(last.date))}`
+  }, [filteredRadarSessions])
 
   return (
     <div className="space-y-6">
@@ -369,11 +430,13 @@ export function StatistikCharts({
             )}
           </div>
 
-          <p className="text-sm text-muted-foreground">
-            {filtered.length} Einheit{filtered.length !== 1 ? "en" : ""} gefunden
-            {withScore.length !== filtered.length && ` · ${withScore.length} mit Ergebnis`}
-            {selectedDiscipline && ` · ${selectedDiscipline.name}`}
-          </p>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="text-sm text-muted-foreground">
+              {filtered.length} Einheit{filtered.length !== 1 ? "en" : ""} gefunden
+              {withScore.length !== filtered.length && ` · ${withScore.length} mit Ergebnis`}
+              {selectedDiscipline && ` · ${selectedDiscipline.name}`}
+            </p>
+          </div>
         </CardContent>
       </Card>
 
@@ -382,6 +445,7 @@ export function StatistikCharts({
         <div className="overflow-x-auto pb-px">
           <TabsList className="mb-2 w-max min-w-full">
             <TabsTrigger value="verlauf">Verlauf</TabsTrigger>
+            <TabsTrigger value="selbstbild">Selbsteinschätzung</TabsTrigger>
             <TabsTrigger value="befinden">Befinden</TabsTrigger>
             <TabsTrigger value="qualitaet">Qualität &amp; Schüsse</TabsTrigger>
           </TabsList>
@@ -534,7 +598,78 @@ export function StatistikCharts({
           )}
         </TabsContent>
 
-        {/* Tab 2: Befinden-Korrelation — je Dimension eine eigene Card (2 Spalten auf Desktop) */}
+        {/* Tab 2: Prognose vs. Feedback in den 7 Dimensionen */}
+        <TabsContent value="selbstbild">
+          {radarChartData.length > 0 ? (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex flex-wrap items-baseline gap-2">
+                  Prognose vs. Feedback (7 Dimensionen)
+                  <span className="text-base font-normal text-muted-foreground">
+                    {filteredRadarSessions.length} Einheit
+                    {filteredRadarSessions.length !== 1 ? "en" : ""}
+                    {radarDateLabel ? ` · ${radarDateLabel}` : ""}
+                  </span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={340}>
+                  <RadarChart data={radarChartData} outerRadius="72%">
+                    <PolarGrid stroke="var(--border)" />
+                    <PolarAngleAxis
+                      dataKey="dimension"
+                      tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
+                    />
+                    <PolarRadiusAxis
+                      domain={[0, 100]}
+                      tick={{ fontSize: 10, fill: "var(--muted-foreground)" }}
+                      axisLine={false}
+                      tickCount={6}
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: "var(--card)",
+                        border: "1px solid var(--border)",
+                        borderRadius: "8px",
+                        color: "var(--card-foreground)",
+                        fontSize: "12px",
+                      }}
+                      formatter={(value, name) => [
+                        typeof value === "number" ? value.toFixed(1) : String(value ?? ""),
+                        name === "prognosis" ? "Prognose" : "Feedback",
+                      ]}
+                    />
+                    <Legend
+                      formatter={(value) => (value === "prognosis" ? "Prognose" : "Feedback")}
+                    />
+                    <Radar
+                      name="prognosis"
+                      dataKey="prognosis"
+                      stroke="var(--chart-1)"
+                      fill="var(--chart-1)"
+                      fillOpacity={0.22}
+                    />
+                    <Radar
+                      name="feedback"
+                      dataKey="feedback"
+                      stroke="var(--chart-2)"
+                      fill="var(--chart-2)"
+                      fillOpacity={0.2}
+                    />
+                  </RadarChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+          ) : (
+            <Card>
+              <CardContent className="py-12 text-center text-muted-foreground">
+                Keine Prognose-/Feedback-Daten für den gewählten Filter.
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
+
+        {/* Tab 3: Befinden-Korrelation — je Dimension eine eigene Card (2 Spalten auf Desktop) */}
         <TabsContent value="befinden">
           {filteredWellbeing.length > 1 ? (
             <div className="grid gap-4 sm:grid-cols-2">
@@ -640,7 +775,7 @@ export function StatistikCharts({
           )}
         </TabsContent>
 
-        {/* Tab 3: Ausführungsqualität + Schussverteilung */}
+        {/* Tab 4: Ausführungsqualität + Schussverteilung */}
         <TabsContent value="qualitaet" className="space-y-4">
           {/* Schussqualität vs. Serienergebnis — nach Disziplin gefiltert, normalisiert auf Ringe/Sch. */}
           {filteredQuality.length > 1 && (

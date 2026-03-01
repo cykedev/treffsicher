@@ -6,6 +6,7 @@ import type {
   WellbeingCorrelationPoint,
   QualityVsScorePoint,
   ShotDistributionPoint,
+  RadarComparisonSession,
 } from "@/lib/stats/actions"
 
 // StatistikCharts enthält Radix UI (Select), das aria-controls IDs via useId() generiert.
@@ -21,6 +22,7 @@ interface Props {
   wellbeingData: WellbeingCorrelationPoint[]
   qualityData: QualityVsScorePoint[]
   shotDistributionData: ShotDistributionPoint[]
+  radarData: RadarComparisonSession[]
 }
 
 export function StatistikChartsWrapper({
@@ -28,6 +30,7 @@ export function StatistikChartsWrapper({
   wellbeingData,
   qualityData,
   shotDistributionData,
+  radarData,
 }: Props) {
   return (
     <StatistikChartsInner
@@ -35,6 +38,7 @@ export function StatistikChartsWrapper({
       wellbeingData={wellbeingData}
       qualityData={qualityData}
       shotDistributionData={shotDistributionData}
+      radarData={radarData}
     />
   )
 }
