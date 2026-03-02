@@ -22,6 +22,13 @@ export type AdminUserSummary = {
   createdAt: Date
 }
 
+export type AdminUserListItem = AdminUserSummary & {
+  sessionsCount: number
+  goalsCount: number
+  shotRoutinesCount: number
+  lastSessionEditAt: Date | null
+}
+
 export type AdminSystemDisciplineSummary = {
   id: string
   name: string
@@ -75,11 +82,11 @@ function revalidateAdminPaths(): void {
 /**
  * Gibt alle Nutzer für die Admin-Verwaltung zurueck (ohne Passwort-Hashes).
  */
-export async function getAdminUsers(): Promise<AdminUserSummary[]> {
+export async function getAdminUsers(): Promise<AdminUserListItem[]> {
   const admin = await requireAdminSession()
   if (!admin) return []
 
-  return db.user.findMany({
+  const users = await db.user.findMany({
     select: {
       id: true,
       name: true,
@@ -87,9 +94,39 @@ export async function getAdminUsers(): Promise<AdminUserSummary[]> {
       role: true,
       isActive: true,
       createdAt: true,
+      _count: {
+        select: {
+          sessions: true,
+          goals: true,
+          shotRoutines: true,
+        },
+      },
     },
     orderBy: [{ role: "asc" }, { createdAt: "asc" }],
   })
+
+  const lastSessionUpdates = await db.trainingSession.groupBy({
+    by: ["userId"],
+    _max: {
+      updatedAt: true,
+    },
+  })
+  const lastSessionByUserId = new Map(
+    lastSessionUpdates.map((row) => [row.userId, row._max.updatedAt ?? null])
+  )
+
+  return users.map((user) => ({
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    role: user.role,
+    isActive: user.isActive,
+    createdAt: user.createdAt,
+    sessionsCount: user._count.sessions,
+    goalsCount: user._count.goals,
+    shotRoutinesCount: user._count.shotRoutines,
+    lastSessionEditAt: lastSessionByUserId.get(user.id) ?? null,
+  }))
 }
 
 /**

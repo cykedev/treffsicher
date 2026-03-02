@@ -4,17 +4,17 @@ import Link from "next/link"
 import { useState, useTransition } from "react"
 import { useRouter } from "next/navigation"
 import { Pencil } from "lucide-react"
-import { setUserActive, type AdminUserSummary } from "@/lib/admin/actions"
+import { setUserActive, type AdminUserListItem } from "@/lib/admin/actions"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 
 interface Props {
-  users: AdminUserSummary[]
+  users: AdminUserListItem[]
   currentAdminId: string
 }
 
-function getRoleBadgeClass(role: AdminUserSummary["role"]): string {
+function getRoleBadgeClass(role: AdminUserListItem["role"]): string {
   if (role === "ADMIN") {
     return "border-amber-800 bg-amber-950 text-amber-300"
   }
@@ -38,12 +38,21 @@ function formatDate(date: Date): string {
   }).format(new Date(date))
 }
 
+function formatOptionalDate(date: Date | null): string {
+  if (!date) return "—"
+  return formatDate(date)
+}
+
+function formatCount(value: number): string {
+  return new Intl.NumberFormat("de-CH").format(value)
+}
+
 export function AdminUsersTable({ users, currentAdminId }: Props) {
   const router = useRouter()
   const [pending, startTransition] = useTransition()
   const [message, setMessage] = useState<string | null>(null)
 
-  function handleSetActive(user: AdminUserSummary, nextIsActive: boolean) {
+  function handleSetActive(user: AdminUserListItem, nextIsActive: boolean) {
     if (!nextIsActive) {
       const label = user.name ? `${user.name} <${user.email}>` : user.email
       const confirmed = window.confirm(`Nutzer "${label}" wirklich deaktivieren?`)
@@ -87,6 +96,13 @@ export function AdminUsersTable({ users, currentAdminId }: Props) {
                 </div>
 
                 <p className="text-xs text-muted-foreground">Angelegt: {formatDate(user.createdAt)}</p>
+                <p className="text-xs text-muted-foreground">
+                  Aktivität: {formatCount(user.sessionsCount)} Einheiten, {formatCount(user.goalsCount)} Ziele,{" "}
+                  {formatCount(user.shotRoutinesCount)} Abläufe
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Letzte Session-Änderung: {formatOptionalDate(user.lastSessionEditAt)}
+                </p>
 
                 <div className="flex flex-wrap gap-2">
                   <Button type="button" size="sm" variant="outline" asChild>
@@ -112,14 +128,14 @@ export function AdminUsersTable({ users, currentAdminId }: Props) {
       </div>
 
       <div className="hidden overflow-x-auto md:block">
-        <table className="min-w-[760px] w-full text-sm">
+        <table className="min-w-[920px] w-full text-sm">
           <thead>
             <tr className="border-b text-left text-muted-foreground">
-              <th className="pb-2 pr-4 font-medium">Name</th>
-              <th className="pb-2 pr-4 font-medium">E-Mail</th>
+              <th className="pb-2 pr-4 font-medium">Nutzer</th>
               <th className="pb-2 pr-4 font-medium">Rolle</th>
               <th className="pb-2 pr-4 font-medium">Status</th>
-              <th className="pb-2 pr-4 font-medium">Angelegt</th>
+              <th className="pb-2 pr-4 font-medium">Aktivität</th>
+              <th className="pb-2 pr-4 font-medium">Letzte Session-Änderung</th>
               <th className="pb-2 font-medium">Aktion</th>
             </tr>
           </thead>
@@ -128,8 +144,13 @@ export function AdminUsersTable({ users, currentAdminId }: Props) {
               const isSelf = user.id === currentAdminId
               return (
                 <tr key={user.id}>
-                  <td className="py-2 pr-4 break-words">{user.name ?? "—"}</td>
-                  <td className="py-2 pr-4 break-all">{user.email}</td>
+                  <td className="py-3 pr-4">
+                    <div className="max-w-[280px] space-y-1">
+                      <p className="break-words font-medium leading-tight">{user.name ?? "—"}</p>
+                      <p className="break-all text-xs text-muted-foreground">{user.email}</p>
+                      <p className="text-xs text-muted-foreground">Angelegt: {formatDate(user.createdAt)}</p>
+                    </div>
+                  </td>
                   <td className="py-2 pr-4">
                     <Badge variant="outline" className={getRoleBadgeClass(user.role)}>
                       {user.role}
@@ -140,9 +161,28 @@ export function AdminUsersTable({ users, currentAdminId }: Props) {
                       {user.isActive ? "Aktiv" : "Inaktiv"}
                     </Badge>
                   </td>
-                  <td className="py-2 pr-4 text-muted-foreground">{formatDate(user.createdAt)}</td>
+                  <td className="py-3 pr-4">
+                    <div className="space-y-1 text-xs text-muted-foreground">
+                      <p>
+                        <span className="tabular-nums text-foreground">{formatCount(user.sessionsCount)}</span>{" "}
+                        Einheiten
+                      </p>
+                      <p>
+                        <span className="tabular-nums text-foreground">{formatCount(user.goalsCount)}</span> Ziele
+                      </p>
+                      <p>
+                        <span className="tabular-nums text-foreground">
+                          {formatCount(user.shotRoutinesCount)}
+                        </span>{" "}
+                        Abläufe
+                      </p>
+                    </div>
+                  </td>
+                  <td className="py-2 pr-4 text-muted-foreground">
+                    {formatOptionalDate(user.lastSessionEditAt)}
+                  </td>
                   <td className="py-2">
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex min-w-[160px] flex-col gap-2">
                       <Button type="button" size="sm" variant="outline" asChild>
                         <Link href={`/admin/users/${user.id}/edit`}>
                           <Pencil className="mr-1.5 h-3.5 w-3.5" />
