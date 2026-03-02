@@ -108,7 +108,7 @@ export function validatePdfBuffer(buffer: Buffer): void {
     throw new Error("Die Datei hat keinen gueltigen PDF-Header.")
   }
 
-  // EOF-Marker nahe Dateiende erwarten (tolerant fuer Zeilenumbrueche/Trailing-Bytes)
+  // EOF-Marker nahe Dateiende erwarten (tolerant für Zeilenumbrueche/Trailing-Bytes)
   const tailStart = Math.max(0, buffer.length - 2048)
   const tail = buffer.subarray(tailStart).toString("latin1")
   if (!tail.includes("%%EOF")) {

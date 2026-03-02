@@ -63,8 +63,8 @@ export async function getDisciplines(): Promise<Discipline[]> {
 }
 
 /**
- * Gibt Disziplinen fuer die Disziplin-Verwaltung zurueck.
- * Admins sehen hier auch archivierte System-Disziplinen fuer Reaktivierung und Pflege.
+ * Gibt Disziplinen für die Disziplin-Verwaltung zurueck.
+ * Admins sehen hier auch archivierte System-Disziplinen für Reaktivierung und Pflege.
  */
 export async function getDisciplinesForManagement(): Promise<Discipline[]> {
   const session = await getAuthSession()

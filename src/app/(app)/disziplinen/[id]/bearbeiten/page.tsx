@@ -24,7 +24,7 @@ export default async function DisziplinBearbeitenPage({
         </h1>
         <p className="text-muted-foreground">
           {discipline.isSystem
-            ? "Diese Standard-Disziplin gilt fuer alle Nutzer."
+            ? "Diese Standard-Disziplin gilt für alle Nutzer."
             : "Name, Serien und Schusszahl anpassen."}
         </p>
       </div>

@@ -150,8 +150,8 @@ export function DisziplinForm({ initialData, disciplineId, canCreateSystem = fal
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="true">System-Disziplin (fuer alle)</SelectItem>
-                  <SelectItem value="false">Eigene Disziplin (nur fuer mich)</SelectItem>
+                  <SelectItem value="true">System-Disziplin (für alle)</SelectItem>
+                  <SelectItem value="false">Eigene Disziplin (nur für mich)</SelectItem>
                 </SelectContent>
               </Select>
             </div>

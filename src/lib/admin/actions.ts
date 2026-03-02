@@ -64,7 +64,7 @@ function revalidateAdminPaths(): void {
 }
 
 /**
- * Gibt alle Nutzer fuer die Admin-Verwaltung zurueck (ohne Passwort-Hashes).
+ * Gibt alle Nutzer für die Admin-Verwaltung zurueck (ohne Passwort-Hashes).
  */
 export async function getAdminUsers(): Promise<AdminUserSummary[]> {
   const admin = await requireAdminSession()
@@ -104,7 +104,7 @@ export async function getAdminUserById(userId: string): Promise<AdminUserSummary
 }
 
 /**
- * Gibt alle System-Disziplinen fuer die Admin-Verwaltung zurueck.
+ * Gibt alle System-Disziplinen für die Admin-Verwaltung zurueck.
  */
 export async function getAdminSystemDisciplines(): Promise<AdminSystemDisciplineSummary[]> {
   const admin = await requireAdminSession()
