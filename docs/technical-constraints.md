@@ -138,14 +138,15 @@ if (process.env.NODE_ENV !== "production") {
 
 | Was                    | Konvention                          | Beispiel                 |
 | ---------------------- | ----------------------------------- | ------------------------ |
-| Dateien (Komponenten)  | PascalCase                          | `SessionForm.tsx`        |
+| Dateien (Komponenten)  | PascalCase, englische Begriffe      | `SessionForm.tsx`        |
 | Dateien (Logik/Utils)  | camelCase                           | `calculateScore.ts`      |
-| React-Komponenten      | PascalCase                          | `function SessionForm()` |
+| React-Komponenten      | PascalCase, englische Begriffe      | `function SessionForm()` |
 | Funktionen & Variablen | camelCase                           | `const totalScore`       |
 | Konstanten (global)    | SCREAMING_SNAKE_CASE                | `const MAX_SHOTS = 10`   |
 | Prisma-Modelle         | PascalCase                          | `model TrainingSession`  |
 | Enum-Werte             | SCREAMING_SNAKE_CASE                | `TRAINING`, `WETTKAMPF`  |
 | TypeScript-Interfaces  | PascalCase mit `I`-Präfix vermeiden | `interface SessionData`  |
+| Routen/URL-Segmente    | lowercase-kebab-case, englisch      | `/sessions/new`          |
 
 ### TypeScript-Regeln
 
@@ -733,7 +734,8 @@ Admins koennen System-Disziplinen verwalten (anlegen, bearbeiten, archivieren/re
 ## Sprache
 
 - **UI-Sprache**: Deutsch
-- **Code-Sprache**: Englisch (Variablennamen, Funktionsnamen, Kommentare im Code)
+- **Code-Sprache (Identifier)**: Englisch (Variablennamen, Funktionsnamen, Komponenten-Namen, Dateinamen von Komponenten, Routen/URL-Segmente)
+- **Code-Kommentare**: Deutsch
 - **Dokumentation**: Deutsch (docs/, README)
 - **Fehlermeldungen für Nutzer**: Deutsch
 - **Commit-Messages**: Englisch
@@ -746,3 +748,10 @@ Admins koennen System-Disziplinen verwalten (anlegen, bearbeiten, archivieren/re
 - **`.env`** niemals eingecheckt
 - **`node_modules/`** niemals eingecheckt
 - **Uploads-Verzeichnis** niemals eingecheckt
+
+---
+
+## Änderungsnotizen
+
+- **02.03.2026**: Sprach- und Benennungsregel präzisiert: UI und Code-Kommentare auf Deutsch, interne Komponenten- sowie Routen-/URL-Benennung auf Englisch.
+- **02.03.2026**: Umsetzung abgeschlossen: interne Routenpfade und Komponenten-Namen auf Englisch standardisiert (`/sessions`, `/disciplines`, `/statistics`, `/goals`, `/shot-routines`, `/admin/users`), ohne Altpfad-Redirects.

@@ -308,6 +308,17 @@ Analog zu Meyton-Schiessständen — einheitlich in Detailansicht und Statistik:
 
 - **Dark Mode**: Die App verwendet ausschliesslich Dark Mode — kein Light Mode, kein Toggle.
 - **Prognose und Feedback**: Nur bei Training und Wettkampf verfügbar (nicht bei Trockentraining und Mentaltraining).
+- **Sprache und interne Benennung**:
+  - Die Anwendung ist für Nutzer ausschliesslich auf Deutsch.
+  - Code-Kommentare sind auf Deutsch.
+  - Komponenten sowie Routen/URLs werden intern in Englisch benannt.
+
+---
+
+## Änderungsnotizen
+
+- **02.03.2026**: Sprachregel präzisiert (Deutsch für UI und Kommentare, Englisch für interne Komponenten- und Routen-/URL-Benennung).
+- **02.03.2026**: Bestehende interne Komponenten- und URL-Benennungen auf Englisch umgestellt (`/sessions`, `/disciplines`, `/statistics`, `/goals`, `/shot-routines`, `/admin/users`) ohne Redirects von den alten deutschen Pfaden.
 
 ---
 

@@ -27,7 +27,7 @@ export function DeleteSessionButton({ sessionId }: Props) {
     startTransition(async () => {
       const result = await deleteSession(sessionId)
       if (result.success) {
-        router.push("/einheiten")
+        router.push("/sessions")
       }
     })
   }

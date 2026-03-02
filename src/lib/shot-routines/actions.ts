@@ -89,8 +89,8 @@ export async function createShotRoutine(
     },
   })
 
-  revalidatePath("/schuss-ablauf")
-  redirect(`/schuss-ablauf/${routine.id}`)
+  revalidatePath("/shot-routines")
+  redirect(`/shot-routines/${routine.id}`)
 }
 
 /**
@@ -126,8 +126,8 @@ export async function updateShotRoutine(
     },
   })
 
-  revalidatePath("/schuss-ablauf")
-  revalidatePath(`/schuss-ablauf/${id}`)
+  revalidatePath("/shot-routines")
+  revalidatePath(`/shot-routines/${id}`)
   return { success: true }
 }
 
@@ -145,6 +145,6 @@ export async function deleteShotRoutine(id: string): Promise<ActionResult> {
 
   await db.shotRoutine.delete({ where: { id } })
 
-  revalidatePath("/schuss-ablauf")
+  revalidatePath("/shot-routines")
   return { success: true }
 }

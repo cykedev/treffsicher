@@ -98,7 +98,7 @@ export function AdminUsersTable({ users, currentAdminId }: Props) {
                   <td className="py-2">
                     <div className="flex flex-wrap gap-2">
                       <Button type="button" size="sm" variant="outline" asChild>
-                        <Link href={`/admin/nutzer/${user.id}/bearbeiten`}>
+                        <Link href={`/admin/users/${user.id}/edit`}>
                           <Pencil className="mr-1.5 h-3.5 w-3.5" />
                           Bearbeiten
                         </Link>

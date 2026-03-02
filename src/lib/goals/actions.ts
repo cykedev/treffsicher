@@ -156,7 +156,7 @@ export async function createGoal(formData: FormData): Promise<void> {
 
   await createGoalForUser(session.user.id, formData)
 
-  revalidatePath("/ziele")
+  revalidatePath("/goals")
 }
 
 export async function createGoalAndRedirect(formData: FormData): Promise<void> {
@@ -166,8 +166,8 @@ export async function createGoalAndRedirect(formData: FormData): Promise<void> {
   const success = await createGoalForUser(session.user.id, formData)
   if (!success) return
 
-  revalidatePath("/ziele")
-  redirect("/ziele")
+  revalidatePath("/goals")
+  redirect("/goals")
 }
 
 export async function updateGoal(goalId: string, formData: FormData): Promise<void> {
@@ -211,7 +211,7 @@ export async function updateGoal(goalId: string, formData: FormData): Promise<vo
     },
   })
 
-  revalidatePath("/ziele")
+  revalidatePath("/goals")
 }
 
 export async function updateGoalAssignments(goalId: string, formData: FormData): Promise<void> {
@@ -255,7 +255,7 @@ export async function updateGoalAssignments(goalId: string, formData: FormData):
     }
   })
 
-  revalidatePath("/ziele")
+  revalidatePath("/goals")
 }
 
 export async function deleteGoal(goalId: string): Promise<void> {
@@ -269,5 +269,5 @@ export async function deleteGoal(goalId: string): Promise<void> {
   if (!goal) return
 
   await db.goal.delete({ where: { id: goalId } })
-  revalidatePath("/ziele")
+  revalidatePath("/goals")
 }
