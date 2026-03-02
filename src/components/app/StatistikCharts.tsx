@@ -671,7 +671,7 @@ export function StatistikCharts({
 
         {/* Tab 3: Befinden-Korrelation — je Dimension eine eigene Card (2 Spalten auf Desktop) */}
         <TabsContent value="befinden">
-          {filteredWellbeing.length > 1 ? (
+          {filteredWellbeing.length > 0 ? (
             <div className="grid gap-4 sm:grid-cols-2">
               {(
                 [
@@ -703,8 +703,8 @@ export function StatistikCharts({
                         <XAxis
                           dataKey={key}
                           type="number"
-                          domain={[0, 10]}
-                          ticks={[0, 2, 4, 6, 8, 10]}
+                          domain={[0, 100]}
+                          allowDecimals={true}
                           label={{
                             value: label,
                             position: "insideBottom",
@@ -746,7 +746,7 @@ export function StatistikCharts({
                             name === "displayScore" ? wellbeingScoreLabel : label,
                           ]}
                         />
-                        {/* Größere Punkte: wenige x-Werte (0–10) → Punkte sollen gut sichtbar sein */}
+                        {/* Punktewolke für kontinuierliche 0–100-Skala */}
                         <Scatter
                           data={wellbeingDisplayData}
                           fill="var(--chart-1)"
@@ -754,9 +754,9 @@ export function StatistikCharts({
                             <circle
                               cx={props.cx}
                               cy={props.cy}
-                              r={6}
+                              r={5}
                               fill="var(--chart-1)"
-                              opacity={0.75}
+                              opacity={0.7}
                             />
                           )}
                         />

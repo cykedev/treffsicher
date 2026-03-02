@@ -616,7 +616,7 @@ bei System-Disziplinen nur fuer Admin sichtbar.
 
 ### Schritt 3.3 — Befinden-Tracking
 
-Optional vor jeder Einheit, 4 Schieberegler (0–10):
+Optional vor jeder Einheit, 4 Schieberegler (0–100):
 
 - Schlaf, Energie, Stress, Motivation
 

@@ -153,7 +153,7 @@ model Wellbeing {
   id        String          @id @default(cuid())
   sessionId String          @unique
   session   TrainingSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  // Alle Werte auf einer Skala von 0-10
+  // Alle Werte auf einer Skala von 0-100
   sleep      Int
   energy     Int
   stress     Int
