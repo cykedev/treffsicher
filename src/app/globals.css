@@ -142,6 +142,24 @@
   }
 }
 
+/* Native Date/Time-Controls können in manchen Browsern breiter als erwartet
+   messen. Deshalb auf die Containerbreite begrenzen. */
+input[type="date"],
+input[type="datetime-local"] {
+  max-width: 100%;
+  min-width: 0;
+}
+
+input[type="date"]::-webkit-date-and-time-value,
+input[type="datetime-local"]::-webkit-date-and-time-value {
+  text-align: left;
+}
+
+input[type="date"]::-webkit-datetime-edit,
+input[type="datetime-local"]::-webkit-datetime-edit {
+  padding: 0;
+}
+
 /* Recharts-Tooltip: Dark-Mode-Farben erzwingen (CSS-Variablen in Inline-Styles
    sind manchmal browserabhängig — dieses Override greift zuverlässig) */
 .dark .recharts-default-tooltip {

@@ -32,7 +32,7 @@ export default async function NewGoalPage() {
         </CardHeader>
         <CardContent>
           <form action={createGoalAndRedirect} className="space-y-4">
-            <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid gap-4 md:grid-cols-2 [&>*]:min-w-0">
               <div className="space-y-2">
                 <Label htmlFor="title">Titel</Label>
                 <Input id="title" name="title" required placeholder="z.B. 360+ im Wettkampf" />
@@ -56,7 +56,7 @@ export default async function NewGoalPage() {
               <Textarea id="description" name="description" rows={2} />
             </div>
 
-            <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid gap-4 md:grid-cols-2 [&>*]:min-w-0">
               <div className="space-y-2">
                 <Label htmlFor="dateFrom">Von</Label>
                 <Input id="dateFrom" name="dateFrom" type="date" required />

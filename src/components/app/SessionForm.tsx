@@ -448,7 +448,7 @@ export function SessionForm({
     <form onSubmit={handleSubmit} noValidate className="space-y-6">
       <Card>
         <CardContent className="space-y-4 pt-6">
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-4 sm:grid-cols-2 [&>*]:min-w-0">
             {/* Einheitentyp */}
             <div className="space-y-2">
               <Label htmlFor="type">Art der Einheit</Label>

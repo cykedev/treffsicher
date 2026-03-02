@@ -545,7 +545,7 @@ export function StatisticsCharts({
       <Card>
         <CardContent className="space-y-4 pt-6">
           {/* Erste Filterzeile: Typ, Disziplin, Von, Bis */}
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 [&>*]:min-w-0">
             {/* Typ-Filter */}
             <div className="space-y-2">
               <Label>Einheitentyp</Label>
