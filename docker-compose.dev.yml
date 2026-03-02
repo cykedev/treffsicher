@@ -8,7 +8,7 @@ services:
     # - eingecheckte Migrationen anwenden
     # - lokale Schemaänderungen ohne manuelle Schritte auf die DB pushen
     # - Prisma Client generieren
-    command: sh -c "npx prisma migrate deploy && npx prisma db push && npx prisma generate && npm run dev"
+    command: sh /app/scripts/start-dev-with-migrations.sh
     ports:
       - "3000:3000"
     volumes:
@@ -33,6 +33,10 @@ services:
       watch:
         # Schemaänderung -> Container neu starten -> db push + generate laufen automatisch
         - path: ./prisma/schema.prisma
+          action: restart
+
+        # Neue/angepasste Migrationen -> Container neu starten -> migrate deploy läuft erneut
+        - path: ./prisma/migrations
           action: restart
 
         # Next.js-Konfiguration wird beim Start eingelesen -> Restart nötig

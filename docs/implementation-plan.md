@@ -84,7 +84,7 @@ services:
     build:
       context: .
       target: deps
-    command: npm run dev
+    command: sh /app/scripts/start-dev-with-migrations.sh
     ports:
       - "3000:3000"
     volumes:
@@ -98,9 +98,17 @@ services:
       - UPLOAD_DIR=/app/uploads
       - ADMIN_EMAIL=admin@example.com
       - ADMIN_PASSWORD=admin-passwort-12
+      - PRISMA_AUTO_RESOLVE_FAILED_MIGRATIONS=true
+      - PRISMA_AUTO_RESOLVE_UNKNOWN_FAILED_MIGRATIONS=false
     depends_on:
       db:
         condition: service_healthy
+    develop:
+      watch:
+        - path: ./prisma/schema.prisma
+          action: restart
+        - path: ./prisma/migrations
+          action: restart
 
   db:
     image: postgres:15-alpine
