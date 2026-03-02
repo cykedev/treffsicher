@@ -126,7 +126,10 @@ if (process.env.NODE_ENV !== "production") {
 - **Passwörter**: Gehasht mit bcrypt, niemals im Klartext gespeichert
 - **Sessions**: Server-seitig via NextAuth.js Session-Tokens
 - **Datenisolation**: Jeder Datenbankzugriff filtert zwingend nach `userId` — kein Nutzer sieht fremde Daten
-- **Kein E-Mail-Versand** im ersten Schritt — Passwort-Reset durch Admin
+- **Kein E-Mail-Versand** im ersten Schritt — kein Mail-Reset-Flow
+- **Passwortwechsel (Self-Service)**: Nur im eingeloggten Zustand mit aktuellem Passwort (`/account`)
+- **Passwort vergessen**: Reset weiterhin nur durch Admin
+- **Session-Invalidierung bei Passwortwechsel**: Passwortwechsel/-Reset erhöht `sessionVersion`; alte JWT-Sessions werden dadurch serverseitig ungültig
 - **HTTPS**: In Produktion zwingend (via Reverse Proxy, z.B. Nginx oder Traefik auf TrueNAS)
 - **Secrets**: `NEXTAUTH_SECRET` und Datenbank-Credentials nur via Umgebungsvariablen
 
@@ -678,6 +681,7 @@ AUTH_RATE_LIMIT_MAX_BUCKETS= # Max. In-Memory Buckets für Login-Rate-Limit (Sta
 - **Rollen**: `ADMIN` und `USER`
 - **Erster Admin**: Wird automatisch beim ersten App-Start angelegt, wenn noch kein Admin existiert (aus `ADMIN_EMAIL` + `ADMIN_PASSWORD` Umgebungsvariablen)
 - **Admin-Funktionen**: Nutzer anlegen, bearbeiten (Name, E-Mail, Rolle, Status), deaktivieren, Passwort zurücksetzen
+- **Nutzer-Funktion**: Eigenes Passwort ändern, wenn eingeloggt und aktuelles Passwort bekannt ist
 
 ---
 

@@ -11,6 +11,7 @@ import {
   Target,
   Goal,
   ListChecks,
+  User,
   Shield,
   LogOut,
 } from "lucide-react"
@@ -22,6 +23,7 @@ const baseNavLinks = [
   { href: "/goals", label: "Ziele", icon: Goal },
   { href: "/shot-routines", label: "Ablauf", icon: ListChecks },
   { href: "/disciplines", label: "Disziplinen", icon: Target },
+  { href: "/account", label: "Konto", icon: User },
 ]
 
 // Haupt-Navigation der App.

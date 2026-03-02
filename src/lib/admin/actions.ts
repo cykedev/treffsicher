@@ -5,7 +5,11 @@ import { z } from "zod"
 import { revalidatePath } from "next/cache"
 import { db } from "@/lib/db"
 import { getAuthSession } from "@/lib/auth-helpers"
-import { MAX_USER_EMAIL_LENGTH } from "@/lib/authValidation"
+import {
+  MAX_PASSWORD_LENGTH,
+  MAX_USER_EMAIL_LENGTH,
+  MIN_PASSWORD_LENGTH,
+} from "@/lib/authValidation"
 import type { ScoringType, UserRole } from "@/generated/prisma/client"
 
 export type AdminActionResult = {
@@ -50,8 +54,11 @@ const CreateUserSchema = z.object({
     .email("Bitte eine gueltige E-Mail angeben."),
   tempPassword: z
     .string()
-    .min(12, "Temporaeres Passwort muss mindestens 12 Zeichen haben.")
-    .max(200, "Passwort ist zu lang."),
+    .min(
+      MIN_PASSWORD_LENGTH,
+      `Temporäres Passwort muss mindestens ${MIN_PASSWORD_LENGTH} Zeichen haben.`
+    )
+    .max(MAX_PASSWORD_LENGTH, "Passwort ist zu lang."),
   role: z.enum(["USER", "ADMIN"] as const).default("USER"),
 })
 
@@ -130,7 +137,7 @@ export async function getAdminUsers(): Promise<AdminUserListItem[]> {
 }
 
 /**
- * Gibt einen einzelnen Nutzer fuer die Bearbeitungsseite zurueck.
+ * Gibt einen einzelnen Nutzer für die Bearbeitungsseite zurück.
  */
 export async function getAdminUserById(userId: string): Promise<AdminUserSummary | null> {
   const admin = await requireAdminSession()
@@ -319,10 +326,10 @@ export async function updateUser(
   }
 
   const tempPassword = String(formData.get("tempPassword") ?? "")
-  if (tempPassword.length > 0 && tempPassword.length < 12) {
-    return { error: "Temporaeres Passwort muss mindestens 12 Zeichen haben." }
+  if (tempPassword.length > 0 && tempPassword.length < MIN_PASSWORD_LENGTH) {
+    return { error: `Temporäres Passwort muss mindestens ${MIN_PASSWORD_LENGTH} Zeichen haben.` }
   }
-  if (tempPassword.length > 200) {
+  if (tempPassword.length > MAX_PASSWORD_LENGTH) {
     return { error: "Passwort ist zu lang." }
   }
 
@@ -336,6 +343,7 @@ export async function updateUser(
       role: parsed.data.role,
       isActive: parsed.data.isActive,
       ...(passwordHash ? { passwordHash } : {}),
+      ...(passwordHash ? { sessionVersion: { increment: 1 } } : {}),
     },
   })
 

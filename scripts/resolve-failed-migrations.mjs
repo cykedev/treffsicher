@@ -58,35 +58,45 @@ async function loadFailedMigrations(client) {
   }
 }
 
-async function resolveAddUserNameMigration(client, migrationName) {
+async function resolveAddUserColumnMigration(client, migrationName, columnName) {
   const columnExistsResult = await client.query(
     `SELECT EXISTS (
       SELECT 1
       FROM information_schema.columns
       WHERE table_schema = 'public'
         AND table_name = 'User'
-        AND column_name = 'name'
-    ) AS "exists"`
+        AND column_name = $1
+    ) AS "exists"`,
+    [columnName]
   )
 
   const columnExists = Boolean(columnExistsResult.rows[0]?.exists)
 
   if (columnExists) {
     console.warn(
-      `[migrate-recovery] Column User.name already exists. Marking migration ${migrationName} as applied.`
+      `[migrate-recovery] Column User.${columnName} already exists. Marking migration ${migrationName} as applied.`
     )
     runPrismaResolve("--applied", migrationName)
     return
   }
 
   console.warn(
-    `[migrate-recovery] Column User.name does not exist yet. Marking migration ${migrationName} as rolled back.`
+    `[migrate-recovery] Column User.${columnName} does not exist yet. Marking migration ${migrationName} as rolled back.`
   )
   runPrismaResolve("--rolled-back", migrationName)
 }
 
+async function resolveAddUserNameMigration(client, migrationName) {
+  await resolveAddUserColumnMigration(client, migrationName, "name")
+}
+
+async function resolveAddUserSessionVersionMigration(client, migrationName) {
+  await resolveAddUserColumnMigration(client, migrationName, "sessionVersion")
+}
+
 const KNOWN_RECOVERY_HANDLERS = {
   "20260302101000_add_user_name": resolveAddUserNameMigration,
+  "20260302215000_add_user_session_version": resolveAddUserSessionVersionMigration,
 }
 
 async function main() {

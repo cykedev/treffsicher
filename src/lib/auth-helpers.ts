@@ -21,10 +21,16 @@ export async function getAuthSession(): Promise<Session | null> {
   // Dann würden FK-Fehler in Schreib-Operationen entstehen.
   const user = await db.user.findUnique({
     where: { id: session.user.id },
-    select: { id: true, name: true, role: true, isActive: true },
+    select: { id: true, name: true, role: true, isActive: true, sessionVersion: true },
   })
 
   if (!user || !user.isActive) {
+    return null
+  }
+
+  // Session-Invalidierung nach Passwortwechsel/-Reset:
+  // Alte JWTs mit veralteter sessionVersion werden verworfen.
+  if (session.user.sessionVersion !== user.sessionVersion) {
     return null
   }
 

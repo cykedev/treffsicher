@@ -1,7 +1,7 @@
 "use client"
 
 import { signIn } from "next-auth/react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { useState } from "react"
 import { Crosshair } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -14,10 +14,12 @@ import { MAX_USER_EMAIL_LENGTH } from "@/lib/authValidation"
 // Kein Self-Service: Konten werden nur vom Admin angelegt.
 export default function LoginPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const passwordChanged = searchParams.get("passwordChanged") === "1"
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -59,6 +61,12 @@ export default function LoginPage() {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
+              {passwordChanged && (
+                <p className="text-sm text-emerald-500">
+                  Passwort erfolgreich geändert. Bitte mit dem neuen Passwort anmelden.
+                </p>
+              )}
+
               <div className="space-y-2">
                 <Label htmlFor="email">E-Mail</Label>
                 <Input

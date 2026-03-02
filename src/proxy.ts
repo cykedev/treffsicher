@@ -36,6 +36,7 @@ export const config = {
     "/statistics/:path*",
     "/shot-routines/:path*",
     "/goals/:path*",
+    "/account/:path*",
     "/admin/:path*",
   ],
 }
