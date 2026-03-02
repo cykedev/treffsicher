@@ -44,10 +44,11 @@ export function WellbeingForm({ sessionId, initialData, onSuccess, onCancel }: P
       )}
 
       <div className="space-y-3">
+        <p className="text-sm font-medium">Befinden (0–100)</p>
         {wellbeingFields.map((field) => (
-          // Gleiche Ausrichtung wie Lese-Ansicht: Label (w-28) | Slider (flex-1) | Wert (w-12)
+          // Gleiche Ausrichtung wie Prognose/Feedback: Label (w-32) | Slider (flex-1) | Wert (w-8)
           <div key={field.name} className="flex items-center gap-3">
-            <Label htmlFor={field.name} className="w-28 shrink-0 text-sm">
+            <Label htmlFor={field.name} className="w-32 shrink-0 truncate text-sm">
               {field.label}
             </Label>
             <input type="hidden" name={field.name} value={values[field.name]} />
@@ -61,8 +62,8 @@ export function WellbeingForm({ sessionId, initialData, onSuccess, onCancel }: P
               disabled={pending}
               className="flex-1"
             />
-            <span className="w-14 shrink-0 text-right text-sm tabular-nums text-muted-foreground">
-              {values[field.name]}/100
+            <span className="w-8 shrink-0 text-right text-sm tabular-nums text-muted-foreground">
+              {values[field.name]}
             </span>
           </div>
         ))}
