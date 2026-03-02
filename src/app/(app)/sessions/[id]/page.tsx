@@ -146,16 +146,19 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-start justify-between gap-3">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0 flex-1 space-y-1.5">
           <Badge variant="outline" className={typeBadgeClass[einheit.type] ?? ""}>
             {sessionTypeLabels[einheit.type] ?? einheit.type}
           </Badge>
           <h1 className="text-2xl font-bold">{formatDate(einheit.date)}</h1>
           <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-            {einheit.discipline && <span>{einheit.discipline.name}</span>}
-            {einheit.discipline && einheit.location && <span>·</span>}
-            {einheit.location && <span>{einheit.location}</span>}
+            {einheit.discipline && <span className="break-words">{einheit.discipline.name}</span>}
+            {einheit.location && (
+              <span className="break-words">
+                {einheit.discipline ? `· ${einheit.location}` : einheit.location}
+              </span>
+            )}
           </div>
           {/* Trainingsziel — nur wenn gesetzt und nicht WETTKAMPF (dort: Leistungsziel in Prognose) */}
           {einheit.trainingGoal && (
@@ -170,7 +173,7 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
                 <Goal className="mt-0.5 h-3.5 w-3.5 shrink-0" />
                 <span>Zahlt auf folgende Saisonziele ein:</span>
               </div>
-              <div className="flex flex-wrap gap-1.5 pl-5">
+              <div className="flex flex-wrap gap-1.5 pl-0 sm:pl-5">
                 {einheit.goals.map((entry) => (
                   <Badge key={entry.goalId} variant="outline" className="text-xs">
                     {entry.goal.title}
@@ -180,7 +183,7 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
             </div>
           )}
         </div>
-        <div className="ml-2 flex shrink-0 items-center gap-0.5 sm:gap-1">
+        <div className="flex w-full flex-wrap items-center justify-end gap-0.5 sm:ml-2 sm:w-auto sm:shrink-0 sm:gap-1">
           <FavouriteButton sessionId={einheit.id} initialFavourite={einheit.isFavourite} />
           <Button variant="ghost" size="sm" className="px-2 sm:px-3" asChild>
             <Link
@@ -213,7 +216,7 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
       {hasScoring && einheit.series.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-baseline justify-between">
+            <CardTitle className="flex flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between">
               <span>Ergebnis</span>
               <span className="text-3xl font-bold tabular-nums">
                 {isDecimal ? totalScore.toFixed(1) : totalScore}
@@ -222,8 +225,59 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+            <div className="space-y-2 md:hidden">
+              {sortedSeries.map((serie, idx) => {
+                const shotsArray = parseShotsJson(serie.shots)
+                const scoreValue =
+                  serie.scoreTotal !== null && serie.scoreTotal !== undefined
+                    ? parseFloat(String(serie.scoreTotal))
+                    : null
+
+                const practicesBefore = sortedSeries.slice(0, idx).filter((s) => s.isPractice).length
+                const regularsBefore = idx - practicesBefore
+                const seriesLabel = serie.isPractice
+                  ? `Probe ${practicesBefore + 1}`
+                  : `Serie ${regularsBefore + 1}`
+
+                return (
+                  <div
+                    key={serie.id}
+                    className={`space-y-2 rounded-lg border border-border/50 p-3 ${
+                      serie.isPractice ? "text-muted-foreground/80" : ""
+                    }`}
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="text-sm font-medium">
+                        {seriesLabel}
+                        {serie.isPractice && <span className="ml-1 text-xs">(P)</span>}
+                      </p>
+                      <p className="text-sm font-semibold tabular-nums">
+                        {scoreValue !== null ? (isDecimal ? scoreValue.toFixed(1) : scoreValue) : "–"}
+                      </p>
+                    </div>
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="text-xs text-muted-foreground">Ausführung</span>
+                      <QualityDots quality={serie.executionQuality ?? null} />
+                    </div>
+                    {hasAnyShots && (
+                      <div className="space-y-1">
+                        <p className="text-xs text-muted-foreground">Schüsse</p>
+                        {shotsArray && shotsArray.length > 0 ? (
+                          <p className="break-words font-mono text-xs text-muted-foreground">
+                            {shotsArray.join(" · ")}
+                          </p>
+                        ) : (
+                          <p className="text-xs text-muted-foreground">–</p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+
+            <div className="hidden overflow-x-auto md:block">
+              <table className="min-w-[740px] w-full text-sm">
                 <thead>
                   <tr className="border-b text-left text-muted-foreground">
                     <th className="pb-2 pr-4 font-medium">Serie</th>
@@ -383,8 +437,45 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
             <CardTitle>Vergleich Prognose vs. Feedback</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+            <div className="space-y-2 md:hidden">
+              {comparisonDimensions.map(({ key, label }) => {
+                const prog = einheit.prognosis![key]
+                const feed = einheit.feedback![key]
+                const diff = feed - prog
+                return (
+                  <div key={key} className="space-y-2 rounded-lg border border-border/50 p-3">
+                    <p className="font-medium">{label}</p>
+                    <div className="grid grid-cols-3 gap-2 text-sm">
+                      <div>
+                        <p className="text-xs text-muted-foreground">Prognose</p>
+                        <p className="tabular-nums">{prog}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground">Tatsächlich</p>
+                        <p className="tabular-nums">{feed}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground">Differenz</p>
+                        <p
+                          className={`font-medium tabular-nums ${
+                            diff > 0
+                              ? "text-emerald-400"
+                              : diff < 0
+                                ? "text-destructive"
+                                : "text-muted-foreground"
+                          }`}
+                        >
+                          {diff > 0 ? `+${diff}` : diff}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+
+            <div className="hidden overflow-x-auto md:block">
+              <table className="min-w-[640px] w-full text-sm">
                 <thead>
                   <tr className="border-b text-left text-muted-foreground">
                     <th className="pb-2 pr-4 font-medium">Dimension</th>
