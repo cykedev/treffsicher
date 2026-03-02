@@ -941,7 +941,7 @@ export function SessionForm({
                       key="meyton-url-input"
                       id="pdfUrl"
                       type="url"
-                      placeholder="http://example.com/meyton.pdf"
+                      placeholder="example.com/meyton.pdf"
                       value={importUrl}
                       onChange={(event) => setImportUrl(event.target.value)}
                       disabled={isImportPending}
