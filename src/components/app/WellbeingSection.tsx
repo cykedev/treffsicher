@@ -2,7 +2,6 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { Moon, Zap, Brain, Flame } from "lucide-react"
 import { WellbeingForm } from "@/components/app/WellbeingForm"
 import { Button } from "@/components/ui/button"
 import type { Wellbeing } from "@/generated/prisma/client"
@@ -13,10 +12,10 @@ interface Props {
 }
 
 const fields = [
-  { key: "sleep" as const, label: "Schlaf", icon: Moon },
-  { key: "energy" as const, label: "Energie", icon: Zap },
-  { key: "stress" as const, label: "Stress", icon: Brain },
-  { key: "motivation" as const, label: "Motivation", icon: Flame },
+  { key: "sleep" as const, label: "Schlaf" },
+  { key: "energy" as const, label: "Energie" },
+  { key: "stress" as const, label: "Stress" },
+  { key: "motivation" as const, label: "Motivation" },
 ]
 
 // Section-Wrapper für das Befinden-Tracking.
@@ -58,33 +57,29 @@ export function WellbeingSection({ sessionId, initialData }: Props) {
 
   // Lesemodus: Werte übersichtlich anzeigen
   return (
-    <div className="space-y-3">
-      <div className="space-y-2">
-        {fields.map((field) => {
-          const value = initialData[field.key]
-          const Icon = field.icon
-          return (
-            // Feste Label-Breite + wachsender Balken: auf allen Screenbreiten kompakt
-            <div key={field.key} className="flex items-center gap-3 text-sm">
-              <div className="flex w-28 shrink-0 items-center gap-1.5 text-muted-foreground">
-                <Icon className="h-3.5 w-3.5 shrink-0" />
-                <span>{field.label}</span>
-              </div>
-              {/* Balken wächst auf verfügbare Breite — bleibt immer nahe beim Label */}
-              <div className="flex flex-1 items-center gap-2">
-                <div className="h-1.5 flex-1 rounded-full bg-muted">
-                  <div
-                    className="h-1.5 rounded-full bg-primary"
-                    style={{ width: `${value}%` }}
-                  />
+    <div className="space-y-5">
+      <div>
+        <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          Befinden
+        </p>
+        <div className="space-y-2">
+          {fields.map((field) => {
+            const value = initialData[field.key]
+            return (
+              <div key={field.key} className="flex items-center gap-3 text-sm">
+                <span className="w-32 shrink-0 truncate text-muted-foreground">{field.label}</span>
+                <div className="flex flex-1 items-center gap-2">
+                  <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
+                    <div className="h-1.5 rounded-full bg-primary" style={{ width: `${value}%` }} />
+                  </div>
+                  <span className="w-8 shrink-0 text-right text-sm font-semibold tabular-nums">
+                    {value}
+                  </span>
                 </div>
-                <span className="w-14 shrink-0 text-right font-medium tabular-nums">
-                  {value}/100
-                </span>
               </div>
-            </div>
-          )
-        })}
+            )
+          })}
+        </div>
       </div>
       <Button variant="outline" size="sm" onClick={() => setEditing(true)}>
         Bearbeiten
