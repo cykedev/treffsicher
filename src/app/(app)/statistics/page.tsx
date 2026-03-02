@@ -29,7 +29,7 @@ export default async function StatisticsPage() {
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Statistiken</h1>
         <p className="text-muted-foreground">
-          Ergebnisverlauf, Serienanalyse und Befinden-Korrelation
+          Vergleiche Verläufe, Korrelationen, Schussverteilung sowie Prognose und Feedback.
         </p>
       </div>
 

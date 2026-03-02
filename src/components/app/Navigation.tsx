@@ -59,13 +59,13 @@ export function Navigation() {
                   <Link
                     key={link.href}
                     href={link.href}
-                    className={`flex items-center gap-1.5 whitespace-nowrap rounded-md px-2 py-2 text-sm font-medium transition-colors md:px-2.5 lg:px-3 ${
+                    className={`flex min-h-11 min-w-11 items-center justify-center gap-1.5 whitespace-nowrap rounded-md px-3 py-2.5 text-sm font-medium transition-colors md:px-2.5 lg:min-w-0 lg:justify-start lg:px-3 ${
                       isActive
                         ? "bg-secondary text-foreground"
                         : "text-muted-foreground hover:bg-secondary/50 hover:text-foreground"
                     }`}
                   >
-                    <Icon className="h-4 w-4 shrink-0" />
+                    <Icon className="h-5 w-5 shrink-0 lg:h-4 lg:w-4" />
                     <span className="hidden lg:inline">{link.label}</span>
                   </Link>
                 )
@@ -76,9 +76,9 @@ export function Navigation() {
           {/* Abmelden */}
           <button
             onClick={() => signOut({ callbackUrl: "/login" })}
-            className="flex shrink-0 items-center gap-1.5 rounded-md px-2 py-2 text-sm font-medium text-muted-foreground transition-colors sm:px-2.5 md:px-3 hover:bg-secondary/50 hover:text-foreground"
+            className="flex min-h-11 min-w-11 shrink-0 items-center justify-center gap-1.5 rounded-md px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors sm:px-2.5 md:px-3 xl:min-w-0 xl:justify-start hover:bg-secondary/50 hover:text-foreground"
           >
-            <LogOut className="h-4 w-4 shrink-0" />
+            <LogOut className="h-5 w-5 shrink-0 xl:h-4 xl:w-4" />
             <span className="hidden xl:inline">Abmelden</span>
           </button>
         </div>

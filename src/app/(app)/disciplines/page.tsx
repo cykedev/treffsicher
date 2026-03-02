@@ -31,8 +31,8 @@ export default async function DisciplinesPage() {
           <h1 className="text-2xl font-bold tracking-tight">Disziplinen</h1>
           <p className="text-muted-foreground">
             {isAdmin
-              ? "System-Disziplinen für den Verein und eigene Konfigurationen."
-              : "System-Disziplinen und eigene Konfigurationen."}
+              ? "Verwalte System- und eigene Disziplinen, setze Favoriten und archiviere bei Bedarf."
+              : "Nutze System-Disziplinen, verwalte eigene Disziplinen und setze deinen Favoriten."}
           </p>
         </div>
         <Button asChild className="w-full sm:w-auto">

@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 const quickActions = [
   {
     title: "Neue Einheit",
-    description: "Training, Wettkampf oder Trockentraining erfassen.",
+    description: "Erfasse Training, Wettkampf, Trockentraining oder Mentaltraining.",
     icon: Plus,
     href: "/sessions/new",
     buttonLabel: "Einheit erfassen",
@@ -16,7 +16,7 @@ const quickActions = [
   },
   {
     title: "Tagebuch",
-    description: "Alle bisherigen Einheiten ansehen und auswerten.",
+    description: "Filtere Einheiten, öffne Details und verfolge deine Entwicklung.",
     icon: BookOpen,
     href: "/sessions",
     buttonLabel: "Zum Tagebuch",
@@ -24,7 +24,7 @@ const quickActions = [
   },
   {
     title: "Statistiken",
-    description: "Ergebnisverlauf, Serienanalyse und Befinden-Korrelation.",
+    description: "Vergleiche Verläufe, Korrelationen, Schussverteilung und Prognose/Feedback.",
     icon: TrendingUp,
     href: "/statistics",
     buttonLabel: "Statistiken öffnen",
@@ -32,7 +32,7 @@ const quickActions = [
   },
   {
     title: "Ziele",
-    description: "Saisonziele verwalten und Einheiten zu einem Ziel zuordnen.",
+    description: "Lege Ziele an und markiere Einheiten, die darauf einzahlen.",
     icon: Goal,
     href: "/goals",
     buttonLabel: "Ziele öffnen",
@@ -40,7 +40,7 @@ const quickActions = [
   },
   {
     title: "Ablauf",
-    description: "Schuss-Abläufe definieren, pflegen und bestehende Abläufe bearbeiten.",
+    description: "Lege Abläufe mit ihren Schritten an und verfeinere sie laufend.",
     icon: ListChecks,
     href: "/shot-routines",
     buttonLabel: "Ablauf öffnen",
@@ -48,7 +48,7 @@ const quickActions = [
   },
   {
     title: "Disziplinen",
-    description: "System-Disziplinen und eigene Konfigurationen verwalten.",
+    description: "Pflege System- und eigene Disziplinen, setze Favoriten und archiviere bei Bedarf.",
     icon: Target,
     href: "/disciplines",
     buttonLabel: "Disziplinen öffnen",
