@@ -7,6 +7,7 @@ import { db } from "@/lib/db"
 import { getAuthSession } from "@/lib/auth-helpers"
 import { saveUpload } from "@/lib/uploads/upload"
 import { assertPublicImportTarget, validatePdfBuffer } from "@/lib/sessions/importGuards"
+import { normalizeMeytonPdfUrlInput } from "@/lib/sessions/importUrl"
 import {
   extractMeytonDateTime,
   extractTextFromPdfBuffer,
@@ -163,9 +164,11 @@ function calculateSeriesTotal(shots: string[], scoringType: ScoringType): string
 }
 
 async function loadPdfFromUrl(urlValue: string): Promise<Buffer> {
+  const normalizedUrl = normalizeMeytonPdfUrlInput(urlValue)
+
   let parsedUrl: URL
   try {
-    parsedUrl = new URL(urlValue)
+    parsedUrl = new URL(normalizedUrl)
   } catch {
     throw new Error("Die URL ist ungueltig.")
   }
