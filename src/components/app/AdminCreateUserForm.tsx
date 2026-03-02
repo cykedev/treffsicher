@@ -31,7 +31,20 @@ export function AdminCreateUserForm() {
       {state?.error && <p className="text-sm text-destructive">{state.error}</p>}
       {state?.success && <p className="text-sm text-emerald-500">Nutzer wurde angelegt.</p>}
 
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <div className="space-y-2 md:col-span-1">
+          <Label htmlFor="admin-create-name">Name</Label>
+          <Input
+            id="admin-create-name"
+            name="name"
+            type="text"
+            autoComplete="name"
+            placeholder="Max Mustermann"
+            required
+            disabled={pending}
+          />
+        </div>
+
         <div className="space-y-2 md:col-span-1">
           <Label htmlFor="admin-create-email">E-Mail</Label>
           <Input

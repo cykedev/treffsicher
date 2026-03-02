@@ -21,7 +21,7 @@ export async function getAuthSession(): Promise<Session | null> {
   // Dann würden FK-Fehler in Schreib-Operationen entstehen.
   const user = await db.user.findUnique({
     where: { id: session.user.id },
-    select: { id: true, role: true, isActive: true },
+    select: { id: true, name: true, role: true, isActive: true },
   })
 
   if (!user || !user.isActive) {
@@ -29,6 +29,7 @@ export async function getAuthSession(): Promise<Session | null> {
   }
 
   // Rolle aus DB priorisieren (JWT kann veraltet sein).
+  session.user.name = user.name
   session.user.role = user.role
   return session
 }

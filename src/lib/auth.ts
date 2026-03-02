@@ -83,6 +83,7 @@ export const authOptions: NextAuthOptions = {
         // Die zurückgegebenen Werte werden im JWT gespeichert und später in der Session verfügbar
         return {
           id: user.id,
+          name: user.name,
           email: user.email,
           role: user.role,
         }
@@ -98,8 +99,10 @@ export const authOptions: NextAuthOptions = {
     // JWT-Callback: Rolle und ID in den Token schreiben, damit sie in der Session verfügbar sind
     async jwt({ token, user }) {
       if (user) {
-        token.id = user.id
-        token.role = (user as { id: string; email: string; role: string }).role
+        const authUser = user as { id: string; role: string; name?: string | null }
+        token.id = authUser.id
+        token.role = authUser.role
+        token.name = authUser.name ?? null
       }
       return token
     },
@@ -110,6 +113,7 @@ export const authOptions: NextAuthOptions = {
       if (token && session.user) {
         session.user.id = token.id as string
         session.user.role = token.role as string
+        session.user.name = (token.name as string | null | undefined) ?? null
       }
       return session
     },

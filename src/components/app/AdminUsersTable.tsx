@@ -44,7 +44,8 @@ export function AdminUsersTable({ users, currentAdminId }: Props) {
 
   function handleSetActive(user: AdminUserSummary, nextIsActive: boolean) {
     if (!nextIsActive) {
-      const confirmed = window.confirm(`Nutzer "${user.email}" wirklich deaktivieren?`)
+      const label = user.name ? `${user.name} <${user.email}>` : user.email
+      const confirmed = window.confirm(`Nutzer "${label}" wirklich deaktivieren?`)
       if (!confirmed) return
     }
 
@@ -68,6 +69,7 @@ export function AdminUsersTable({ users, currentAdminId }: Props) {
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b text-left text-muted-foreground">
+              <th className="pb-2 pr-4 font-medium">Name</th>
               <th className="pb-2 pr-4 font-medium">E-Mail</th>
               <th className="pb-2 pr-4 font-medium">Rolle</th>
               <th className="pb-2 pr-4 font-medium">Status</th>
@@ -80,6 +82,7 @@ export function AdminUsersTable({ users, currentAdminId }: Props) {
               const isSelf = user.id === currentAdminId
               return (
                 <tr key={user.id}>
+                  <td className="py-2 pr-4">{user.name ?? "—"}</td>
                   <td className="py-2 pr-4">{user.email}</td>
                   <td className="py-2 pr-4">
                     <Badge variant="outline" className={getRoleBadgeClass(user.role)}>
