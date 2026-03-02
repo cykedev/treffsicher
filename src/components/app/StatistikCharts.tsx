@@ -18,9 +18,7 @@ import {
   XAxis,
   YAxis,
   CartesianGrid,
-  Tooltip,
   Legend,
-  ResponsiveContainer,
 } from "recharts"
 import { calculateMovingAverage } from "@/lib/stats/calculateMovingAverage"
 import { calculateSeriesStats } from "@/lib/stats/calculateSeriesStats"
@@ -36,6 +34,14 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import {
+  ChartContainer,
+  ChartLegend,
+  ChartLegendContent,
+  ChartTooltip,
+  ChartTooltipContent,
+  type ChartConfig,
+} from "@/components/ui/chart"
 import type {
   StatsSession,
   DisciplineForStats,
@@ -79,6 +85,20 @@ const radarDimensions = [
 const radarSeriesConfig: Record<RadarSeriesKey, { label: string; color: string }> = {
   prognosis: { label: "Prognose", color: "var(--chart-1)" },
   feedback: { label: "Feedback", color: "var(--chart-2)" },
+}
+
+const shotDistributionColors: Record<string, string> = {
+  r0: "#edf1f5",
+  r1: "#dae1e8",
+  r2: "#c8d1da",
+  r3: "#b5bec8",
+  r4: "#9ca3af",
+  r5: "#8896a0",
+  r6: "#6b7280",
+  r7: "#52606d",
+  r8: "#374151",
+  r9: "#eab308",
+  r10: "#ef4444",
 }
 
 // Datumsstring für Presets berechnen
@@ -350,6 +370,73 @@ export function StatistikCharts({
     })
   }, [])
 
+  const lineChartConfig = useMemo<ChartConfig>(
+    () => ({
+      wert: { label: metricLabel, color: "var(--chart-1)" },
+      trend: { label: "Trend", color: "var(--muted-foreground)" },
+    }),
+    [metricLabel]
+  )
+
+  const seriesChartConfig = useMemo<ChartConfig>(
+    () => ({
+      Min: { label: "Min", color: "var(--chart-2)" },
+      Avg: { label: "Ø", color: "var(--chart-1)" },
+      Max: { label: "Max", color: "var(--chart-1)" },
+    }),
+    []
+  )
+
+  const radarChartConfig = useMemo<ChartConfig>(
+    () => ({
+      prognosis: {
+        label: radarSeriesConfig.prognosis.label,
+        color: radarSeriesConfig.prognosis.color,
+      },
+      feedback: {
+        label: radarSeriesConfig.feedback.label,
+        color: radarSeriesConfig.feedback.color,
+      },
+    }),
+    []
+  )
+
+  const wellbeingChartConfig = useMemo<ChartConfig>(
+    () => ({
+      displayScore: { label: wellbeingScoreLabel, color: "var(--chart-1)" },
+      sleep: { label: "Schlaf" },
+      energy: { label: "Energie" },
+      stress: { label: "Stress" },
+      motivation: { label: "Motivation" },
+    }),
+    [wellbeingScoreLabel]
+  )
+
+  const qualityChartConfig = useMemo<ChartConfig>(
+    () => ({
+      displayScore: { label: qualityScoreLabel, color: "var(--chart-2)" },
+      quality: { label: "Ausführung" },
+    }),
+    [qualityScoreLabel]
+  )
+
+  const shotDistributionChartConfig = useMemo<ChartConfig>(
+    () => ({
+      r0: { label: "0er", color: shotDistributionColors.r0 },
+      r1: { label: "1er", color: shotDistributionColors.r1 },
+      r2: { label: "2er", color: shotDistributionColors.r2 },
+      r3: { label: "3er", color: shotDistributionColors.r3 },
+      r4: { label: "4er", color: shotDistributionColors.r4 },
+      r5: { label: "5er", color: shotDistributionColors.r5 },
+      r6: { label: "6er", color: shotDistributionColors.r6 },
+      r7: { label: "7er", color: shotDistributionColors.r7 },
+      r8: { label: "8er", color: shotDistributionColors.r8 },
+      r9: { label: "9er", color: shotDistributionColors.r9 },
+      r10: { label: "10er", color: shotDistributionColors.r10 },
+    }),
+    []
+  )
+
   return (
     <div className="space-y-6">
       {/* Filter */}
@@ -517,7 +604,7 @@ export function StatistikCharts({
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <ResponsiveContainer width="100%" height={280}>
+                  <ChartContainer config={lineChartConfig} className="h-[280px] w-full">
                     <LineChart data={lineData} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
                       <CartesianGrid
                         strokeDasharray="3 3"
@@ -540,23 +627,30 @@ export function StatistikCharts({
                         tickLine={false}
                         width={40}
                       />
-                      <Tooltip
-                        contentStyle={{
-                          backgroundColor: "var(--card)",
-                          border: "1px solid var(--border)",
-                          borderRadius: "8px",
-                          color: "var(--card-foreground)",
-                          fontSize: "12px",
-                        }}
-                        labelFormatter={(i) => lineData[i as number]?.datum ?? ""}
-                        formatter={(value, name) => [
-                          typeof value === "number"
-                            ? formatDisplayValue(value)
-                            : String(value ?? ""),
-                          name === "wert" ? metricLabel : "Trend",
-                        ]}
+                      <ChartTooltip
+                        content={
+                          <ChartTooltipContent
+                            indicator="line"
+                            labelFormatter={(_label, payload) => {
+                              const index = Number(payload?.[0]?.payload?.i)
+                              return lineData[index]?.datum ?? ""
+                            }}
+                            formatter={(value, name) => (
+                              <div className="flex w-full items-center justify-between gap-6">
+                                <span className="text-muted-foreground">
+                                  {name === "wert" ? metricLabel : "Trend"}
+                                </span>
+                                <span className="text-foreground font-mono font-medium tabular-nums">
+                                  {typeof value === "number"
+                                    ? formatDisplayValue(value)
+                                    : String(value ?? "")}
+                                </span>
+                              </div>
+                            )}
+                          />
+                        }
                       />
-                      <Legend formatter={(value) => (value === "wert" ? metricLabel : "Trend")} />
+                      <ChartLegend content={<ChartLegendContent />} />
                       <Line
                         type="monotone"
                         dataKey="wert"
@@ -577,7 +671,7 @@ export function StatistikCharts({
                         connectNulls={false}
                       />
                     </LineChart>
-                  </ResponsiveContainer>
+                  </ChartContainer>
                 </CardContent>
               </Card>
 
@@ -596,7 +690,7 @@ export function StatistikCharts({
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <ResponsiveContainer width="100%" height={240}>
+                    <ChartContainer config={seriesChartConfig} className="h-[240px] w-full">
                       <BarChart data={barData} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
                         <CartesianGrid
                           strokeDasharray="3 3"
@@ -615,25 +709,17 @@ export function StatistikCharts({
                           tickLine={false}
                           width={36}
                         />
-                        <Tooltip
-                          contentStyle={{
-                            backgroundColor: "var(--card)",
-                            border: "1px solid var(--border)",
-                            borderRadius: "8px",
-                            color: "var(--card-foreground)",
-                            fontSize: "12px",
-                          }}
+                        <ChartTooltip
                           // cursor-Rect beim Hover — dunkles Highlight statt hellem Standard
                           cursor={{ fill: "var(--muted)", opacity: 0.4 }}
+                          content={<ChartTooltipContent indicator="line" />}
                         />
-                        <Legend
-                          wrapperStyle={{ fontSize: "12px", color: "var(--muted-foreground)" }}
-                        />
+                        <ChartLegend content={<ChartLegendContent />} />
                         <Bar dataKey="Min" fill="var(--chart-2)" opacity={0.5} />
                         <Bar dataKey="Avg" fill="var(--chart-1)" />
                         <Bar dataKey="Max" fill="var(--chart-1)" opacity={0.4} />
                       </BarChart>
-                    </ResponsiveContainer>
+                    </ChartContainer>
                   </CardContent>
                 </Card>
               )}
@@ -656,7 +742,7 @@ export function StatistikCharts({
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <ResponsiveContainer width="100%" height={340}>
+                <ChartContainer config={radarChartConfig} className="h-[340px] w-full">
                   <RadarChart data={radarChartData} outerRadius="72%">
                     <PolarGrid stroke="var(--border)" strokeOpacity={0.65} />
                     <PolarAngleAxis
@@ -669,20 +755,23 @@ export function StatistikCharts({
                       axisLine={false}
                       tickLine={false}
                     />
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: "var(--card)",
-                        border: "1px solid var(--border)",
-                        borderRadius: "8px",
-                        color: "var(--card-foreground)",
-                        fontSize: "12px",
-                      }}
-                      formatter={(value, name) => [
-                        typeof value === "number" ? value.toFixed(1) : String(value ?? ""),
-                        name === "prognosis"
-                          ? radarSeriesConfig.prognosis.label
-                          : radarSeriesConfig.feedback.label,
-                      ]}
+                    <ChartTooltip
+                      content={
+                        <ChartTooltipContent
+                          formatter={(value, name) => (
+                            <div className="flex w-full items-center justify-between gap-6">
+                              <span className="text-muted-foreground">
+                                {name === "prognosis"
+                                  ? radarSeriesConfig.prognosis.label
+                                  : radarSeriesConfig.feedback.label}
+                              </span>
+                              <span className="text-foreground font-mono font-medium tabular-nums">
+                                {typeof value === "number" ? value.toFixed(1) : String(value ?? "")}
+                              </span>
+                            </div>
+                          )}
+                        />
+                      }
                     />
                     <Radar
                       name="prognosis"
@@ -701,7 +790,7 @@ export function StatistikCharts({
                       fillOpacity={0.18}
                     />
                   </RadarChart>
-                </ResponsiveContainer>
+                </ChartContainer>
                 <RadarLegend items={radarLegendItems} />
               </CardContent>
             </Card>
@@ -738,7 +827,7 @@ export function StatistikCharts({
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <ResponsiveContainer width="100%" height={180}>
+                    <ChartContainer config={wellbeingChartConfig} className="h-[180px] w-full">
                       <ScatterChart margin={{ top: 5, right: 16, bottom: 16, left: 0 }}>
                         <CartesianGrid
                           strokeDasharray="3 3"
@@ -775,21 +864,25 @@ export function StatistikCharts({
                               : v.toFixed(2)
                           }
                         />
-                        <Tooltip
-                          contentStyle={{
-                            backgroundColor: "var(--card)",
-                            border: "1px solid var(--border)",
-                            borderRadius: "8px",
-                            color: "var(--card-foreground)",
-                            fontSize: "12px",
-                          }}
+                        <ChartTooltip
                           cursor={{ fill: "var(--muted)", opacity: 0.3 }}
-                          formatter={(value, name) => [
-                            typeof value === "number" && name === "displayScore"
-                              ? formatDisplayValue(value)
-                              : String(value ?? ""),
-                            name === "displayScore" ? wellbeingScoreLabel : label,
-                          ]}
+                          content={
+                            <ChartTooltipContent
+                              hideLabel
+                              formatter={(value, name) => (
+                                <div className="flex w-full items-center justify-between gap-6">
+                                  <span className="text-muted-foreground">
+                                    {name === "displayScore" ? wellbeingScoreLabel : label}
+                                  </span>
+                                  <span className="text-foreground font-mono font-medium tabular-nums">
+                                    {typeof value === "number" && name === "displayScore"
+                                      ? formatDisplayValue(value)
+                                      : String(value ?? "")}
+                                  </span>
+                                </div>
+                              )}
+                            />
+                          }
                         />
                         {/* Punktewolke für kontinuierliche 0–100-Skala */}
                         <Scatter
@@ -806,7 +899,7 @@ export function StatistikCharts({
                           )}
                         />
                       </ScatterChart>
-                    </ResponsiveContainer>
+                    </ChartContainer>
                   </CardContent>
                 </Card>
               ))}
@@ -836,7 +929,7 @@ export function StatistikCharts({
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <ResponsiveContainer width="100%" height={240}>
+                <ChartContainer config={qualityChartConfig} className="h-[240px] w-full">
                   <ScatterChart margin={{ top: 5, right: 20, bottom: 15, left: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
                     <XAxis
@@ -872,21 +965,25 @@ export function StatistikCharts({
                           : v.toFixed(2)
                       }
                     />
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: "var(--card)",
-                        border: "1px solid var(--border)",
-                        borderRadius: "8px",
-                        color: "var(--card-foreground)",
-                        fontSize: "12px",
-                      }}
+                    <ChartTooltip
                       cursor={{ fill: "var(--muted)", opacity: 0.3 }}
-                      formatter={(value, name) => [
-                        typeof value === "number" && name === "displayScore"
-                          ? formatDisplayValue(value)
-                          : String(value ?? ""),
-                        name === "displayScore" ? qualityScoreLabel : "Ausführung",
-                      ]}
+                      content={
+                        <ChartTooltipContent
+                          hideLabel
+                          formatter={(value, name) => (
+                            <div className="flex w-full items-center justify-between gap-6">
+                              <span className="text-muted-foreground">
+                                {name === "displayScore" ? qualityScoreLabel : "Ausführung"}
+                              </span>
+                              <span className="text-foreground font-mono font-medium tabular-nums">
+                                {typeof value === "number" && name === "displayScore"
+                                  ? formatDisplayValue(value)
+                                  : String(value ?? "")}
+                              </span>
+                            </div>
+                          )}
+                        />
+                      }
                     />
                     {/* Größere Punkte: X-Achse hat nur 5 diskrete Werte (Ausführung 1–5) */}
                     <Scatter
@@ -903,7 +1000,7 @@ export function StatistikCharts({
                       )}
                     />
                   </ScatterChart>
-                </ResponsiveContainer>
+                </ChartContainer>
               </CardContent>
             </Card>
           )}
@@ -920,7 +1017,7 @@ export function StatistikCharts({
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
+                <ChartContainer config={shotDistributionChartConfig} className="h-[300px] w-full">
                   <AreaChart
                     data={filteredShotDistribution}
                     margin={{ top: 5, right: 20, bottom: 5, left: 0 }}
@@ -946,75 +1043,44 @@ export function StatistikCharts({
                       tickLine={false}
                       width={38}
                     />
-                    {/* Custom Tooltip: Payload ist r0→r10 (Stack-Reihenfolge) —
-                    umkehren damit r10 oben steht; Buckets mit 0 % ausblenden */}
-                    <Tooltip
-                      content={(props) => {
-                        const { active, payload, label } = props as {
-                          active?: boolean
-                          payload?: Array<{ name: string; value: number; color: string }>
-                          label?: unknown
-                        }
-                        if (!active || !payload || payload.length === 0) return null
-                        const date = new Intl.DateTimeFormat("de-CH", {
-                          day: "2-digit",
-                          month: "2-digit",
-                          year: "numeric",
-                        }).format(new Date(label as Date))
-                        // Recharts sortiert Payload alphabetisch (r0, r1, r10, r2 ...) —
-                        // numerisch absteigend sortieren damit r10 zuerst steht
-                        const items = [...payload]
-                          .sort((a, b) => {
-                            const nA = parseInt(a.name.replace("r", ""), 10)
-                            const nB = parseInt(b.name.replace("r", ""), 10)
-                            return nB - nA
-                          })
-                          .filter((p) => p.value > 0)
-                        return (
-                          <div
-                            style={{
-                              backgroundColor: "var(--card)",
-                              border: "1px solid var(--border)",
-                              padding: "8px 12px",
-                              borderRadius: 8,
-                              fontSize: 12,
-                              minWidth: 120,
-                              color: "var(--card-foreground)",
-                            }}
-                          >
-                            <p style={{ fontWeight: 600, marginBottom: 6 }}>{date}</p>
-                            {items.map((p) => (
-                              <div
-                                key={p.name}
-                                style={{
-                                  display: "flex",
-                                  alignItems: "center",
-                                  gap: 6,
-                                  marginBottom: 2,
-                                }}
-                              >
-                                <div
-                                  style={{
-                                    width: 8,
-                                    height: 8,
-                                    background: p.color,
-                                    borderRadius: 2,
-                                    flexShrink: 0,
-                                  }}
-                                />
-                                <span style={{ color: "var(--muted-foreground)" }}>
-                                  {p.name.replace("r", "")}er
-                                </span>
-                                <span
-                                  style={{ marginLeft: "auto", paddingLeft: 16, fontWeight: 500 }}
-                                >
-                                  {p.value.toFixed(1)} %
-                                </span>
-                              </div>
-                            ))}
-                          </div>
-                        )
-                      }}
+                    {/* Tooltip: r10 zuerst; Buckets mit 0 % ausblenden */}
+                    <ChartTooltip
+                      content={
+                        <ChartTooltipContent
+                          indicator="line"
+                          labelFormatter={(_label, payload) => {
+                            const dateValue = payload?.[0]?.payload?.date
+                            if (!dateValue) return ""
+                            return new Intl.DateTimeFormat("de-CH", {
+                              day: "2-digit",
+                              month: "2-digit",
+                              year: "numeric",
+                            }).format(new Date(dateValue as Date))
+                          }}
+                          payloadFilter={(item) =>
+                            typeof item.value === "number" &&
+                            Number.isFinite(item.value) &&
+                            item.value > 0
+                          }
+                          payloadSorter={(a, b) => {
+                            const aRing = parseInt(String(a.name).replace("r", ""), 10)
+                            const bRing = parseInt(String(b.name).replace("r", ""), 10)
+                            return bRing - aRing
+                          }}
+                          formatter={(value, name) => (
+                            <div className="flex w-full items-center justify-between gap-6">
+                              <span className="text-muted-foreground">
+                                {String(name).replace("r", "")}er
+                              </span>
+                              <span className="text-foreground font-mono font-medium tabular-nums">
+                                {typeof value === "number"
+                                  ? `${value.toFixed(1)} %`
+                                  : String(value ?? "")}
+                              </span>
+                            </div>
+                          )}
+                        />
+                      }
                     />
                     {/* Custom Legend: Payload umkehren → r10 links, r0 rechts */}
                     <Legend
@@ -1067,81 +1133,81 @@ export function StatistikCharts({
                       type="monotone"
                       dataKey="r0"
                       stackId="rings"
-                      stroke="#edf1f5"
-                      fill="#edf1f5"
+                      stroke={shotDistributionColors.r0}
+                      fill={shotDistributionColors.r0}
                     />
                     <Area
                       type="monotone"
                       dataKey="r1"
                       stackId="rings"
-                      stroke="#dae1e8"
-                      fill="#dae1e8"
+                      stroke={shotDistributionColors.r1}
+                      fill={shotDistributionColors.r1}
                     />
                     <Area
                       type="monotone"
                       dataKey="r2"
                       stackId="rings"
-                      stroke="#c8d1da"
-                      fill="#c8d1da"
+                      stroke={shotDistributionColors.r2}
+                      fill={shotDistributionColors.r2}
                     />
                     <Area
                       type="monotone"
                       dataKey="r3"
                       stackId="rings"
-                      stroke="#b5bec8"
-                      fill="#b5bec8"
+                      stroke={shotDistributionColors.r3}
+                      fill={shotDistributionColors.r3}
                     />
                     <Area
                       type="monotone"
                       dataKey="r4"
                       stackId="rings"
-                      stroke="#9ca3af"
-                      fill="#9ca3af"
+                      stroke={shotDistributionColors.r4}
+                      fill={shotDistributionColors.r4}
                     />
                     <Area
                       type="monotone"
                       dataKey="r5"
                       stackId="rings"
-                      stroke="#8896a0"
-                      fill="#8896a0"
+                      stroke={shotDistributionColors.r5}
+                      fill={shotDistributionColors.r5}
                     />
                     <Area
                       type="monotone"
                       dataKey="r6"
                       stackId="rings"
-                      stroke="#6b7280"
-                      fill="#6b7280"
+                      stroke={shotDistributionColors.r6}
+                      fill={shotDistributionColors.r6}
                     />
                     <Area
                       type="monotone"
                       dataKey="r7"
                       stackId="rings"
-                      stroke="#52606d"
-                      fill="#52606d"
+                      stroke={shotDistributionColors.r7}
+                      fill={shotDistributionColors.r7}
                     />
                     <Area
                       type="monotone"
                       dataKey="r8"
                       stackId="rings"
-                      stroke="#374151"
-                      fill="#374151"
+                      stroke={shotDistributionColors.r8}
+                      fill={shotDistributionColors.r8}
                     />
                     <Area
                       type="monotone"
                       dataKey="r9"
                       stackId="rings"
-                      stroke="#eab308"
-                      fill="#eab308"
+                      stroke={shotDistributionColors.r9}
+                      fill={shotDistributionColors.r9}
                     />
                     <Area
                       type="monotone"
                       dataKey="r10"
                       stackId="rings"
-                      stroke="#ef4444"
-                      fill="#ef4444"
+                      stroke={shotDistributionColors.r10}
+                      fill={shotDistributionColors.r10}
                     />
                   </AreaChart>
-                </ResponsiveContainer>
+                </ChartContainer>
               </CardContent>
             </Card>
           )}
