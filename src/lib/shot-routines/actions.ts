@@ -25,17 +25,40 @@ const RoutineStepSchema = z.object({
   description: z.string().max(500).optional(),
 })
 
+const RoutineStepsSchema = z.array(RoutineStepSchema).min(1, "Mindestens ein Schritt ist erforderlich")
+
 const ShotRoutineSchema = z.object({
   name: z.string().min(1, "Name ist erforderlich").max(100),
-  steps: z.string().transform((v) => {
+  steps: z.string().transform((v, ctx) => {
+    let parsedJson: unknown
+
     try {
-      const parsed = JSON.parse(v)
-      return z.array(RoutineStepSchema).parse(parsed)
+      parsedJson = JSON.parse(v)
     } catch {
-      return []
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Schritte sind ungültig",
+      })
+      return z.NEVER
     }
+
+    const parsedSteps = RoutineStepsSchema.safeParse(parsedJson)
+    if (!parsedSteps.success) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: parsedSteps.error.issues[0]?.message ?? "Schritte sind ungültig",
+      })
+      return z.NEVER
+    }
+
+    return parsedSteps.data
   }),
 })
+
+function getShotRoutineValidationError(error: z.ZodError): string {
+  const fields = error.flatten().fieldErrors
+  return fields.name?.[0] ?? fields.steps?.[0] ?? error.issues[0]?.message ?? "Ungültige Eingabe"
+}
 
 /**
  * Gibt alle Schuss-Abläufe des eingeloggten Nutzers zurück.
@@ -78,7 +101,7 @@ export async function createShotRoutine(
   })
 
   if (!parsed.success) {
-    return { error: parsed.error.flatten().fieldErrors.name?.[0] ?? "Ungültige Eingabe" }
+    return { error: getShotRoutineValidationError(parsed.error) }
   }
 
   const routine = await db.shotRoutine.create({
@@ -115,7 +138,7 @@ export async function updateShotRoutine(
   })
 
   if (!parsed.success) {
-    return { error: parsed.error.flatten().fieldErrors.name?.[0] ?? "Ungültige Eingabe" }
+    return { error: getShotRoutineValidationError(parsed.error) }
   }
 
   await db.shotRoutine.update({
