@@ -244,8 +244,10 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
     sections,
   })
   const fileDate = formatDateForFile(trainingSession.date)
+  const pdfBytes = new Uint8Array(pdf.length)
+  pdfBytes.set(pdf)
 
-  return new NextResponse(pdf, {
+  return new NextResponse(pdfBytes.buffer, {
     headers: {
       "Content-Type": "application/pdf",
       "Content-Disposition": `inline; filename="einheit-${fileDate}.pdf"`,

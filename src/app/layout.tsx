@@ -19,6 +19,10 @@ export const metadata: Metadata = {
   description: "Trainingsunterstützung für Schiesssportler",
 }
 
+// Die App nutzt Session- und DB-abhängige Serverlogik.
+// Kein statisches Prerendering im Build erzwingen, damit Build ohne Live-DB möglich ist.
+export const dynamic = "force-dynamic"
+
 // Root-Layout ist eine Server-Komponente und wird nur einmal pro Request ausgeführt.
 // runStartup() prüft beim ersten App-Start ob ein Admin angelegt werden muss.
 // Die Funktion bricht früh ab wenn bereits ein Admin existiert (hasRun-Flag).

@@ -128,7 +128,7 @@ function extractLiteralStringsFromContent(content: string): string[] {
     literals.push(decodePdfLiteralString(match[1] ?? ""))
   }
 
-  const tjArrayRegex = /\[((?:\\.|[^\]])*)\]\s*TJ/gs
+  const tjArrayRegex = /\[((?:\\.|[^\]])*)\]\s*TJ/g
   for (const arrayMatch of content.matchAll(tjArrayRegex)) {
     const arrayContent = arrayMatch[1] ?? ""
     const innerStringRegex = /\(((?:\\.|[^\\()])*)\)/g
