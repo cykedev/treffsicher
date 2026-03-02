@@ -2,42 +2,45 @@ import { describe, it, expect } from "vitest"
 import { calculateMovingAverage } from "./calculateMovingAverage"
 
 describe("calculateMovingAverage", () => {
-  it("berechnet gleitenden Durchschnitt für einfache Zahlenreihe", () => {
+  it("berechnet rückblickenden gleitenden Durchschnitt für einfache Zahlenreihe", () => {
     // Arrange: 5 Werte, Fenster 3
     const values = [90, 95, 100, 95, 90]
 
     // Act
     const result = calculateMovingAverage(values, 3)
 
-    // Assert: mittlere Werte bekommen Durchschnitt aus 3 Nachbarn
-    expect(result[1]).toBeCloseTo(95, 1) // (90 + 95 + 100) / 3
-    expect(result[2]).toBeCloseTo(96.7, 1) // (95 + 100 + 95) / 3
-    expect(result[3]).toBeCloseTo(95, 1) // (100 + 95 + 90) / 3
+    // Assert: am Anfang mit kleinerem Fenster, danach aus den letzten 3 Werten
+    expect(result[0]).toBeCloseTo(90, 3) // (90) / 1
+    expect(result[1]).toBeCloseTo(92.5, 3) // (90 + 95) / 2
+    expect(result[2]).toBeCloseTo(95, 3) // (90 + 95 + 100) / 3
+    expect(result[3]).toBeCloseTo(96.6667, 3) // (95 + 100 + 95) / 3
+    expect(result[4]).toBeCloseTo(95, 3) // (100 + 95 + 90) / 3
   })
 
-  it("gibt null zurück wenn die Datenmenge kleiner als minRequired ist", () => {
+  it("gibt auch bei kleiner Datenmenge sinnvolle Durchschnittswerte zurück", () => {
     // Arrange: Nur 2 Datenpunkte für Fenster 5.
-    // minRequired = ceil(5/2) = 3 — mit 2 Werten nicht erreichbar
     const values = [90, 95]
 
     // Act
     const result = calculateMovingAverage(values, 5)
 
-    // Assert: beide Positionen haben weniger als 3 Nachbarn im Fenster → null
-    expect(result[0]).toBeNull()
-    expect(result[1]).toBeNull()
+    // Assert: mit verfügbarem Teilfenster gerechnet
+    expect(result[0]).toBeCloseTo(90, 3)
+    expect(result[1]).toBeCloseTo(92.5, 3)
   })
 
-  it("gibt Durchschnitt zurück wenn genug Randwerte vorhanden sind", () => {
-    // Arrange: 7 Werte, Fenster 5 — Index 0 hat genau 3 Werte (= minRequired)
+  it("nutzt bei grösserem Fenster anfangs das verfügbare Teilfenster", () => {
+    // Arrange: 7 Werte, Fenster 5
     const values = [90, 95, 100, 95, 90, 85, 92]
 
     // Act
     const result = calculateMovingAverage(values, 5)
 
-    // Assert: Index 0 erreicht minRequired=3 → nicht null, mittlere Werte ebenfalls
-    expect(result[0]).not.toBeNull()
-    expect(result[3]).not.toBeNull()
+    // Assert: frühe Punkte basieren auf weniger Werten
+    expect(result[0]).toBeCloseTo(90, 3) // (90) / 1
+    expect(result[3]).toBeCloseTo(95, 3) // (90 + 95 + 100 + 95) / 4
+    expect(result[4]).toBeCloseTo(94, 3) // (90 + 95 + 100 + 95 + 90) / 5
+    expect(result[6]).toBeCloseTo(92.4, 3) // (100 + 95 + 90 + 85 + 92) / 5
   })
 
   it("überspringt null-Werte im Fenster", () => {
@@ -47,8 +50,15 @@ describe("calculateMovingAverage", () => {
     // Act
     const result = calculateMovingAverage(values, 3)
 
-    // Assert: null-Wert wird übersprungen, Durchschnitt aus 2 gültigen Werten
-    expect(result[1]).toBeCloseTo(95, 1) // (90 + 100) / 2
+    // Assert: null-Wert wird übersprungen, übrige Werte werden genutzt
+    expect(result[0]).toBeCloseTo(90, 3)
+    expect(result[1]).toBeCloseTo(90, 3)
+    expect(result[2]).toBeCloseTo(95, 3) // (90 + 100) / 2
+  })
+
+  it("gibt null zurück, wenn im Fenster kein gültiger Wert vorhanden ist", () => {
+    const values = [null, null, null]
+    expect(calculateMovingAverage(values, 3)).toEqual([null, null, null])
   })
 
   it("gibt leeres Array zurück für leere Eingabe", () => {
@@ -59,5 +69,11 @@ describe("calculateMovingAverage", () => {
     const values = [1, 2, 3, 4, 5]
     const result = calculateMovingAverage(values, 3)
     expect(result).toHaveLength(values.length)
+  })
+
+  it("rundet den Durchschnitt nicht künstlich auf eine Dezimalstelle", () => {
+    const values = [8.71, 8.74, 8.79]
+    const result = calculateMovingAverage(values, 3)
+    expect(result[2]).toBeCloseTo(8.7467, 3)
   })
 })
