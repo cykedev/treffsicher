@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest"
 import {
+  __getLoginRateLimitBucketCountForTests,
   __resetLoginRateLimitForTests,
   checkLoginAllowed,
   clearSuccessfulLoginAttempts,
@@ -48,6 +49,11 @@ describe("auth-rate-limit", () => {
     expect(state.normalizedIp).toBe("203.0.113.10")
   })
 
+  it("ignoriert ungueltige IP-Header-Werte", () => {
+    const state = checkLoginAllowed("coach@example.com", "not-an-ip, still-not-an-ip", 3_000_500)
+    expect(state.normalizedIp).toBeNull()
+  })
+
   it("loescht den E-Mail-Bucket bei erfolgreichem Login", () => {
     const nowMs = 4_000_000
     const header = "203.0.113.11"
@@ -74,5 +80,19 @@ describe("auth-rate-limit", () => {
 
     const blocked = checkLoginAllowed("fresh@example.com", header, nowMs + 100)
     expect(blocked.allowed).toBe(false)
+  })
+
+  it("begrenzt die Anzahl gespeicherter Buckets", () => {
+    const nowMs = 6_000_000
+    const attempts = LOGIN_RATE_LIMIT_CONFIG.maxBuckets + 200
+
+    for (let i = 0; i < attempts; i++) {
+      const state = checkLoginAllowed(`user-cap-${i}@example.com`, null, nowMs + i)
+      registerFailedLoginAttempt(state.normalizedEmail, state.normalizedIp, nowMs + i)
+    }
+
+    expect(__getLoginRateLimitBucketCountForTests()).toBeLessThanOrEqual(
+      LOGIN_RATE_LIMIT_CONFIG.maxBuckets
+    )
   })
 })

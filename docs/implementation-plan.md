@@ -2,7 +2,7 @@
 
 Dieser Plan beschreibt den Aufbau der Anwendung in Phasen. Jede Phase endet mit einer
 Verifikation, die prüft ob alles funktioniert, bevor die nächste Phase beginnt.
-Stand: 01.03.2026
+Stand: 02.03.2026
 
 **Verbindliche Referenzdokumente:**
 
@@ -868,6 +868,54 @@ Editierbares Dokument (kein Versionsverlauf — bewusste Entscheidung):
   - erlaubte/gesperrte IP-Bereiche
   - DNS-Auflösung auf private Netze
   - PDF-Header/EOF-Validierung
+
+---
+
+## Phase 3.13 — DoS-Härtung für Import, Session-Input und Statistik ✅ abgeschlossen
+
+**Ziel**: Ressourcenverbrauch pro Request begrenzen, ohne den vorgesehenen Nutzer-Flow zu verändern.
+
+### Umsetzung
+
+- `src/lib/sessions/actions.ts`
+  - URL-PDF-Import auf Streaming umgestellt (kein ungebremstes `response.arrayBuffer()`)
+  - Vorabprüfung via `Content-Length`; harter Abbruch bei > 10 MB
+  - Technische Schutzgrenzen für Session-FormData:
+    - max. 120 Serien pro Request
+    - max. 120 Schusswerte pro Serie
+    - max. 16 KB JSON-Text pro `shots`-Feld
+    - max. 100 `goalIds` pro Request
+- `src/lib/sessions/meytonImport.ts`
+  - Flate-Dekompression begrenzt:
+    - max. 2 MB pro Stream (`maxOutputLength`)
+    - max. 8 MB dekomprimiert insgesamt pro PDF
+    - max. 25'000 extrahierte Tokens
+- `src/lib/stats/actions.ts`
+  - Harte Query-Caps für große Auswertungen:
+    - max. 1'200 Sessions pro Statistikabfrage
+    - max. 12'000 Serienpunkte bei Qualitäts-Korrelation
+  - Sortierung bleibt für die Charts chronologisch (`desc` + Reverse)
+- `src/lib/auth-rate-limit.ts` + `src/lib/auth.ts`
+  - In-Memory-Bucket-Speichergrenze (`AUTH_RATE_LIMIT_MAX_BUCKETS`, Standard 10'000) mit Eviction ältester Buckets
+  - IP-Normalisierung akzeptiert nur valide IPs (inkl. Header-Varianten mit Port)
+  - Proxy-Header werden für IP-basierte Limits nur bei explizitem Trust genutzt (`AUTH_TRUST_PROXY_HEADERS=true`)
+
+### Tests
+
+- Erweiterte Tests in `src/lib/sessions/meytonImport.test.ts`
+  - Extraktion aus gültigem FlateDecode-Stream bleibt funktionsfähig
+  - Übergroße Dekompression wird abgefangen, ohne den Import-Flow zu crashen
+
+### Verifikation Phase 3.13
+
+1. Import per URL und Upload funktioniert weiterhin für reguläre Meyton-PDFs.
+2. Oversize-Responses werden beim URL-Import frühzeitig abgebrochen.
+3. Komprimierte Bomben-PDFs führen nicht zu ungebremstem RAM/CPU-Verbrauch.
+4. Sehr große Serien-/Schuss-Payloads werden serverseitig begrenzt.
+5. Statistikseite bleibt nutzbar, auch bei vielen historischen Einheiten.
+6. Login-Rate-Limiter wächst nicht ungebremst im Speicher.
+7. IP-basierte Login-Limits können nur bei explizit vertrauenswürdiger Proxy-Konfiguration aktiv sein.
+8. `npm run lint`, `npm run test`, `npx tsc --noEmit` sind grün.
 
 ---
 

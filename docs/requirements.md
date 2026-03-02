@@ -72,7 +72,7 @@ Gilt für Einheitentypen "Training" und "Wettkampf".
 
 ### Serien
 
-- Die Anzahl und Struktur der Serien ergibt sich aus der gewählten Disziplin — diese Werte sind **Standardvorgaben, keine fixen Limits**
+- Die Anzahl und Struktur der Serien ergibt sich aus der gewählten Disziplin — diese Werte sind **Standardvorgaben, keine fachlichen Limits**
 - Im Training (und allen Typen ausser Wettkampf) kann die Serienanzahl und die Schussanzahl pro Serie **frei angepasst** werden (z.B. nur 2 statt 4 Serien schiessen, oder eine Serie mit 5 statt 10 Schuss)
 - Serien mit abweichender Schussanzahl erzeugen **keine falschen Berechnungen**: Statistiken und Gesamtergebnisse basieren auf den tatsächlich erfassten Rohwerten
 - Erfassung der Ringe je Serie (Summe oder Einzelschuss — je nach Präferenz)
@@ -81,6 +81,7 @@ Gilt für Einheitentypen "Training" und "Wettkampf".
 - Probeschuss-Serien können im Formular jederzeit manuell hinzugefügt werden, unabhängig vom Disziplin-Standard
 - Probeschuss-Serien werden in der Erfassung visuell hervorgehoben (abgeschnittene obere rechte Ecke, analog zur physischen Probescheibe) und stehen immer vor den Wertungsserien
 - Optionale Bewertung der Ausführungsqualität je Serie (Skala 1–5, subjektiv): Erlaubt die Unterscheidung zwischen "gutes Ergebnis trotz schlechter Technik" und umgekehrt
+- Technische Schutzgrenzen im Backend sind zulässig, solange normale Erfassung nicht eingeschränkt wird (aktuell: max. 120 Serien pro Einheit und max. 120 Schusswerte pro Serie)
 
 ### Meyton-PDF Import (Training/Wettkampf)
 
@@ -97,6 +98,10 @@ Gilt für Einheitentypen "Training" und "Wettkampf".
 - Beim Import werden bestehende Serien der aktuellen Einheit im Formular ersetzt; gespeichert wird erst durch den Nutzer
 - Bei neuen, noch nicht gespeicherten Einheiten darf Datum/Uhrzeit aus dem PDF übernommen werden (falls vorhanden)
 - Bei Lade-, Extraktions- oder Parsingfehlern erfolgt ein **harter Abbruch mit Fehlermeldung** (kein Teilimport)
+- Sicherheits- und Stabilitätsgrenzen:
+  - Max. 10 MB pro Import-Datei
+  - URL-Import mit Timeout und ohne Redirect-Following
+  - Dekompressions- und Token-Limits gegen komprimierte Bomben-PDFs
 
 ### Gesamtergebnis
 
@@ -285,6 +290,7 @@ Analog zu Meyton-Schiessständen — einheitlich in Detailansicht und Statistik:
 - Jeder Nutzer sieht ausschliesslich seine eigenen Daten
 - Die Anwendung ist über das Internet zugänglich (Web-App)
 - Datenschutz: Keine Daten sind ohne Login einsehbar
+- Betriebsstabilität: Kritische Eingangswege (Login, PDF-Import, Statistik) haben serverseitige Lastschutz-Grenzen (Rate-Limits, Größenlimits, Ergebnis-Caps)
 
 ### Vereinsbetrieb
 
@@ -317,6 +323,7 @@ Analog zu Meyton-Schiessständen — einheitlich in Detailansicht und Statistik:
 
 ## Änderungsnotizen
 
+- **02.03.2026**: Lastschutz-Anforderungen ergänzt (DoS-Schutzgrenzen für Import/Statistik/Login) und fachliche Freiheit von technischen Sicherheitsgrenzen abgegrenzt.
 - **02.03.2026**: Sprachregel präzisiert (Deutsch für UI und Kommentare, Englisch für interne Komponenten- und Routen-/URL-Benennung).
 - **02.03.2026**: Bestehende interne Komponenten- und URL-Benennungen auf Englisch umgestellt (`/sessions`, `/disciplines`, `/statistics`, `/goals`, `/shot-routines`, `/admin/users`) ohne Redirects von den alten deutschen Pfaden.
 

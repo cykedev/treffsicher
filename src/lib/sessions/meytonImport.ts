@@ -16,6 +16,9 @@ const GENERIC_DATETIME_GLOBAL_REGEX = /(\d{2})\.(\d{2})\.(\d{4})\s+(\d{2}):(\d{2
 const SERIES_HEADER_REGEX = /Serie\s+(\d+)\s*:/i
 const SERIES_HEADER_GLOBAL_REGEX = /Serie\s+(\d+)\s*:/gi
 const SHOT_TOKEN_REGEX = /(^|[^0-9])(\d{1,2}(?:\.\d)?)(?:\*|T)?(?!\d)/g
+const MAX_INFLATED_STREAM_BYTES = 2 * 1024 * 1024
+const MAX_TOTAL_INFLATED_BYTES = 8 * 1024 * 1024
+const MAX_EXTRACTED_TEXT_TOKENS = 25_000
 
 const STOP_KEYWORDS = [
   "trefferlage",
@@ -143,6 +146,7 @@ function extractLiteralStringsFromContent(content: string): string[] {
 function extractTextTokensFromPdfBuffer(buffer: Buffer): string[] {
   const source = buffer.toString("latin1")
   const tokens: string[] = []
+  let totalInflatedBytes = 0
 
   let index = 0
   while (index < source.length) {
@@ -173,9 +177,23 @@ function extractTextTokensFromPdfBuffer(buffer: Buffer): string[] {
 
     const compressedStream = buffer.slice(streamStart, streamEnd)
     try {
-      const inflated = inflateSync(compressedStream).toString("latin1")
+      const inflatedBuffer = inflateSync(compressedStream, {
+        maxOutputLength: MAX_INFLATED_STREAM_BYTES,
+      })
+      totalInflatedBytes += inflatedBuffer.length
+      if (totalInflatedBytes > MAX_TOTAL_INFLATED_BYTES) {
+        break
+      }
+
+      const inflated = inflatedBuffer.toString("latin1")
       const streamTokens = extractLiteralStringsFromContent(inflated)
       if (streamTokens.length > 0) {
+        const remainingTokenSlots = MAX_EXTRACTED_TEXT_TOKENS - tokens.length
+        if (remainingTokenSlots <= 0) break
+        if (streamTokens.length > remainingTokenSlots) {
+          tokens.push(...streamTokens.slice(0, remainingTokenSlots))
+          break
+        }
         tokens.push(...streamTokens)
       }
     } catch {

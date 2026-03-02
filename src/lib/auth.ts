@@ -1,6 +1,7 @@
 import type { NextAuthOptions } from "next-auth"
 import CredentialsProvider from "next-auth/providers/credentials"
 import bcrypt from "bcryptjs"
+import { isIP } from "node:net"
 import { db } from "@/lib/db"
 import {
   checkLoginAllowed,
@@ -8,6 +9,9 @@ import {
   registerFailedLoginAttempt,
 } from "@/lib/auth-rate-limit"
 import { normalizeLoginEmail } from "@/lib/authValidation"
+
+const TRUST_PROXY_HEADERS_FOR_RATE_LIMIT = process.env.AUTH_TRUST_PROXY_HEADERS === "true"
+const MAX_IP_HEADER_LENGTH = 512
 
 function getHeaderValue(
   headers: Record<string, unknown> | undefined,
@@ -28,12 +32,55 @@ function getHeaderValue(
   return null
 }
 
+function parseClientIpCandidate(value: string): string | null {
+  const candidate = value.trim()
+  if (!candidate || candidate.length > MAX_IP_HEADER_LENGTH) return null
+
+  if (isIP(candidate)) return candidate
+
+  // IPv6 mit Port kann in Headern als "[2001:db8::1]:443" auftauchen.
+  if (candidate.startsWith("[") && candidate.includes("]")) {
+    const end = candidate.indexOf("]")
+    const ipv6 = candidate.slice(1, end)
+    if (isIP(ipv6) === 6) return ipv6
+  }
+
+  // IPv4 mit Port: "203.0.113.7:443"
+  if (candidate.includes(".")) {
+    const portSeparator = candidate.lastIndexOf(":")
+    if (portSeparator > 0) {
+      const ipv4 = candidate.slice(0, portSeparator)
+      if (isIP(ipv4) === 4) return ipv4
+    }
+  }
+
+  return null
+}
+
+function extractTrustedIpFromHeader(rawHeader: string | null): string | null {
+  if (!rawHeader) return null
+  if (rawHeader.length > MAX_IP_HEADER_LENGTH) return null
+
+  for (const part of rawHeader.split(",")) {
+    const parsed = parseClientIpCandidate(part)
+    if (parsed) return parsed
+  }
+
+  return null
+}
+
 function extractClientIpHeader(req: { headers?: Record<string, unknown> }): string | null {
-  const forwardedFor = getHeaderValue(req.headers, "x-forwarded-for")
-  if (forwardedFor) return forwardedFor
+  if (!TRUST_PROXY_HEADERS_FOR_RATE_LIMIT) {
+    return null
+  }
 
   const realIp = getHeaderValue(req.headers, "x-real-ip")
-  if (realIp) return realIp
+  const parsedRealIp = extractTrustedIpFromHeader(realIp)
+  if (parsedRealIp) return parsedRealIp
+
+  const forwardedFor = getHeaderValue(req.headers, "x-forwarded-for")
+  const parsedForwardedFor = extractTrustedIpFromHeader(forwardedFor)
+  if (parsedForwardedFor) return parsedForwardedFor
 
   return null
 }

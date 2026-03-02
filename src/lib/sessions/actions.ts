@@ -116,15 +116,19 @@ const MeytonImportSchema = z.object({
 })
 
 const MAX_MEYTON_PDF_SIZE_BYTES = 10 * 1024 * 1024
+const MAX_SERIES_PER_SESSION = 120
+const MAX_SHOTS_PER_SERIES = 120
+const MAX_SHOTS_JSON_LENGTH = 16 * 1024
+const MAX_GOAL_IDS_PER_REQUEST = 100
 
 function parseGoalIdsFromFormData(formData: FormData): string[] {
-  return [
-    ...new Set(
-      formData
-        .getAll("goalIds")
-        .filter((value): value is string => typeof value === "string" && value.length > 0)
-    ),
-  ]
+  const deduped = new Set<string>()
+  for (const value of formData.getAll("goalIds")) {
+    if (typeof value !== "string" || value.length === 0) continue
+    deduped.add(value)
+    if (deduped.size >= MAX_GOAL_IDS_PER_REQUEST) break
+  }
+  return [...deduped]
 }
 
 async function resolveAccessibleDisciplineId(
@@ -202,8 +206,45 @@ async function loadPdfFromUrl(urlValue: string): Promise<Buffer> {
       throw new Error("Die URL liefert kein PDF (Content-Type ungueltig).")
     }
 
-    const arrayBuffer = await response.arrayBuffer()
-    const buffer = Buffer.from(arrayBuffer)
+    const contentLength = response.headers.get("content-length")
+    if (contentLength) {
+      const parsedLength = Number.parseInt(contentLength, 10)
+      if (Number.isFinite(parsedLength) && parsedLength > MAX_MEYTON_PDF_SIZE_BYTES) {
+        throw new Error("Die PDF-Datei ist groesser als 10 MB.")
+      }
+    }
+
+    const body = response.body
+    if (!body) {
+      throw new Error("Die PDF konnte nicht gelesen werden (leerer Response-Body).")
+    }
+
+    const reader = body.getReader()
+    const chunks: Uint8Array[] = []
+    let totalSize = 0
+
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+      if (!value || value.length === 0) continue
+
+      totalSize += value.length
+      if (totalSize > MAX_MEYTON_PDF_SIZE_BYTES) {
+        try {
+          await reader.cancel()
+        } catch {
+          // Ignorieren: wir werfen den Größenfehler weiter unten.
+        }
+        throw new Error("Die PDF-Datei ist groesser als 10 MB.")
+      }
+
+      chunks.push(value)
+    }
+
+    const buffer = Buffer.concat(
+      chunks.map((chunk) => Buffer.from(chunk.buffer, chunk.byteOffset, chunk.byteLength)),
+      totalSize
+    )
 
     if (buffer.length === 0) {
       throw new Error("Die PDF-Datei ist leer.")
@@ -254,6 +295,7 @@ const SeriesInputSchema = z.object({
   // Einzelschüsse als JSON-String-Array, optional
   shots: z
     .string()
+    .max(MAX_SHOTS_JSON_LENGTH)
     .optional()
     .transform((v) => {
       if (!v) return null
@@ -261,7 +303,10 @@ const SeriesInputSchema = z.object({
         const parsed = JSON.parse(v)
         if (!Array.isArray(parsed)) return null
         // Nur nicht-leere, valide Strings behalten
-        return parsed.filter((s: unknown) => typeof s === "string" && s !== "") as string[]
+        const values = parsed
+          .filter((s: unknown) => typeof s === "string" && s !== "")
+          .slice(0, MAX_SHOTS_PER_SERIES) as string[]
+        return values
       } catch {
         return null
       }
@@ -276,6 +321,46 @@ const SeriesInputSchema = z.object({
       return n >= 1 && n <= 5 ? n : null
     }),
 })
+
+function parseSeriesFromFormData(formData: FormData): Array<z.infer<typeof SeriesInputSchema>> | null {
+  const seriesData: Array<z.infer<typeof SeriesInputSchema>> = []
+
+  let i = 0
+  while (
+    i < MAX_SERIES_PER_SESSION &&
+    (formData.has(`series[${i}][scoreTotal]`) || formData.has(`series[${i}][isPractice]`))
+  ) {
+    const scoreTotalRaw = formData.get(`series[${i}][scoreTotal]`) as string | null
+    const isPracticeRaw = formData.get(`series[${i}][isPractice]`)
+    const shotsRaw = formData.get(`series[${i}][shots]`) as string | null
+    const qualityRaw = formData.get(`series[${i}][executionQuality]`) as string | null
+
+    const seriesParsed = SeriesInputSchema.safeParse({
+      position: i + 1,
+      isPractice: isPracticeRaw === "true",
+      scoreTotal: scoreTotalRaw ?? "",
+      shots: shotsRaw ?? undefined,
+      executionQuality: qualityRaw ?? undefined,
+    })
+
+    if (seriesParsed.success) {
+      seriesData.push(seriesParsed.data)
+    }
+    i++
+  }
+
+  if (
+    i >= MAX_SERIES_PER_SESSION &&
+    (formData.has(`series[${i}][scoreTotal]`) || formData.has(`series[${i}][isPractice]`))
+  ) {
+    console.warn("Session-Import abgebrochen: zu viele Serien im Request", {
+      maxAllowed: MAX_SERIES_PER_SESSION,
+    })
+    return null
+  }
+
+  return seriesData
+}
 
 // ─────────────────────────────────────────────
 // Actions
@@ -319,27 +404,8 @@ export async function createSession(formData: FormData): Promise<void> {
 
   // Serien aus dem Formular lesen
   // Format im Formular: series[0][scoreTotal], series[0][isPractice], series[0][shots], ...
-  const seriesData: Array<z.infer<typeof SeriesInputSchema>> = []
-  let i = 0
-  while (formData.has(`series[${i}][scoreTotal]`) || formData.has(`series[${i}][isPractice]`)) {
-    const scoreTotalRaw = formData.get(`series[${i}][scoreTotal]`) as string | null
-    const isPracticeRaw = formData.get(`series[${i}][isPractice]`)
-    const shotsRaw = formData.get(`series[${i}][shots]`) as string | null
-    const qualityRaw = formData.get(`series[${i}][executionQuality]`) as string | null
-
-    const seriesParsed = SeriesInputSchema.safeParse({
-      position: i + 1,
-      isPractice: isPracticeRaw === "true",
-      scoreTotal: scoreTotalRaw ?? "",
-      shots: shotsRaw ?? undefined,
-      executionQuality: qualityRaw ?? undefined,
-    })
-
-    if (seriesParsed.success) {
-      seriesData.push(seriesParsed.data)
-    }
-    i++
-  }
+  const seriesData = parseSeriesFromFormData(formData)
+  if (seriesData === null) return
 
   const selectedGoalIds = parseGoalIdsFromFormData(formData)
 
@@ -713,27 +779,8 @@ export async function updateSession(id: string, formData: FormData): Promise<voi
   }
 
   // Serien aus dem Formular lesen (gleiche Logik wie createSession)
-  const seriesData: Array<z.infer<typeof SeriesInputSchema>> = []
-  let i = 0
-  while (formData.has(`series[${i}][scoreTotal]`) || formData.has(`series[${i}][isPractice]`)) {
-    const scoreTotalRaw = formData.get(`series[${i}][scoreTotal]`) as string | null
-    const isPracticeRaw = formData.get(`series[${i}][isPractice]`)
-    const shotsRaw = formData.get(`series[${i}][shots]`) as string | null
-    const qualityRaw = formData.get(`series[${i}][executionQuality]`) as string | null
-
-    const seriesParsed = SeriesInputSchema.safeParse({
-      position: i + 1,
-      isPractice: isPracticeRaw === "true",
-      scoreTotal: scoreTotalRaw ?? "",
-      shots: shotsRaw ?? undefined,
-      executionQuality: qualityRaw ?? undefined,
-    })
-
-    if (seriesParsed.success) {
-      seriesData.push(seriesParsed.data)
-    }
-    i++
-  }
+  const seriesData = parseSeriesFromFormData(formData)
+  if (seriesData === null) return
 
   const selectedGoalIds = parseGoalIdsFromFormData(formData)
 
