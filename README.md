@@ -136,6 +136,8 @@ Alle Konfiguration erfolgt über Umgebungsvariablen. Die Vorlage liegt in `.env.
 | `UPLOAD_DIR`      | Pfad zum Upload-Verzeichnis im Container                        | `/app/uploads`                               |
 | `ADMIN_EMAIL`     | E-Mail des ersten Admin-Accounts                                | `admin@example.com`                          |
 | `ADMIN_PASSWORD`  | Passwort des ersten Admin-Accounts (min. 12 Zeichen)            | sicheres Passwort                            |
+| `PRISMA_AUTO_RESOLVE_FAILED_MIGRATIONS` | Aktiviert automatische Recovery für fehlgeschlagene Migrationen beim Start | `true` |
+| `PRISMA_AUTO_RESOLVE_UNKNOWN_FAILED_MIGRATIONS` | Erlaubt Fallback für unbekannte fehlgeschlagene Migrationen (`--rolled-back`) | `false` |
 
 **Entwicklung**: Werte sind direkt in `docker-compose.dev.yml` gesetzt — für den oben beschriebenen Container-Workflow ist keine `.env` nötig.
 
@@ -176,6 +178,8 @@ docker compose -f docker-compose.prod.yml up -d
 
 Erfordert eine ausgefüllte `.env`-Datei (siehe Abschnitt oben).
 Migrationen laufen automatisch beim App-Start (`prisma migrate deploy`).
+Wenn `migrate deploy` fehlschlägt und ein P3009-Fall vorliegt, versucht das Startscript eine automatische Recovery
+für bekannte sichere Migrationsfälle und startet danach `migrate deploy` erneut.
 Der erste Admin wird beim ersten Start aus `ADMIN_EMAIL` + `ADMIN_PASSWORD` angelegt.
 
 ---

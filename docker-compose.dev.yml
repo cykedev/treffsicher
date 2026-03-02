@@ -24,6 +24,8 @@ services:
       - UPLOAD_DIR=/app/uploads
       - ADMIN_EMAIL=admin@example.com
       - ADMIN_PASSWORD=admin-passwort-12
+      - PRISMA_AUTO_RESOLVE_FAILED_MIGRATIONS=true
+      - PRISMA_AUTO_RESOLVE_UNKNOWN_FAILED_MIGRATIONS=false
     depends_on:
       db:
         condition: service_healthy
