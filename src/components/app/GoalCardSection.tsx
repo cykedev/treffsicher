@@ -199,8 +199,8 @@ export function GoalCardSection({ goal, sessions }: Props) {
         {sessions.length === 0 ? (
           <p className="text-sm text-muted-foreground">Noch keine Einheiten vorhanden.</p>
         ) : (
-          <div className="max-h-64 space-y-1 overflow-y-auto rounded-md border p-3">
-            {sessions.map((entry) => {
+          <div className="overflow-hidden rounded-lg border border-border/60 bg-muted/10">
+            {sessions.map((entry, index) => {
               const selected = selectedSessionIds.includes(entry.id)
 
               return (
@@ -209,10 +209,10 @@ export function GoalCardSection({ goal, sessions }: Props) {
                   type="button"
                   onClick={() => toggleSession(entry.id)}
                   disabled={pending}
-                  className={`flex w-full items-start gap-2 rounded-md px-3 py-2.5 text-left text-sm transition-colors ${
-                    selected
-                      ? "bg-primary/10 ring-1 ring-primary/60"
-                      : "bg-muted/20 ring-1 ring-border/40 hover:bg-muted/40"
+                  className={`flex w-full items-start gap-2 px-3 py-2.5 text-left text-sm transition-colors ${
+                    index > 0 ? "border-t border-border/40" : ""
+                  } ${
+                    selected ? "bg-primary/10" : "bg-background/10 hover:bg-muted/20"
                   }`}
                   aria-pressed={selected}
                 >
@@ -220,7 +220,7 @@ export function GoalCardSection({ goal, sessions }: Props) {
                     className={`mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full ${
                       selected
                         ? "bg-primary text-primary-foreground"
-                        : "bg-muted text-muted-foreground/40"
+                        : "border border-border/60 bg-background/20 text-muted-foreground/40"
                     }`}
                   >
                     <Check className={`h-3.5 w-3.5 ${selected ? "opacity-100" : "opacity-0"}`} />

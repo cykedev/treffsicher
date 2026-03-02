@@ -564,8 +564,8 @@ export function SessionForm({
               <p className="text-xs text-muted-foreground">
                 Markiere, auf welche Saisonziele diese Einheit einzahlt.
               </p>
-              <div className="max-h-44 space-y-1 overflow-y-auto">
-                {goals.map((goal) => {
+              <div className="overflow-hidden rounded-lg border border-border/60 bg-muted/10">
+                {goals.map((goal, index) => {
                   const selected = selectedGoalIds.includes(goal.id)
                   return (
                     <button
@@ -573,10 +573,10 @@ export function SessionForm({
                       type="button"
                       onClick={() => toggleGoal(goal.id)}
                       disabled={pending}
-                      className={`flex w-full items-start gap-2 rounded-md px-3 py-2.5 text-left text-sm transition-colors ${
-                        selected
-                          ? "bg-primary/10 ring-1 ring-primary/60"
-                          : "bg-muted/20 ring-1 ring-border/40 hover:bg-muted/40"
+                      className={`flex w-full items-start gap-2 px-3 py-2.5 text-left text-sm transition-colors ${
+                        index > 0 ? "border-t border-border/40" : ""
+                      } ${
+                        selected ? "bg-primary/10" : "bg-background/10 hover:bg-muted/20"
                       }`}
                       aria-pressed={selected}
                     >
@@ -584,7 +584,7 @@ export function SessionForm({
                         className={`mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full ${
                           selected
                             ? "bg-primary text-primary-foreground"
-                            : "bg-muted text-muted-foreground/40"
+                            : "border border-border/60 bg-background/20 text-muted-foreground/40"
                         }`}
                       >
                         <Check
