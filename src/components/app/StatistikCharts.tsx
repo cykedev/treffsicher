@@ -55,6 +55,12 @@ interface Props {
 
 type TypeFilter = "all" | "TRAINING" | "WETTKAMPF"
 type DisplayMode = "per_shot" | "projected"
+type RadarSeriesKey = "prognosis" | "feedback"
+type RadarLegendItem = {
+  key: RadarSeriesKey
+  label: string
+  color: string
+}
 
 const radarDimensions = [
   { label: "Kondition", prognosisKey: "fitnessPrognosis", feedbackKey: "fitnessFeedback" },
@@ -69,6 +75,11 @@ const radarDimensions = [
   { label: "Umfeld", prognosisKey: "environmentPrognosis", feedbackKey: "environmentFeedback" },
   { label: "Material", prognosisKey: "equipmentPrognosis", feedbackKey: "equipmentFeedback" },
 ] as const
+
+const radarSeriesConfig: Record<RadarSeriesKey, { label: string; color: string }> = {
+  prognosis: { label: "Prognose", color: "var(--chart-1)" },
+  feedback: { label: "Feedback", color: "var(--chart-2)" },
+}
 
 // Datumsstring für Presets berechnen
 function daysAgo(days: number): string {
@@ -97,6 +108,24 @@ function computeDisplayValue(
     return discipline.scoringType === "TENTH" ? Math.round(total * 10) / 10 : Math.round(total)
   }
   return avgPerShot
+}
+
+function RadarLegend({ items }: { items: RadarLegendItem[] }) {
+  if (items.length === 0) return null
+
+  return (
+    <div className="mt-3 flex flex-wrap items-center justify-center gap-4 sm:gap-6">
+      {items.map((item) => (
+        <div key={item.key} className="inline-flex items-center gap-1.5">
+          <span
+            className="h-2.5 w-2.5 shrink-0 rounded-[3px]"
+            style={{ backgroundColor: item.color }}
+          />
+          <span className="text-sm font-medium">{item.label}</span>
+        </div>
+      ))}
+    </div>
+  )
 }
 
 /**
@@ -306,6 +335,20 @@ export function StatistikCharts({
     })
     return `${format.format(new Date(first.date))} bis ${format.format(new Date(last.date))}`
   }, [filteredRadarSessions])
+
+  const radarLegendItems = useMemo<RadarLegendItem[]>(() => {
+    return (
+      Object.entries(radarSeriesConfig) as Array<
+        [RadarSeriesKey, (typeof radarSeriesConfig)[RadarSeriesKey]]
+      >
+    ).map(([key, config]) => {
+      return {
+        key,
+        label: config.label,
+        color: config.color,
+      }
+    })
+  }, [])
 
   return (
     <div className="space-y-6">
@@ -615,16 +658,16 @@ export function StatistikCharts({
               <CardContent>
                 <ResponsiveContainer width="100%" height={340}>
                   <RadarChart data={radarChartData} outerRadius="72%">
-                    <PolarGrid stroke="var(--border)" />
+                    <PolarGrid stroke="var(--border)" strokeOpacity={0.65} />
                     <PolarAngleAxis
                       dataKey="dimension"
-                      tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
+                      tick={{ fontSize: 12, fill: "var(--muted-foreground)" }}
                     />
                     <PolarRadiusAxis
                       domain={[0, 100]}
-                      tick={{ fontSize: 10, fill: "var(--muted-foreground)" }}
+                      tick={false}
                       axisLine={false}
-                      tickCount={6}
+                      tickLine={false}
                     />
                     <Tooltip
                       contentStyle={{
@@ -636,28 +679,30 @@ export function StatistikCharts({
                       }}
                       formatter={(value, name) => [
                         typeof value === "number" ? value.toFixed(1) : String(value ?? ""),
-                        name === "prognosis" ? "Prognose" : "Feedback",
+                        name === "prognosis"
+                          ? radarSeriesConfig.prognosis.label
+                          : radarSeriesConfig.feedback.label,
                       ]}
-                    />
-                    <Legend
-                      formatter={(value) => (value === "prognosis" ? "Prognose" : "Feedback")}
                     />
                     <Radar
                       name="prognosis"
                       dataKey="prognosis"
-                      stroke="var(--chart-1)"
-                      fill="var(--chart-1)"
-                      fillOpacity={0.22}
+                      stroke={radarSeriesConfig.prognosis.color}
+                      fill={radarSeriesConfig.prognosis.color}
+                      strokeWidth={2}
+                      fillOpacity={0.2}
                     />
                     <Radar
                       name="feedback"
                       dataKey="feedback"
-                      stroke="var(--chart-2)"
-                      fill="var(--chart-2)"
-                      fillOpacity={0.2}
+                      stroke={radarSeriesConfig.feedback.color}
+                      fill={radarSeriesConfig.feedback.color}
+                      strokeWidth={2}
+                      fillOpacity={0.18}
                     />
                   </RadarChart>
                 </ResponsiveContainer>
+                <RadarLegend items={radarLegendItems} />
               </CardContent>
             </Card>
           ) : (
