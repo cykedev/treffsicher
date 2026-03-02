@@ -3,14 +3,58 @@ import process from "node:process"
 import pg from "pg"
 
 const { Client } = pg
+const PRISMA_CLI_JS = "/app/node_modules/prisma/build/index.js"
 
 function runPrismaResolve(mode, migrationName) {
-  const result = spawnSync("npx", ["prisma", "migrate", "resolve", mode, migrationName], {
-    stdio: "inherit",
-  })
+  const prismaArgs = ["migrate", "resolve", mode, migrationName]
+  const result = spawnSync(
+    "node",
+    [PRISMA_CLI_JS, ...prismaArgs],
+    {
+      stdio: "inherit",
+    }
+  )
+
+  if (result.error?.code === "ENOENT") {
+    throw new Error("Prisma CLI not found at /app/node_modules/prisma/build/index.js.")
+  }
+
+  if (result.status === 127) {
+    throw new Error("Prisma CLI is not executable in the runtime image.")
+  }
 
   if (result.status !== 0) {
     throw new Error(`prisma migrate resolve failed for ${migrationName} (${mode}).`)
+  }
+}
+
+function isMissingMigrationsTable(error) {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    error.code === "42P01"
+  )
+}
+
+async function loadFailedMigrations(client) {
+  try {
+    return await client.query(
+      `SELECT migration_name, logs
+       FROM "_prisma_migrations"
+       WHERE finished_at IS NULL
+         AND rolled_back_at IS NULL
+       ORDER BY started_at ASC`
+    )
+  } catch (error) {
+    // Frische Datenbank: Tabelle existiert noch nicht, also keine failed migrations.
+    if (isMissingMigrationsTable(error)) {
+      console.warn(
+        "[migrate-recovery] _prisma_migrations table not found yet. Skipping recovery."
+      )
+      return null
+    }
+    throw error
   }
 }
 
@@ -58,15 +102,8 @@ async function main() {
   await client.connect()
 
   try {
-    const failedResult = await client.query(
-      `SELECT migration_name, logs
-       FROM "_prisma_migrations"
-       WHERE finished_at IS NULL
-         AND rolled_back_at IS NULL
-       ORDER BY started_at ASC`
-    )
-
-    if (failedResult.rowCount === 0) {
+    const failedResult = await loadFailedMigrations(client)
+    if (!failedResult || failedResult.rowCount === 0) {
       console.warn("[migrate-recovery] No failed migrations detected.")
       return
     }
