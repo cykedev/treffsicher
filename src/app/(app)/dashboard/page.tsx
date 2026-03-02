@@ -1,7 +1,7 @@
 import { getAuthSession } from "@/lib/auth-helpers"
 import { redirect } from "next/navigation"
 import Link from "next/link"
-import { Plus, BookOpen, TrendingUp } from "lucide-react"
+import { Plus, BookOpen, TrendingUp, Goal, Target, ListChecks } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
@@ -28,6 +28,30 @@ const quickActions = [
     icon: TrendingUp,
     href: "/statistiken",
     buttonLabel: "Statistiken öffnen",
+    buttonVariant: "outline" as const,
+  },
+  {
+    title: "Ziele",
+    description: "Saisonziele verwalten und Einheiten zu einem Ziel zuordnen.",
+    icon: Goal,
+    href: "/ziele",
+    buttonLabel: "Ziele öffnen",
+    buttonVariant: "outline" as const,
+  },
+  {
+    title: "Ablauf",
+    description: "Schuss-Abläufe definieren, pflegen und bestehende Abläufe bearbeiten.",
+    icon: ListChecks,
+    href: "/schuss-ablauf",
+    buttonLabel: "Ablauf öffnen",
+    buttonVariant: "outline" as const,
+  },
+  {
+    title: "Disziplinen",
+    description: "System-Disziplinen und eigene Konfigurationen verwalten.",
+    icon: Target,
+    href: "/disziplinen",
+    buttonLabel: "Disziplinen öffnen",
     buttonVariant: "outline" as const,
   },
 ]

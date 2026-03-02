@@ -20,8 +20,8 @@ const baseNavLinks = [
   { href: "/einheiten", label: "Tagebuch", icon: BookOpen },
   { href: "/statistiken", label: "Statistiken", icon: TrendingUp },
   { href: "/ziele", label: "Ziele", icon: Goal },
-  { href: "/disziplinen", label: "Disziplinen", icon: Target },
   { href: "/schuss-ablauf", label: "Ablauf", icon: ListChecks },
+  { href: "/disziplinen", label: "Disziplinen", icon: Target },
 ]
 
 // Haupt-Navigation der App.
