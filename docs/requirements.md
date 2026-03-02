@@ -121,7 +121,7 @@ Seriensummen dürfen den Maximalwert der Serie nicht überschreiten:
 
 ## Befinden-Tracking
 
-Vor jeder Einheit kann das aktuelle Befinden erfasst werden (Schieberegler 0–10):
+Vor jeder Einheit kann das aktuelle Befinden erfasst werden (Schieberegler 0–100):
 
 - Schlafqualität
 - Energieniveau

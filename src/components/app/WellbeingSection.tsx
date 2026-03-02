@@ -75,10 +75,12 @@ export function WellbeingSection({ sessionId, initialData }: Props) {
                 <div className="h-1.5 flex-1 rounded-full bg-muted">
                   <div
                     className="h-1.5 rounded-full bg-primary"
-                    style={{ width: `${(value / 10) * 100}%` }}
+                    style={{ width: `${value}%` }}
                   />
                 </div>
-                <span className="w-8 shrink-0 text-right font-medium tabular-nums">{value}/10</span>
+                <span className="w-14 shrink-0 text-right font-medium tabular-nums">
+                  {value}/100
+                </span>
               </div>
             </div>
           )

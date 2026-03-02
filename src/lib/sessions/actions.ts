@@ -857,7 +857,7 @@ export async function deleteSession(id: string): Promise<ActionResult> {
 
 /**
  * Speichert oder aktualisiert das Befinden vor einer Einheit (Upsert).
- * Werte 0–10 für Schlaf, Energie, Stress und Motivation.
+ * Werte 0–100 für Schlaf, Energie, Stress und Motivation.
  */
 export async function saveWellbeing(
   sessionId: string,
@@ -873,10 +873,10 @@ export async function saveWellbeing(
   if (!trainingSession) return { error: "Einheit nicht gefunden" }
 
   const WellbeingSchema = z.object({
-    sleep: z.number({ message: "Ungültiger Wert" }).int().min(0).max(10),
-    energy: z.number({ message: "Ungültiger Wert" }).int().min(0).max(10),
-    stress: z.number({ message: "Ungültiger Wert" }).int().min(0).max(10),
-    motivation: z.number({ message: "Ungültiger Wert" }).int().min(0).max(10),
+    sleep: z.number({ message: "Ungültiger Wert" }).int().min(0).max(100),
+    energy: z.number({ message: "Ungültiger Wert" }).int().min(0).max(100),
+    stress: z.number({ message: "Ungültiger Wert" }).int().min(0).max(100),
+    motivation: z.number({ message: "Ungültiger Wert" }).int().min(0).max(100),
   })
 
   const parsed = WellbeingSchema.safeParse({

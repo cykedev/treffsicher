@@ -938,6 +938,7 @@ export function EinheitForm({
                   <div className="space-y-2">
                     <Label htmlFor="pdfUrl">PDF-URL</Label>
                     <Input
+                      key="meyton-url-input"
                       id="pdfUrl"
                       type="url"
                       placeholder="http://example.com/meyton.pdf"
@@ -950,6 +951,7 @@ export function EinheitForm({
                   <div className="space-y-2">
                     <Label htmlFor="file">PDF-Datei</Label>
                     <Input
+                      key="meyton-file-input"
                       id="file"
                       type="file"
                       accept="application/pdf,.pdf"

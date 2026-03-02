@@ -26,10 +26,10 @@ export function WellbeingForm({ sessionId, initialData, onSuccess, onCancel }: P
   const [state, formAction, pending] = useActionState<ActionResult | null, FormData>(action, null)
 
   const [values, setValues] = useState({
-    sleep: initialData?.sleep ?? 5,
-    energy: initialData?.energy ?? 5,
-    stress: initialData?.stress ?? 5,
-    motivation: initialData?.motivation ?? 5,
+    sleep: initialData?.sleep ?? 50,
+    energy: initialData?.energy ?? 50,
+    stress: initialData?.stress ?? 50,
+    motivation: initialData?.motivation ?? 50,
   })
 
   useEffect(() => {
@@ -54,15 +54,15 @@ export function WellbeingForm({ sessionId, initialData, onSuccess, onCancel }: P
             <Slider
               id={field.name}
               min={0}
-              max={10}
+              max={100}
               step={1}
               value={[values[field.name]]}
               onValueChange={([v]) => setValues((prev) => ({ ...prev, [field.name]: v }))}
               disabled={pending}
               className="flex-1"
             />
-            <span className="w-10 shrink-0 text-right text-sm tabular-nums text-muted-foreground">
-              {values[field.name]}/10
+            <span className="w-14 shrink-0 text-right text-sm tabular-nums text-muted-foreground">
+              {values[field.name]}/100
             </span>
           </div>
         ))}

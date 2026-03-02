@@ -451,7 +451,7 @@ User
   │     ├── disciplineId? (→ Discipline, nur bei TRAINING/WETTKAMPF)
   │     │
   │     ├── Wellbeing? (1:1, optional)
-  │     │     └── sleep, energy, stress, motivation (je Int 0–10)
+  │     │     └── sleep, energy, stress, motivation (je Int 0–100)
   │     │
   │     ├── Series[] (nur bei TRAINING/WETTKAMPF)
   │     │     ├── position (Int — Reihenfolge 1,2,3...)
