@@ -101,6 +101,22 @@ const shotDistributionColors: Record<string, string> = {
   r10: "#ef4444",
 }
 
+function computePaddedDomain(values: number[]): [number, number] {
+  if (values.length === 0) return [0, 1]
+
+  const min = Math.min(...values)
+  const max = Math.max(...values)
+
+  if (min === max) {
+    const padding = Math.max(Math.abs(min) * 0.02, 0.1)
+    return [min - padding, max + padding]
+  }
+
+  const range = max - min
+  const padding = Math.max(range * 0.08, 0.1)
+  return [min - padding, max + padding]
+}
+
 // Datumsstring für Presets berechnen
 function formatLocalDate(date: Date): string {
   const year = date.getFullYear()
@@ -273,6 +289,20 @@ export function StatisticsCharts({
           : p.scorePerShot,
     }))
   }, [filteredQuality, effectiveDisplayMode, selectedDiscipline])
+
+  const wellbeingYDomain = useMemo<[number, number]>(() => {
+    const values = wellbeingDisplayData
+      .map((p) => p.displayScore)
+      .filter((v): v is number => Number.isFinite(v))
+    return computePaddedDomain(values)
+  }, [wellbeingDisplayData])
+
+  const qualityYDomain = useMemo<[number, number]>(() => {
+    const values = qualityDisplayData
+      .map((p) => p.displayScore)
+      .filter((v): v is number => Number.isFinite(v))
+    return computePaddedDomain(values)
+  }, [qualityDisplayData])
 
   // Nur Einheiten mit normalisiertem Ergebnis (avgPerShot) für den Verlaufschart
   const withScore = filtered.filter((s) => s.avgPerShot !== null)
@@ -903,7 +933,7 @@ export function StatisticsCharts({
                         <YAxis
                           dataKey="displayScore"
                           type="number"
-                          domain={["auto", "auto"]}
+                          domain={wellbeingYDomain}
                           tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
                           axisLine={false}
                           tickLine={false}
@@ -1004,7 +1034,7 @@ export function StatisticsCharts({
                     <YAxis
                       dataKey="displayScore"
                       type="number"
-                      domain={["auto", "auto"]}
+                      domain={qualityYDomain}
                       tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
                       axisLine={false}
                       tickLine={false}
