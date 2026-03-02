@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { MAX_USER_EMAIL_LENGTH } from "@/lib/authValidation"
 
 // Login-Seite: Client-Komponente wegen useState und signIn (Browser-API).
 // Kein Self-Service: Konten werden nur vom Admin angelegt.
@@ -64,6 +65,7 @@ export default function LoginPage() {
                   id="email"
                   type="email"
                   autoComplete="email"
+                  maxLength={MAX_USER_EMAIL_LENGTH}
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}

@@ -5,6 +5,7 @@ import { z } from "zod"
 import { revalidatePath } from "next/cache"
 import { db } from "@/lib/db"
 import { getAuthSession } from "@/lib/auth-helpers"
+import { MAX_USER_EMAIL_LENGTH } from "@/lib/authValidation"
 import type { ScoringType, UserRole } from "@/generated/prisma/client"
 
 export type AdminActionResult = {
@@ -35,7 +36,11 @@ export type AdminSystemDisciplineSummary = {
 
 const CreateUserSchema = z.object({
   name: z.string().trim().min(1, "Bitte einen Namen angeben.").max(120, "Name ist zu lang."),
-  email: z.string().trim().email("Bitte eine gueltige E-Mail angeben."),
+  email: z
+    .string()
+    .trim()
+    .max(MAX_USER_EMAIL_LENGTH, "E-Mail ist zu lang.")
+    .email("Bitte eine gueltige E-Mail angeben."),
   tempPassword: z
     .string()
     .min(12, "Temporaeres Passwort muss mindestens 12 Zeichen haben.")
@@ -45,7 +50,11 @@ const CreateUserSchema = z.object({
 
 const UpdateUserSchema = z.object({
   name: z.string().trim().min(1, "Bitte einen Namen angeben.").max(120, "Name ist zu lang."),
-  email: z.string().trim().email("Bitte eine gueltige E-Mail angeben."),
+  email: z
+    .string()
+    .trim()
+    .max(MAX_USER_EMAIL_LENGTH, "E-Mail ist zu lang.")
+    .email("Bitte eine gueltige E-Mail angeben."),
   role: z.enum(["USER", "ADMIN"] as const),
   isActive: z.boolean(),
 })

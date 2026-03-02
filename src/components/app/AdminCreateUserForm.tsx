@@ -5,6 +5,7 @@ import { createUser, type AdminActionResult } from "@/lib/admin/actions"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { MAX_USER_EMAIL_LENGTH } from "@/lib/authValidation"
 import {
   Select,
   SelectContent,
@@ -53,6 +54,7 @@ export function AdminCreateUserForm() {
             type="email"
             autoComplete="off"
             placeholder="user@example.com"
+            maxLength={MAX_USER_EMAIL_LENGTH}
             required
             disabled={pending}
           />
