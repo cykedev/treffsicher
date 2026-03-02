@@ -287,6 +287,7 @@ Analog zu Meyton-Schiessständen — einheitlich in Detailansicht und Statistik:
 
 - Jeder Nutzer hat einen eigenen Account mit Login und Passwort
 - Konten werden ausschliesslich durch Administratoren erstellt — keine Selbstregistrierung
+- Eingeloggte Nutzer können ihr eigenes Passwort im Konto-Bereich selbst ändern (mit aktuellem Passwort)
 - Jeder Nutzer sieht ausschliesslich seine eigenen Daten
 - Die Anwendung ist über das Internet zugänglich (Web-App)
 - Datenschutz: Keine Daten sind ohne Login einsehbar
@@ -297,6 +298,7 @@ Analog zu Meyton-Schiessständen — einheitlich in Detailansicht und Statistik:
 - Mehrere Nutzer können die gleiche Instanz verwenden
 - Jeder Schütze hat seine eigene, abgeschottete Datenwelt
 - Administratoren können Nutzer anlegen, bearbeiten (Name, E-Mail, Rolle, Status) und Passwörter zurücksetzen
+- Falls ein Passwort vergessen wurde, bleibt der Admin-Reset der Wiederherstellungsweg
 - Standarddisziplinen sind systemweit für alle Nutzer sichtbar
 - Administratoren können systemweite Disziplinen bereitstellen, bearbeiten und archivieren
 

@@ -264,7 +264,7 @@ if (process.env.NODE_ENV !== "production") {
 
 ### Schritt 1.5 — NextAuth v4
 
-**Ziel**: Login mit Email/Passwort. Kein E-Mail-Versand, kein Self-Service.
+**Ziel**: Login mit Email/Passwort. Kein E-Mail-Versand, keine Selbstregistrierung.
 
 **Dateien**:
 
@@ -975,8 +975,10 @@ Zeigt die Selbsteinschätzung in den 7 Dimensionen über Zeit:
 - Nutzer bearbeiten (Name, Email, Rolle, Status)
 - Nutzer deaktivieren (`isActive: false`) — keine Datenlöschung
 - Optionales Passwort-Reset direkt im Nutzer-Bearbeiten
+- Passwortwechsel für eingeloggte Nutzer im Bereich `/account`
+- Passwortwechsel/-Reset invalidiert bestehende Sessions über `sessionVersion`
 - System-Disziplinen verwalten im bestehenden Bereich `src/app/(app)/disciplines/`
-  (nur fuer Admins; normale Nutzer sehen System-Disziplinen nur lesend)
+  (nur für Admins; normale Nutzer sehen System-Disziplinen nur lesend)
 
 **Aktueller UI-Flow (konsistent mit anderen Bereichen)**:
 
@@ -984,6 +986,7 @@ Zeigt die Selbsteinschätzung in den 7 Dimensionen über Zeit:
 - `/admin/users/new` = neuen Nutzer anlegen
 - `/admin/users/[id]/edit` = Nutzer bearbeiten + optional Passwort setzen
 - `/admin/users` und `/admin/users/password` leiten auf `/admin` um (kompatible Alt-URLs)
+- `/account` = eigenes Passwort ändern (aktuelles Passwort erforderlich)
 
 ### Schritt 5.2 — Offline-Unterstützung (PWA)
 
@@ -999,9 +1002,10 @@ Dies ist die komplexeste Phase — ausführlich testen auf mobilen Geräten.
 ### Verifikation Phase 5
 
 1. ✅ Admin kann Nutzer anlegen, bearbeiten und optional Passwort neu setzen
-2. ⏳ Nutzer sieht ausschliesslich eigene Daten (erneut end-to-end pruefen)
-3. ✅ Admin-Bereich für normale Nutzer nicht zugänglich (403/Redirect)
-4. ⏳ PWA: Einheit im Offline-Modus erfassen, nach Reconnect synchronisiert
+2. ✅ Nutzer kann eigenes Passwort mit aktuellem Passwort ändern; danach Re-Login mit neuem Passwort
+3. ⏳ Nutzer sieht ausschliesslich eigene Daten (erneut end-to-end pruefen)
+4. ✅ Admin-Bereich für normale Nutzer nicht zugänglich (403/Redirect)
+5. ⏳ PWA: Einheit im Offline-Modus erfassen, nach Reconnect synchronisiert
 
 ---
 

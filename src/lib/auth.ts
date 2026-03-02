@@ -138,6 +138,7 @@ export const authOptions: NextAuthOptions = {
           name: user.name,
           email: user.email,
           role: user.role,
+          sessionVersion: user.sessionVersion,
         }
       },
     }),
@@ -151,10 +152,16 @@ export const authOptions: NextAuthOptions = {
     // JWT-Callback: Rolle und ID in den Token schreiben, damit sie in der Session verfügbar sind
     async jwt({ token, user }) {
       if (user) {
-        const authUser = user as { id: string; role: string; name?: string | null }
+        const authUser = user as {
+          id: string
+          role: string
+          name?: string | null
+          sessionVersion?: number
+        }
         token.id = authUser.id
         token.role = authUser.role
         token.name = authUser.name ?? null
+        token.sessionVersion = authUser.sessionVersion ?? 0
       }
       return token
     },
@@ -166,6 +173,8 @@ export const authOptions: NextAuthOptions = {
         session.user.id = token.id as string
         session.user.role = token.role as string
         session.user.name = (token.name as string | null | undefined) ?? null
+        session.user.sessionVersion =
+          typeof token.sessionVersion === "number" ? token.sessionVersion : -1
       }
       return session
     },

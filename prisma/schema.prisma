@@ -49,6 +49,8 @@ model User {
   name         String?
   email        String   @unique
   passwordHash String
+  // Erhöht sich bei Passwortwechsel/Reset und invalidiert alte Sessions.
+  sessionVersion Int    @default(0)
   role         UserRole @default(USER)
   // Nutzer werden deaktiviert statt gelöscht — bestehende Daten bleiben erhalten
   isActive     Boolean  @default(true)
