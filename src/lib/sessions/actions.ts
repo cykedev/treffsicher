@@ -126,6 +126,24 @@ function parseGoalIdsFromFormData(formData: FormData): string[] {
   ]
 }
 
+async function resolveAccessibleDisciplineId(
+  disciplineId: string | undefined,
+  userId: string
+): Promise<string | null> {
+  if (!disciplineId) return null
+
+  const discipline = await db.discipline.findFirst({
+    where: {
+      id: disciplineId,
+      isArchived: false,
+      OR: [{ isSystem: true }, { ownerId: userId }],
+    },
+    select: { id: true },
+  })
+
+  return discipline?.id ?? null
+}
+
 function mapShotToScoringType(value: number, scoringType: ScoringType): string {
   if (scoringType === "WHOLE") {
     return String(Math.floor(value))
@@ -285,6 +303,17 @@ export async function createSession(formData: FormData): Promise<void> {
     return
   }
 
+  const disciplineId = await resolveAccessibleDisciplineId(
+    parsed.data.disciplineId,
+    session.user.id
+  )
+  if (parsed.data.disciplineId && !disciplineId) {
+    console.warn("createSession: ungueltige oder nicht erlaubte disciplineId", {
+      userId: session.user.id,
+    })
+    return
+  }
+
   // Serien aus dem Formular lesen
   // Format im Formular: series[0][scoreTotal], series[0][isPractice], series[0][shots], ...
   const seriesData: Array<z.infer<typeof SeriesInputSchema>> = []
@@ -328,7 +357,7 @@ export async function createSession(formData: FormData): Promise<void> {
           // Datum aus dem Formular (ISO-String) in ein Date-Objekt umwandeln
           date: new Date(parsed.data.date),
           location: parsed.data.location,
-          disciplineId: parsed.data.disciplineId || null,
+          disciplineId,
           trainingGoal: parsed.data.trainingGoal || null,
         },
       })
@@ -668,6 +697,18 @@ export async function updateSession(id: string, formData: FormData): Promise<voi
     return
   }
 
+  const disciplineId = await resolveAccessibleDisciplineId(
+    parsed.data.disciplineId,
+    session.user.id
+  )
+  if (parsed.data.disciplineId && !disciplineId) {
+    console.warn("updateSession: ungueltige oder nicht erlaubte disciplineId", {
+      userId: session.user.id,
+      sessionId: id,
+    })
+    return
+  }
+
   // Serien aus dem Formular lesen (gleiche Logik wie createSession)
   const seriesData: Array<z.infer<typeof SeriesInputSchema>> = []
   let i = 0
@@ -707,7 +748,7 @@ export async function updateSession(id: string, formData: FormData): Promise<voi
           type: parsed.data.type,
           date: new Date(parsed.data.date),
           location: parsed.data.location ?? null,
-          disciplineId: parsed.data.disciplineId || null,
+          disciplineId,
           trainingGoal: parsed.data.trainingGoal || null,
         },
       })
