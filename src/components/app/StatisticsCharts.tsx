@@ -101,20 +101,62 @@ const shotDistributionColors: Record<string, string> = {
   r10: "#ef4444",
 }
 
-function computePaddedDomain(values: number[]): [number, number] {
-  if (values.length === 0) return [0, 1]
+function niceNumber(value: number, round: boolean): number {
+  if (!Number.isFinite(value) || value <= 0) return 1
 
-  const min = Math.min(...values)
-  const max = Math.max(...values)
+  const exponent = Math.floor(Math.log10(value))
+  const fraction = value / 10 ** exponent
+
+  let niceFraction: number
+  if (round) {
+    if (fraction < 1.5) niceFraction = 1
+    else if (fraction < 3) niceFraction = 2
+    else if (fraction < 7) niceFraction = 5
+    else niceFraction = 10
+  } else {
+    if (fraction <= 1) niceFraction = 1
+    else if (fraction <= 2) niceFraction = 2
+    else if (fraction <= 5) niceFraction = 5
+    else niceFraction = 10
+  }
+
+  return niceFraction * 10 ** exponent
+}
+
+function computeStableAxis(values: number[], targetTickCount = 5): { domain: [number, number]; ticks: number[] } {
+  if (values.length === 0) {
+    return { domain: [0, 1], ticks: [0, 0.25, 0.5, 0.75, 1] }
+  }
+
+  let min = Math.min(...values)
+  let max = Math.max(...values)
 
   if (min === max) {
     const padding = Math.max(Math.abs(min) * 0.02, 0.1)
-    return [min - padding, max + padding]
+    min -= padding
+    max += padding
+  } else {
+    const range = max - min
+    const padding = Math.max(range * 0.08, 0.1)
+    min -= padding
+    max += padding
   }
 
-  const range = max - min
-  const padding = Math.max(range * 0.08, 0.1)
-  return [min - padding, max + padding]
+  const niceRange = niceNumber(max - min, false)
+  const step = niceNumber(niceRange / Math.max(targetTickCount - 1, 1), true)
+  const niceMin = Math.floor(min / step) * step
+  const niceMax = Math.ceil(max / step) * step
+
+  const ticks: number[] = []
+  for (let tick = niceMin; tick <= niceMax + step * 0.5; tick += step) {
+    ticks.push(Number(tick.toFixed(6)))
+    if (ticks.length >= 12) break
+  }
+
+  return {
+    domain: [ticks[0] ?? niceMin, ticks[ticks.length - 1] ?? niceMax],
+    ticks,
+  }
 }
 
 // Datumsstring für Presets berechnen
@@ -290,18 +332,18 @@ export function StatisticsCharts({
     }))
   }, [filteredQuality, effectiveDisplayMode, selectedDiscipline])
 
-  const wellbeingYDomain = useMemo<[number, number]>(() => {
+  const wellbeingYAxis = useMemo<{ domain: [number, number]; ticks: number[] }>(() => {
     const values = wellbeingDisplayData
       .map((p) => p.displayScore)
       .filter((v): v is number => Number.isFinite(v))
-    return computePaddedDomain(values)
+    return computeStableAxis(values)
   }, [wellbeingDisplayData])
 
-  const qualityYDomain = useMemo<[number, number]>(() => {
+  const qualityYAxis = useMemo<{ domain: [number, number]; ticks: number[] }>(() => {
     const values = qualityDisplayData
       .map((p) => p.displayScore)
       .filter((v): v is number => Number.isFinite(v))
-    return computePaddedDomain(values)
+    return computeStableAxis(values)
   }, [qualityDisplayData])
 
   // Nur Einheiten mit normalisiertem Ergebnis (avgPerShot) für den Verlaufschart
@@ -682,11 +724,7 @@ export function StatisticsCharts({
                 <CardContent>
                   <ChartContainer config={lineChartConfig} className="h-[280px] w-full">
                     <LineChart data={lineData} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
-                      <CartesianGrid
-                        strokeDasharray="3 3"
-                        stroke="var(--border)"
-                        vertical={false}
-                      />
+                      <CartesianGrid stroke="var(--border)" strokeOpacity={0.4} vertical={false} />
                       {/* dataKey="i" statt "datum" — verhindert Kollision wenn zwei Einheiten
                       am selben Tag existieren (gleicher Datumsstring → gleicher x-Slot) */}
                       <XAxis
@@ -768,11 +806,7 @@ export function StatisticsCharts({
                   <CardContent>
                     <ChartContainer config={seriesChartConfig} className="h-[240px] w-full">
                       <BarChart data={barData} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
-                        <CartesianGrid
-                          strokeDasharray="3 3"
-                          stroke="var(--border)"
-                          vertical={false}
-                        />
+                        <CartesianGrid stroke="var(--border)" strokeOpacity={0.4} vertical={false} />
                         <XAxis
                           dataKey="name"
                           tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
@@ -909,11 +943,7 @@ export function StatisticsCharts({
                       className="h-[180px] w-full max-w-full overflow-hidden"
                     >
                       <ScatterChart margin={{ top: 5, right: 8, bottom: 16, left: 0 }}>
-                        <CartesianGrid
-                          strokeDasharray="3 3"
-                          stroke="var(--border)"
-                          vertical={false}
-                        />
+                        <CartesianGrid stroke="var(--border)" strokeOpacity={0.4} vertical={false} />
                         <XAxis
                           dataKey={key}
                           type="number"
@@ -933,7 +963,8 @@ export function StatisticsCharts({
                         <YAxis
                           dataKey="displayScore"
                           type="number"
-                          domain={wellbeingYDomain}
+                          domain={wellbeingYAxis.domain}
+                          ticks={wellbeingYAxis.ticks}
                           tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
                           axisLine={false}
                           tickLine={false}
@@ -1011,7 +1042,7 @@ export function StatisticsCharts({
               <CardContent>
                 <ChartContainer config={qualityChartConfig} className="h-[240px] w-full">
                   <ScatterChart margin={{ top: 5, right: 20, bottom: 15, left: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+                    <CartesianGrid stroke="var(--border)" strokeOpacity={0.4} vertical={false} />
                     <XAxis
                       dataKey="quality"
                       type="number"
@@ -1034,7 +1065,8 @@ export function StatisticsCharts({
                     <YAxis
                       dataKey="displayScore"
                       type="number"
-                      domain={qualityYDomain}
+                      domain={qualityYAxis.domain}
+                      ticks={qualityYAxis.ticks}
                       tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
                       axisLine={false}
                       tickLine={false}
@@ -1102,7 +1134,7 @@ export function StatisticsCharts({
                     data={filteredShotDistribution}
                     margin={{ top: 5, right: 20, bottom: 5, left: 0 }}
                   >
-                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+                    <CartesianGrid stroke="var(--border)" strokeOpacity={0.4} vertical={false} />
                     <XAxis
                       dataKey="date"
                       tickFormatter={(d: Date) =>

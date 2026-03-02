@@ -81,7 +81,7 @@ export function ShotHistogram({ shots, isDecimal }: ShotHistogramProps) {
       <p className="text-sm text-muted-foreground">{total} Schüsse</p>
       <ChartContainer config={chartConfig} className="h-44 w-full">
         <BarChart data={data} margin={{ top: 4, right: 8, bottom: 0, left: 0 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+          <CartesianGrid stroke="var(--border)" strokeOpacity={0.4} vertical={false} />
           <XAxis
             dataKey="label"
             tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
