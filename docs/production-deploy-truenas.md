@@ -65,6 +65,8 @@ NEXTAUTH_URL=https://treffsicher.example.com
 UPLOAD_DIR=/app/uploads
 ADMIN_EMAIL=admin@example.com
 ADMIN_PASSWORD=REPLACE_WITH_STRONG_ADMIN_PASSWORD
+PRISMA_AUTO_RESOLVE_FAILED_MIGRATIONS=true
+PRISMA_AUTO_RESOLVE_UNKNOWN_FAILED_MIGRATIONS=false
 
 # Postgres
 POSTGRES_USER=treffsicher
@@ -142,6 +144,9 @@ volumes:
 Hinweis:
 
 - Das Image startet mit `prisma migrate deploy` und startet dann die App.
+- Falls `migrate deploy` wegen bereits als fehlgeschlagen markierter Migration (`P3009`) blockiert ist,
+  versucht das Startscript eine automatische Recovery für bekannte sichere Fälle und führt danach
+  `migrate deploy` erneut aus.
 - Standarddisziplinen/Admin werden bei Bedarf automatisch initialisiert.
 
 ## 7) Update-Strategie
@@ -164,3 +169,7 @@ Rollback:
 - Private Registry nur mit dediziertem Read-Token anbinden.
 - Datenhaltung ist persistent über die Docker-Volumes `postgres_data` und `uploads_data`.
 - Für Offsite-Backups die App-Daten regelmäßig über TrueNAS-Mechanismen sichern.
+- Standardempfehlung für TrueNAS:
+  - `PRISMA_AUTO_RESOLVE_FAILED_MIGRATIONS=true`
+  - `PRISMA_AUTO_RESOLVE_UNKNOWN_FAILED_MIGRATIONS=false`
+  Damit werden bekannte Recovery-Fälle automatisiert, unbekannte Fälle aber weiterhin sichtbar gestoppt.

@@ -31,9 +31,11 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
 COPY --from=builder --chown=nextjs:nodejs /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder --chown=nextjs:nodejs /app/node_modules/@prisma ./node_modules/@prisma
+COPY --from=builder --chown=nextjs:nodejs /app/scripts ./scripts
 
 # Upload-Verzeichnis anlegen — wird später als Volume gemountet
 RUN mkdir -p /app/uploads && chown nextjs:nodejs /app/uploads
+RUN chmod +x /app/scripts/start-with-migrations.sh
 
 USER nextjs
 
@@ -41,5 +43,5 @@ EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
-# Migrationen beim Start ausführen, dann App starten
-CMD ["sh", "-c", "npx prisma migrate deploy && node server.js"]
+# Migrationen mit Recovery beim Start ausführen, dann App starten
+CMD ["./scripts/start-with-migrations.sh"]

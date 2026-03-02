@@ -49,6 +49,11 @@ Diese Regeln dürfen nicht ohne explizite Überprüfung und Begründung geänder
 
 - **Tool**: Prisma Migrate
 - **Strategie**: `prisma migrate deploy` wird **automatisch beim App-Start** ausgeführt
+- **Recovery bei P3009**: Wenn ein Migrationseintrag in `_prisma_migrations` als fehlgeschlagen markiert ist,
+  startet ein Recovery-Script automatisch. Bekannte, explizit freigegebene Fälle werden aufgelöst und
+  `prisma migrate deploy` wird erneut ausgeführt.
+- **Sicherheitsgrenze**: Unbekannte fehlgeschlagene Migrationen werden standardmässig **nicht**
+  automatisch aufgelöst (`PRISMA_AUTO_RESOLVE_UNKNOWN_FAILED_MIGRATIONS=false`).
 - **Regel**: Jede Schemaänderung erzeugt eine neue Migration via `prisma migrate dev` (lokal)
 - **Keine destructiven Migrationen** ohne expliziten Kommentar und Backup-Hinweis
 - **Migrationsdateien** werden im Repository eingecheckt (`prisma/migrations/`)
