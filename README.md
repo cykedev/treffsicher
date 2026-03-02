@@ -32,7 +32,8 @@ docker compose -f docker-compose.dev.yml ps
 docker compose -f docker-compose.dev.yml up --watch
 ```
 
-Der Container-Start führt automatisch `prisma migrate deploy`, `prisma db push` und `prisma generate` aus.
+Der Container-Start führt automatisch das Script `scripts/start-dev-with-migrations.sh` aus
+(`prisma migrate deploy` mit Recovery, danach `prisma db push` und `prisma generate`).
 Standarddisziplinen und der erste Admin-Account werden beim ersten Request automatisch angelegt (Startup-Initialisierung).
 
 Die App läuft unter [http://localhost:3000](http://localhost:3000).
@@ -84,18 +85,20 @@ Der Dev-Workflow nutzt [Compose Watch](https://docs.docker.com/compose/how-tos/f
 | ---------------------- | -------------- | ---------------------------------------------------------------------- |
 | `src/**`               | Bind-Mount HMR | Next.js Hot-Reload (kein Compose-Watch-Eintrag)                        |
 | `prisma/schema.prisma` | `restart`      | App-Container startet neu, `prisma db push` + `prisma generate` laufen |
+| `prisma/migrations/**` | `restart`      | App-Container startet neu, `prisma migrate deploy` läuft erneut         |
 | `next.config.ts`       | `restart`      | App-Container startet neu                                              |
 | `package.json`         | `rebuild`      | Image neu gebaut (npm ci), Container neu gestartet                     |
 | `package-lock.json`    | `rebuild`      | Wie `package.json`                                                     |
 
-Der Container-Start führt `prisma migrate deploy && prisma db push && prisma generate && npm run dev` aus.
+Der Container-Start läuft über `scripts/start-dev-with-migrations.sh`.
 
 ---
 
 ## Schemaänderungen
 
 In der laufenden Entwicklung sind keine manuellen Schritte nötig:
-Änderungen an `prisma/schema.prisma` triggern automatisch einen Container-Restart, dabei werden Schema (`db push`) und Prisma-Client aktualisiert.
+Änderungen an `prisma/schema.prisma` oder `prisma/migrations/**` triggern automatisch einen Container-Restart.
+Dabei werden Migrationen angewendet, das Schema synchronisiert (`db push`) und der Prisma-Client aktualisiert.
 
 Wenn eine Schemaänderung ins Repository soll, danach eine Migration erzeugen und committen:
 
