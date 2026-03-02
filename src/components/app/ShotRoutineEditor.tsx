@@ -64,7 +64,13 @@ export function ShotRoutineEditor({ initialName, initialSteps, routineId }: Prop
 
   function updateStepField(index: number, field: "title" | "description", value: string) {
     setSteps((prev) =>
-      prev.map((s, i) => (i === index ? { ...s, [field]: value || undefined } : s))
+      prev.map((s, i) => {
+        if (i !== index) return s
+        if (field === "title") {
+          return { ...s, title: value }
+        }
+        return { ...s, description: value || undefined }
+      })
     )
   }
 
