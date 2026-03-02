@@ -27,7 +27,7 @@ export default async function ShotRoutinesPage() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Schuss-Abläufe</h1>
           <p className="text-muted-foreground">
-            Definiere und pflege deinen idealen Schuss-Ablauf.
+            Lege Abläufe mit ihren Schritten an und verfeinere sie laufend.
           </p>
         </div>
         <Button asChild className="w-full sm:w-auto">

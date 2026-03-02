@@ -19,7 +19,7 @@ export default async function GoalsPage() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Saisonziele</h1>
           <p className="text-muted-foreground">
-            Ziele anlegen, bearbeiten und Einheiten markieren, die auf ein Ziel einzahlen.
+            Lege Ziele an, passe sie an und markiere Einheiten, die darauf einzahlen.
           </p>
         </div>
         <Button asChild className="w-full sm:w-auto">
