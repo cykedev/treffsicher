@@ -38,6 +38,19 @@ export function AdminEditUserForm({ user }: Props) {
       {state?.error && <p className="text-sm text-destructive">{state.error}</p>}
 
       <div className="space-y-2">
+        <Label htmlFor="admin-edit-name">Name</Label>
+        <Input
+          id="admin-edit-name"
+          name="name"
+          type="text"
+          defaultValue={user.name ?? ""}
+          autoComplete="name"
+          required
+          disabled={pending}
+        />
+      </div>
+
+      <div className="space-y-2">
         <Label htmlFor="admin-edit-email">E-Mail</Label>
         <Input
           id="admin-edit-email"

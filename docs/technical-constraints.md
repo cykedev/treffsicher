@@ -436,7 +436,7 @@ Das Prisma-Schema implementiert dieses Modell. Abweichungen erfordern eine Migra
 
 ```
 User
-  ├── id, email, passwordHash, role (ADMIN | USER)
+  ├── id, name?, email, passwordHash, role (ADMIN | USER)
   ├── createdAt, isActive (Boolean — deaktiviert statt gelöscht)
   │
   ├── Sessions (Einheiten)
@@ -646,7 +646,7 @@ ADMIN_PASSWORD=        # Passwort des ersten Admin-Accounts (min. 12 Zeichen)
 - **Keine Selbstregistrierung** — nur Admins können Konten erstellen
 - **Rollen**: `ADMIN` und `USER`
 - **Erster Admin**: Wird automatisch beim ersten App-Start angelegt, wenn noch kein Admin existiert (aus `ADMIN_EMAIL` + `ADMIN_PASSWORD` Umgebungsvariablen)
-- **Admin-Funktionen**: Nutzer anlegen, bearbeiten (E-Mail, Rolle, Status), deaktivieren, Passwort zurücksetzen
+- **Admin-Funktionen**: Nutzer anlegen, bearbeiten (Name, E-Mail, Rolle, Status), deaktivieren, Passwort zurücksetzen
 
 ---
 

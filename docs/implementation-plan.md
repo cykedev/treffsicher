@@ -915,8 +915,8 @@ Zeigt die Selbsteinschätzung in den 7 Dimensionen über Zeit:
 **Funktionen**:
 
 - Nutzerliste anzeigen (ohne Passwörter)
-- Neuen Nutzer anlegen (Email + temporäres Passwort)
-- Nutzer bearbeiten (Email, Rolle, Status)
+- Neuen Nutzer anlegen (Name, Email + temporäres Passwort)
+- Nutzer bearbeiten (Name, Email, Rolle, Status)
 - Nutzer deaktivieren (`isActive: false`) — keine Datenlöschung
 - Optionales Passwort-Reset direkt im Nutzer-Bearbeiten
 - System-Disziplinen verwalten im bestehenden Bereich `src/app/(app)/disziplinen/`

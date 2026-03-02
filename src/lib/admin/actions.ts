@@ -14,6 +14,7 @@ export type AdminActionResult = {
 
 export type AdminUserSummary = {
   id: string
+  name: string | null
   email: string
   role: UserRole
   isActive: boolean
@@ -33,6 +34,7 @@ export type AdminSystemDisciplineSummary = {
 }
 
 const CreateUserSchema = z.object({
+  name: z.string().trim().min(1, "Bitte einen Namen angeben.").max(120, "Name ist zu lang."),
   email: z.string().trim().email("Bitte eine gueltige E-Mail angeben."),
   tempPassword: z
     .string()
@@ -42,6 +44,7 @@ const CreateUserSchema = z.object({
 })
 
 const UpdateUserSchema = z.object({
+  name: z.string().trim().min(1, "Bitte einen Namen angeben.").max(120, "Name ist zu lang."),
   email: z.string().trim().email("Bitte eine gueltige E-Mail angeben."),
   role: z.enum(["USER", "ADMIN"] as const),
   isActive: z.boolean(),
@@ -70,6 +73,7 @@ export async function getAdminUsers(): Promise<AdminUserSummary[]> {
   return db.user.findMany({
     select: {
       id: true,
+      name: true,
       email: true,
       role: true,
       isActive: true,
@@ -90,6 +94,7 @@ export async function getAdminUserById(userId: string): Promise<AdminUserSummary
     where: { id: userId },
     select: {
       id: true,
+      name: true,
       email: true,
       role: true,
       isActive: true,
@@ -133,6 +138,7 @@ export async function createUser(
   if (!admin) return { error: "Keine Berechtigung." }
 
   const parsed = CreateUserSchema.safeParse({
+    name: formData.get("name"),
     email: formData.get("email"),
     tempPassword: formData.get("tempPassword"),
     role: formData.get("role") ?? "USER",
@@ -155,6 +161,7 @@ export async function createUser(
 
   await db.user.create({
     data: {
+      name: parsed.data.name,
       email,
       passwordHash,
       role: parsed.data.role,
@@ -229,6 +236,7 @@ export async function updateUser(
   if (!target) return { error: "Nutzer nicht gefunden." }
 
   const parsed = UpdateUserSchema.safeParse({
+    name: formData.get("name"),
     email: formData.get("email"),
     role: formData.get("role"),
     isActive: String(formData.get("isActive")) === "true",
@@ -277,6 +285,7 @@ export async function updateUser(
   await db.user.update({
     where: { id: userId },
     data: {
+      name: parsed.data.name,
       email,
       role: parsed.data.role,
       isActive: parsed.data.isActive,

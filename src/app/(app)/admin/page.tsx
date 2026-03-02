@@ -20,7 +20,7 @@ export default async function AdminPage() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Nutzerverwaltung</h1>
           <p className="text-muted-foreground">
-            Nutzer anzeigen, bearbeiten und bei Bedarf Passwort direkt im Nutzerprofil setzen.
+            Nutzer mit Name anzeigen, bearbeiten und bei Bedarf Passwort direkt im Nutzerprofil setzen.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">

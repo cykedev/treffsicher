@@ -16,7 +16,7 @@ export default async function AdminUserEditPage({ params }: { params: Promise<{ 
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Nutzer bearbeiten</h1>
-        <p className="text-muted-foreground">Rolle, Status und optional Passwort anpassen.</p>
+        <p className="text-muted-foreground">Name, Rolle, Status und optional Passwort anpassen.</p>
       </div>
       <AdminEditUserForm user={user} />
     </div>
