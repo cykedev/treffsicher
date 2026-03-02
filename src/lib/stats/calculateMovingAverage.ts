@@ -1,12 +1,15 @@
 /**
  * Berechnet den gleitenden Durchschnitt einer Wertereihe.
- * Verwendet ein symmetrisches Fenster um den aktuellen Wert.
+ * Verwendet ein rückblickendes Fenster (inkl. aktuellem Wert).
+ * Beispiel bei windowSize=5: [i-4, i-3, i-2, i-1, i]
  *
- * Gibt null zurück wenn zu wenig gültige Datenpunkte im Fenster vorhanden sind —
- * verhindert irreführende Durchschnitte an den Rändern der Reihe.
+ * Am Anfang der Reihe wird mit einem kleineren Fenster gearbeitet, damit
+ * früh bereits Trendwerte sichtbar sind.
+ * Innerhalb des Fensters werden null-Werte ignoriert; nur wenn kein gültiger
+ * Wert vorhanden ist, wird null zurückgegeben.
  *
  * @param values - Eingabewerte (null-Werte werden im Fenster übersprungen)
- * @param windowSize - Fenstergrösse (ungerade Zahlen ergeben symmetrische Fenster)
+ * @param windowSize - Fenstergrösse
  * @returns Array gleicher Länge mit gleitenden Durchschnittswerten
  */
 export function calculateMovingAverage(
@@ -15,20 +18,15 @@ export function calculateMovingAverage(
 ): (number | null)[] {
   if (values.length === 0 || windowSize <= 0) return []
 
-  const half = Math.floor(windowSize / 2)
-  // Mindestanzahl valider Werte im Fenster — verhindert Durchschnitte aus 1-2 Ausreissern
-  const minRequired = Math.ceil(windowSize / 2)
-
   return values.map((_, i) => {
-    const start = Math.max(0, i - half)
-    const end = Math.min(values.length - 1, i + half)
+    const start = Math.max(0, i - windowSize + 1)
+    const end = i
 
     const windowValues = values.slice(start, end + 1).filter((v): v is number => v !== null)
 
-    if (windowValues.length < minRequired) return null
+    if (windowValues.length === 0) return null
 
     const sum = windowValues.reduce((acc, v) => acc + v, 0)
-    // Auf eine Dezimalstelle runden — ausreichend für Ringwertungen
-    return Math.round((sum / windowValues.length) * 10) / 10
+    return sum / windowValues.length
   })
 }

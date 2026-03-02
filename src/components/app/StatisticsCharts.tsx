@@ -102,14 +102,29 @@ const shotDistributionColors: Record<string, string> = {
 }
 
 // Datumsstring für Presets berechnen
+function formatLocalDate(date: Date): string {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, "0")
+  const day = String(date.getDate()).padStart(2, "0")
+  return `${year}-${month}-${day}`
+}
+
 function daysAgo(days: number): string {
   const d = new Date()
   d.setDate(d.getDate() - days)
-  return d.toISOString().slice(0, 10)
+  return formatLocalDate(d)
 }
 
 function today(): string {
-  return new Date().toISOString().slice(0, 10)
+  return formatLocalDate(new Date())
+}
+
+function parseDateInput(value: string, endOfDay: boolean): Date | null {
+  const [year, month, day] = value.split("-").map(Number)
+  if (!year || !month || !day) return null
+  return endOfDay
+    ? new Date(year, month - 1, day, 23, 59, 59, 999)
+    : new Date(year, month - 1, day, 0, 0, 0, 0)
 }
 
 /**
@@ -196,11 +211,13 @@ export function StatisticsCharts({
     return sessions.filter((s) => {
       if (typeFilter !== "all" && s.type !== typeFilter) return false
       if (disciplineFilter !== "all" && s.disciplineId !== disciplineFilter) return false
-      if (from && new Date(s.date) < new Date(from)) return false
+      if (from) {
+        const fromDate = parseDateInput(from, false)
+        if (fromDate && new Date(s.date) < fromDate) return false
+      }
       if (to) {
-        const toDate = new Date(to)
-        toDate.setHours(23, 59, 59)
-        if (new Date(s.date) > toDate) return false
+        const toDate = parseDateInput(to, true)
+        if (toDate && new Date(s.date) > toDate) return false
       }
       return true
     })
@@ -319,6 +336,27 @@ export function StatisticsCharts({
     Max: s.max,
     Avg: s.avg,
   }))
+  const seriesDomain = useMemo<[number, number]>(() => {
+    if (barData.length === 0) return [0, 1]
+
+    const values = barData
+      .flatMap((s) => [s.Min, s.Avg, s.Max])
+      .filter((v): v is number => Number.isFinite(v))
+
+    if (values.length === 0) return [0, 1]
+
+    const min = Math.min(...values)
+    const max = Math.max(...values)
+
+    if (min === max) {
+      const padding = Math.max(Math.abs(min) * 0.05, 0.5)
+      return [min - padding, max + padding]
+    }
+
+    const range = max - min
+    const padding = Math.max(range * 0.08, 0.5)
+    return [min - padding, max + padding]
+  }, [barData])
 
   const hasData = withScore.length > 0
 
@@ -712,6 +750,7 @@ export function StatisticsCharts({
                           tickLine={false}
                         />
                         <YAxis
+                          domain={seriesDomain}
                           tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
                           axisLine={false}
                           tickLine={false}
