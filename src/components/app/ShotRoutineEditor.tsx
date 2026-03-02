@@ -36,7 +36,7 @@ export function ShotRoutineEditor({ initialName, initialSteps, routineId }: Prop
   // Nach erfolgreichem Update zur Liste weiterleiten
   useEffect(() => {
     if (state?.success) {
-      router.push("/schuss-ablauf")
+      router.push("/shot-routines")
     }
   }, [state, router])
 
@@ -173,7 +173,7 @@ export function ShotRoutineEditor({ initialName, initialSteps, routineId }: Prop
           type="button"
           variant="outline"
           disabled={pending}
-          onClick={() => router.push("/schuss-ablauf")}
+          onClick={() => router.push("/shot-routines")}
         >
           Abbrechen
         </Button>

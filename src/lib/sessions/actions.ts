@@ -400,10 +400,10 @@ export async function createSession(formData: FormData): Promise<void> {
     }
   )
 
-  revalidatePath("/einheiten")
-  revalidatePath("/ziele")
+  revalidatePath("/sessions")
+  revalidatePath("/goals")
   // Nach Erstellung direkt zur Detailansicht — dort können Uploads hinzugefügt werden
-  redirect(`/einheiten/${created.id}`)
+  redirect(`/sessions/${created.id}`)
 }
 
 /**
@@ -628,7 +628,7 @@ export async function uploadAttachment(
       },
     })
 
-    revalidatePath(`/einheiten/${sessionId}`)
+    revalidatePath(`/sessions/${sessionId}`)
     return { success: true }
   } catch (err) {
     console.error("Fehler beim Upload:", err)
@@ -665,7 +665,7 @@ export async function deleteAttachment(attachmentId: string): Promise<ActionResu
   }
 
   await db.attachment.delete({ where: { id: attachmentId } })
-  revalidatePath(`/einheiten/${attachment.sessionId}`)
+  revalidatePath(`/sessions/${attachment.sessionId}`)
   return { success: true }
 }
 
@@ -682,7 +682,7 @@ export async function updateSession(id: string, formData: FormData): Promise<voi
   const existing = await db.trainingSession.findFirst({
     where: { id, userId: session.user.id },
   })
-  if (!existing) redirect("/einheiten")
+  if (!existing) redirect("/sessions")
 
   const parsed = CreateSessionSchema.safeParse({
     type: formData.get("type"),
@@ -793,10 +793,10 @@ export async function updateSession(id: string, formData: FormData): Promise<voi
     }
   )
 
-  revalidatePath("/einheiten")
-  revalidatePath(`/einheiten/${id}`)
-  revalidatePath("/ziele")
-  redirect(`/einheiten/${id}`)
+  revalidatePath("/sessions")
+  revalidatePath(`/sessions/${id}`)
+  revalidatePath("/goals")
+  redirect(`/sessions/${id}`)
 }
 
 /**
@@ -818,8 +818,8 @@ export async function toggleFavourite(sessionId: string): Promise<void> {
     data: { isFavourite: !existing.isFavourite },
   })
 
-  revalidatePath("/einheiten")
-  revalidatePath(`/einheiten/${sessionId}`)
+  revalidatePath("/sessions")
+  revalidatePath(`/sessions/${sessionId}`)
 }
 
 /**
@@ -851,7 +851,7 @@ export async function deleteSession(id: string): Promise<ActionResult> {
   // Cascade-Delete: löscht Series, Wellbeing, Reflection, Prognosis, Feedback, Attachments, SessionGoals
   await db.trainingSession.delete({ where: { id } })
 
-  revalidatePath("/einheiten")
+  revalidatePath("/sessions")
   return { success: true }
 }
 
@@ -894,7 +894,7 @@ export async function saveWellbeing(
     update: parsed.data,
   })
 
-  revalidatePath(`/einheiten/${sessionId}`)
+  revalidatePath(`/sessions/${sessionId}`)
   return { success: true }
 }
 
@@ -931,7 +931,7 @@ export async function saveReflection(
     update: data,
   })
 
-  revalidatePath(`/einheiten/${sessionId}`)
+  revalidatePath(`/sessions/${sessionId}`)
   return { success: true }
 }
 
@@ -1000,7 +1000,7 @@ export async function savePrognosis(
     update: parsed.data,
   })
 
-  revalidatePath(`/einheiten/${sessionId}`)
+  revalidatePath(`/sessions/${sessionId}`)
   return { success: true }
 }
 
@@ -1082,6 +1082,6 @@ export async function saveFeedback(
     update: parsed.data,
   })
 
-  revalidatePath(`/einheiten/${sessionId}`)
+  revalidatePath(`/sessions/${sessionId}`)
   return { success: true }
 }

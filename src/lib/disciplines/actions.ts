@@ -152,8 +152,8 @@ export async function setFavouriteDiscipline(disciplineId: string): Promise<Acti
     data: { favouriteDisciplineId: nextFavouriteId },
   })
 
-  revalidatePath("/disziplinen")
-  revalidatePath("/einheiten", "layout")
+  revalidatePath("/disciplines")
+  revalidatePath("/sessions", "layout")
   return { success: true }
 }
 
@@ -196,8 +196,8 @@ export async function createDiscipline(
 
   // Next.js Cache für die Disziplin-Liste und alle Einheit-Seiten ungültig machen
   // (Einheit-Formulare zeigen Disziplinen an — Router Cache muss invalidiert werden)
-  revalidatePath("/disziplinen")
-  revalidatePath("/einheiten", "layout")
+  revalidatePath("/disciplines")
+  revalidatePath("/sessions", "layout")
 
   return { success: true }
 }
@@ -283,8 +283,8 @@ export async function updateDiscipline(
     data: parsed.data,
   })
 
-  revalidatePath("/disziplinen")
-  revalidatePath("/einheiten", "layout")
+  revalidatePath("/disciplines")
+  revalidatePath("/sessions", "layout")
   return { success: true }
 }
 
@@ -349,7 +349,7 @@ export async function setDisciplineArchived(
     })
   }
 
-  revalidatePath("/disziplinen")
-  revalidatePath("/einheiten", "layout")
+  revalidatePath("/disciplines")
+  revalidatePath("/sessions", "layout")
   return { success: true }
 }

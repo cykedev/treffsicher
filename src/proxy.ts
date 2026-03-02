@@ -31,11 +31,11 @@ export const config = {
   matcher: [
     // Schützt alle Routen die im (app)-Ordner liegen
     "/dashboard/:path*",
-    "/einheiten/:path*",
-    "/disziplinen/:path*",
-    "/statistiken/:path*",
-    "/schuss-ablauf/:path*",
-    "/ziele/:path*",
+    "/sessions/:path*",
+    "/disciplines/:path*",
+    "/statistics/:path*",
+    "/shot-routines/:path*",
+    "/goals/:path*",
     "/admin/:path*",
   ],
 }

@@ -386,7 +386,7 @@ export function calculateTotalScore(
 ): number
 ```
 
-**Formular** (`src/app/(app)/einheiten/neu/page.tsx`):
+**Formular** (`src/app/(app)/sessions/new/page.tsx`):
 
 1. Einheitentyp wählen (TRAINING / WETTKAMPF / TROCKENTRAINING / MENTAL)
 2. Disziplin wählen (nur bei TRAINING / WETTKAMPF)
@@ -400,7 +400,7 @@ Alle anderen Felder (Befinden, Reflexion, Prognose) kommen in Phase 3.
 
 ### Schritt 1.10 — Tagebuch (Einheitenliste)
 
-**Datei**: `src/app/(app)/einheiten/page.tsx`
+**Datei**: `src/app/(app)/sessions/page.tsx`
 
 Zeigt alle eigenen Einheiten, neuste zuerst:
 
@@ -500,7 +500,7 @@ Folgende Punkte manuell prüfen:
 
 ### Schritt 2.2 — Einheit-Detailansicht
 
-`src/app/(app)/einheiten/[id]/page.tsx`
+`src/app/(app)/sessions/[id]/page.tsx`
 
 Zeigt alle Daten der Einheit:
 
@@ -526,7 +526,7 @@ Zeigt alle Daten der Einheit:
 
 ### Schritt 2.4 — Basis-Statistiken
 
-`src/app/(app)/statistiken/page.tsx`
+`src/app/(app)/statistics/page.tsx`
 
 Pakete: `npm install recharts`
 
@@ -561,10 +561,10 @@ Pakete: `npm install recharts`
 ### Schritt 3.0 — Disziplinen: revalidatePath für Einheit-Seiten
 
 **Problem**: Nach dem Anlegen/Bearbeiten/Archivieren einer Disziplin kann der Next.js Router Cache
-dazu führen, dass `/einheiten/neu` und `/einheiten/[id]/bearbeiten` veraltete Disziplin-Listen anzeigen.
+dazu führen, dass `/sessions/new` und `/sessions/[id]/edit` veraltete Disziplin-Listen anzeigen.
 
 **Lösung**: In allen Disziplin-CRUD-Actions (`createDiscipline`, `updateDiscipline`, `archiveDiscipline`)
-zusätzlich `revalidatePath("/einheiten", "layout")` aufrufen — invalidiert alle Einheit-Seiten.
+zusätzlich `revalidatePath("/sessions", "layout")` aufrufen — invalidiert alle Einheit-Seiten.
 
 ---
 
@@ -581,7 +581,7 @@ zusätzlich `revalidatePath("/einheiten", "layout")` aufrufen — invalidiert al
   Attachment-Dateien vom Disk entfernen (wie in `deleteAttachment`).
   Auth-Check + `userId`-Filter.
 
-**Neue Route**: `src/app/(app)/einheiten/[id]/bearbeiten/page.tsx`
+**Neue Route**: `src/app/(app)/sessions/[id]/edit/page.tsx`
 
 Server Component — lädt die Einheit via `getSessionById`, zeigt vorausgefülltes Formular.
 `notFound()` wenn Einheit nicht gefunden.
@@ -589,10 +589,10 @@ Server Component — lädt die Einheit via `getSessionById`, zeigt vorausgefüll
 **Formular**: Wiederverwendung von `EinheitForm` mit neuem `initialData`-Prop.
 Vorausgefüllte Werte: Typ, Disziplin, Datum, Ort, Serien (inkl. Einzelschüsse und Ausführungsqualität).
 
-**Löschen**: Button in der Detailansicht (`/einheiten/[id]`), mit Bestätigungsdialog (native `confirm` oder einfaches Inline-Confirm-Pattern ohne externe Abhängigkeit).
-Nach dem Löschen: Redirect zu `/einheiten`.
+**Löschen**: Button in der Detailansicht (`/sessions/[id]`), mit Bestätigungsdialog (native `confirm` oder einfaches Inline-Confirm-Pattern ohne externe Abhängigkeit).
+Nach dem Löschen: Redirect zu `/sessions`.
 
-**Detailansicht erweitern**: Link "Bearbeiten" → `/einheiten/[id]/bearbeiten`.
+**Detailansicht erweitern**: Link "Bearbeiten" → `/sessions/[id]/edit`.
 
 ---
 
@@ -612,7 +612,7 @@ Nach dem Löschen: Redirect zu `/einheiten`.
   Auth-Check + Berechtigungspruefung (eigene Disziplinen; System-Disziplinen nur für Admin)
   Falls Disziplin bereits in Sessions verwendet: `scoringType`-Änderung ablehnen (Fehlermeldung)
 
-**Neue Route**: `src/app/(app)/disziplinen/[id]/bearbeiten/page.tsx`
+**Neue Route**: `src/app/(app)/disciplines/[id]/edit/page.tsx`
 
 Server Component — lädt die Disziplin via `getDisciplineById`, zeigt vorausgefülltes Formular.
 `notFound()` wenn Disziplin nicht gefunden oder keine Berechtigung besteht.
@@ -673,7 +673,7 @@ Gilt für Wettkampf und fokussiertes Training (aus requirements.md).
 
 ### Schritt 3.6 — Schuss-Ablauf
 
-`src/app/(app)/schuss-ablauf/page.tsx`
+`src/app/(app)/shot-routines/page.tsx`
 
 Editierbares Dokument (kein Versionsverlauf — bewusste Entscheidung):
 
@@ -712,7 +712,7 @@ Editierbares Dokument (kein Versionsverlauf — bewusste Entscheidung):
 - Recharts `BarChart`, X-Achse: 10 links → 0 rechts, alle 11 Buckets immer sichtbar
 - Farbschema analog Meyton: 10 rot, 9 gelb, 8–0 Grauabstufungen
 
-**`src/app/(app)/einheiten/[id]/page.tsx`**:
+**`src/app/(app)/sessions/[id]/page.tsx`**:
 
 - `allShots` aus allen Serien sammeln (nutzt bestehende `parseShotsJson`)
 - Card "Schussverteilung" unterhalb Ergebnis-Card, nur wenn `hasScoring && hasShots`
@@ -877,7 +877,7 @@ Editierbares Dokument (kein Versionsverlauf — bewusste Entscheidung):
 
 ### Schritt 4.1 — Saisonziele ✅ abgeschlossen
 
-`src/app/(app)/ziele/page.tsx`
+`src/app/(app)/goals/page.tsx`
 
 - Ziel anlegen: Titel, Beschreibung, Typ (RESULT / PROCESS), Zeitraum (Von–Bis)
 - Einheiten mit Zielen verknüpfen (Many-to-Many via SessionGoal)
@@ -927,15 +927,15 @@ Zeigt die Selbsteinschätzung in den 7 Dimensionen über Zeit:
 - Nutzer bearbeiten (Name, Email, Rolle, Status)
 - Nutzer deaktivieren (`isActive: false`) — keine Datenlöschung
 - Optionales Passwort-Reset direkt im Nutzer-Bearbeiten
-- System-Disziplinen verwalten im bestehenden Bereich `src/app/(app)/disziplinen/`
+- System-Disziplinen verwalten im bestehenden Bereich `src/app/(app)/disciplines/`
   (nur fuer Admins; normale Nutzer sehen System-Disziplinen nur lesend)
 
 **Aktueller UI-Flow (konsistent mit anderen Bereichen)**:
 
 - `/admin` = direkte Nutzerverwaltung (lesende Uebersicht + Aktionen)
-- `/admin/nutzer/neu` = neuen Nutzer anlegen
-- `/admin/nutzer/[id]/bearbeiten` = Nutzer bearbeiten + optional Passwort setzen
-- `/admin/nutzer` und `/admin/nutzer/passwort` leiten auf `/admin` um (kompatible Alt-URLs)
+- `/admin/users/new` = neuen Nutzer anlegen
+- `/admin/users/[id]/edit` = Nutzer bearbeiten + optional Passwort setzen
+- `/admin/users` und `/admin/users/password` leiten auf `/admin` um (kompatible Alt-URLs)
 
 ### Schritt 5.2 — Offline-Unterstützung (PWA)
 

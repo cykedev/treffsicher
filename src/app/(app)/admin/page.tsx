@@ -25,7 +25,7 @@ export default async function AdminPage() {
         </div>
         <div className="flex flex-wrap gap-2">
           <Button asChild>
-            <Link href="/admin/nutzer/neu">
+            <Link href="/admin/users/new">
               <Plus className="mr-1.5 h-4 w-4" />
               Neuer Nutzer
             </Link>

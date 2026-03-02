@@ -17,11 +17,11 @@ import {
 
 const baseNavLinks = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/einheiten", label: "Tagebuch", icon: BookOpen },
-  { href: "/statistiken", label: "Statistiken", icon: TrendingUp },
-  { href: "/ziele", label: "Ziele", icon: Goal },
-  { href: "/schuss-ablauf", label: "Ablauf", icon: ListChecks },
-  { href: "/disziplinen", label: "Disziplinen", icon: Target },
+  { href: "/sessions", label: "Tagebuch", icon: BookOpen },
+  { href: "/statistics", label: "Statistiken", icon: TrendingUp },
+  { href: "/goals", label: "Ziele", icon: Goal },
+  { href: "/shot-routines", label: "Ablauf", icon: ListChecks },
+  { href: "/disciplines", label: "Disziplinen", icon: Target },
 ]
 
 // Haupt-Navigation der App.
