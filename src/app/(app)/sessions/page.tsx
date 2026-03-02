@@ -90,7 +90,7 @@ export default async function SessionsPage({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Tagebuch</h1>
           <p className="text-muted-foreground">
@@ -101,7 +101,7 @@ export default async function SessionsPage({
                 : formatSessionCount(sessions.length)}
           </p>
         </div>
-        <Button asChild>
+        <Button asChild className="w-full sm:w-auto">
           <Link href="/sessions/new">
             <Plus className="mr-1.5 h-4 w-4" />
             Neue Einheit
@@ -190,25 +190,52 @@ export default async function SessionsPage({
               // Ganzer Card ist klickbar — führt zur Detailansicht
               <Link key={s.id} href={`/sessions/${s.id}`} className="block">
                 <Card className="transition-colors hover:bg-muted/30">
-                  <CardContent className="flex items-center justify-between py-4">
-                    <div className="space-y-1.5">
-                      <div className="flex flex-wrap items-center gap-1.5">
-                        {s.isFavourite && (
-                          <Heart className="h-3.5 w-3.5 fill-red-500 text-red-500 shrink-0" />
-                        )}
-                        <Badge variant="outline" className={typeBadgeClass[s.type] ?? ""}>
-                          {sessionTypeLabels[s.type] ?? s.type}
-                        </Badge>
-                        {s.discipline && (
-                          <span className="text-sm text-muted-foreground">{s.discipline.name}</span>
+                  <CardContent className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="min-w-0 flex-1 space-y-2">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            {s.isFavourite && (
+                              <Heart className="h-3.5 w-3.5 fill-red-500 text-red-500 shrink-0" />
+                            )}
+                            <Badge variant="outline" className={typeBadgeClass[s.type] ?? ""}>
+                              {sessionTypeLabels[s.type] ?? s.type}
+                            </Badge>
+                            {s.discipline && (
+                              <span className="break-words text-sm text-muted-foreground">
+                                {s.discipline.name}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Gesamtergebnis rechts (mobile oben) */}
+                        {hasSeries && totalScore > 0 && (
+                          <div className="shrink-0 text-right sm:hidden">
+                            <span className="text-xl font-bold tabular-nums">
+                              {formattedTotalScore}
+                            </span>
+                            {maxScore > 0 && (
+                              <p className="text-[11px] leading-tight text-muted-foreground/80">
+                                von {formattedMaxScore}
+                              </p>
+                            )}
+                            <p className="text-xs text-muted-foreground">
+                              {totalScoringShots > 0
+                                ? `${totalScoringShots} Sch.${totalPracticeShots > 0 ? ` + ${totalPracticeShots} Probe` : ""}`
+                                : ""}
+                            </p>
+                          </div>
                         )}
                       </div>
-                      <p className="text-sm text-muted-foreground">
+
+                      <p className="break-words text-sm text-muted-foreground">
                         {formatDate(s.date)}
                         {s.location && (
                           <span className="text-muted-foreground/60"> · {s.location}</span>
                         )}
                       </p>
+
                       {/* Mentale Indikatoren als kleine Badges */}
                       {filledMental.length > 0 && (
                         <div className="flex flex-wrap gap-1">
@@ -225,9 +252,9 @@ export default async function SessionsPage({
                       )}
                     </div>
 
-                    {/* Gesamtergebnis rechts */}
+                    {/* Gesamtergebnis rechts (desktop) */}
                     {hasSeries && totalScore > 0 && (
-                      <div className="ml-4 shrink-0 text-right">
+                      <div className="hidden text-right sm:ml-4 sm:block sm:shrink-0">
                         <span className="text-xl font-bold tabular-nums">
                           {formattedTotalScore}
                         </span>

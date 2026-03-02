@@ -16,15 +16,15 @@ export default async function AdminPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Nutzerverwaltung</h1>
           <p className="text-muted-foreground">
             Nutzer mit Name anzeigen, bearbeiten und bei Bedarf Passwort direkt im Nutzerprofil setzen.
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <Button asChild>
+        <div className="flex w-full flex-wrap gap-2 sm:w-auto sm:justify-end">
+          <Button asChild className="w-full sm:w-auto">
             <Link href="/admin/users/new">
               <Plus className="mr-1.5 h-4 w-4" />
               Neuer Nutzer

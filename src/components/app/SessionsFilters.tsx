@@ -64,13 +64,13 @@ export function SessionsFilters({
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
+    <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
       <Select
         value={selectedType}
         onValueChange={(value) => updateFilters(value, selectedDiscipline)}
         disabled={isPending}
       >
-        <SelectTrigger className="h-9 w-[160px]">
+        <SelectTrigger className="h-9 w-full sm:w-[160px]">
           <SelectValue placeholder="Alle Typen" />
         </SelectTrigger>
         <SelectContent>
@@ -88,7 +88,7 @@ export function SessionsFilters({
         onValueChange={(value) => updateFilters(selectedType, value)}
         disabled={isPending}
       >
-        <SelectTrigger className="h-9 w-[200px] sm:w-[220px]">
+        <SelectTrigger className="h-9 w-full sm:w-[220px]">
           <SelectValue placeholder="Alle Disziplinen" />
         </SelectTrigger>
         <SelectContent>
@@ -109,7 +109,7 @@ export function SessionsFilters({
           aria-label="Filter zurücksetzen"
           onClick={resetFilters}
           disabled={isPending}
-          className="h-9 w-9"
+          className="h-9 w-9 self-end sm:self-auto"
         >
           <X className="h-4 w-4" />
         </Button>
@@ -117,4 +117,3 @@ export function SessionsFilters({
     </div>
   )
 }
-

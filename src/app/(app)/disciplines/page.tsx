@@ -26,7 +26,7 @@ export default async function DisciplinesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Disziplinen</h1>
           <p className="text-muted-foreground">
@@ -35,7 +35,7 @@ export default async function DisciplinesPage() {
               : "System-Disziplinen und eigene Konfigurationen."}
           </p>
         </div>
-        <Button asChild>
+        <Button asChild className="w-full sm:w-auto">
           <Link href="/disciplines/new">
             <Plus className="mr-1.5 h-4 w-4" />
             {isAdmin ? "Neue (System-)Disziplin" : "Neue Disziplin"}
@@ -49,10 +49,10 @@ export default async function DisciplinesPage() {
         <div className="space-y-2">
           {disciplines.map((d) => (
             <Card key={d.id}>
-              <CardContent className="flex items-center justify-between py-4">
-                <div className="space-y-0.5">
+              <CardContent className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="min-w-0 space-y-0.5">
                   <div className="flex items-center gap-2">
-                    <span className="font-medium">{d.name}</span>
+                    <span className="break-words font-medium">{d.name}</span>
                     {d.isSystem && (
                       <Badge variant="secondary" className="text-xs">
                         Standard
@@ -64,13 +64,13 @@ export default async function DisciplinesPage() {
                       </Badge>
                     )}
                   </div>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="break-words text-sm text-muted-foreground">
                     {d.seriesCount} × {d.shotsPerSeries} Schuss —{" "}
                     {scoringTypeLabel[d.scoringType] ?? d.scoringType}
                     {d.practiceSeries > 0 && ` — ${d.practiceSeries} Probeschuss-Serie(n)`}
                   </p>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:justify-end">
                   {!d.isArchived && (
                     <FavouriteDisciplineButton
                       disciplineId={d.id}

@@ -572,12 +572,20 @@ export function StatisticsCharts({
 
       <Tabs defaultValue="verlauf">
         {/* overflow-x-auto: Tabs scrollen auf kleinen Screens statt zu brechen */}
-        <div className="overflow-x-auto pb-px">
+        <div className="no-scrollbar overflow-x-auto pb-px">
           <TabsList className="mb-2 w-max min-w-full">
-            <TabsTrigger value="verlauf">Verlauf</TabsTrigger>
-            <TabsTrigger value="selbstbild">Selbsteinschätzung</TabsTrigger>
-            <TabsTrigger value="befinden">Befinden</TabsTrigger>
-            <TabsTrigger value="qualitaet">Qualität &amp; Schüsse</TabsTrigger>
+            <TabsTrigger value="verlauf" className="shrink-0 flex-none">
+              Verlauf
+            </TabsTrigger>
+            <TabsTrigger value="selbstbild" className="shrink-0 flex-none">
+              Selbsteinschätzung
+            </TabsTrigger>
+            <TabsTrigger value="befinden" className="shrink-0 flex-none">
+              Befinden
+            </TabsTrigger>
+            <TabsTrigger value="qualitaet" className="shrink-0 flex-none">
+              Qualität &amp; Schüsse
+            </TabsTrigger>
           </TabsList>
         </div>
 
@@ -804,9 +812,9 @@ export function StatisticsCharts({
         </TabsContent>
 
         {/* Tab 3: Befinden-Korrelation — je Dimension eine eigene Card (2 Spalten auf Desktop) */}
-        <TabsContent value="befinden">
+        <TabsContent value="befinden" className="overflow-x-hidden">
           {filteredWellbeing.length > 0 ? (
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid min-w-0 gap-4 sm:grid-cols-2">
               {(
                 [
                   { key: "sleep" as const, label: "Schlaf" },
@@ -815,7 +823,7 @@ export function StatisticsCharts({
                   { key: "motivation" as const, label: "Motivation" },
                 ] as const
               ).map(({ key, label }) => (
-                <Card key={key}>
+                <Card key={key} className="min-w-0 overflow-hidden">
                   <CardHeader className="pb-2">
                     <CardTitle className="flex items-baseline gap-2 text-base">
                       {label}
@@ -826,9 +834,12 @@ export function StatisticsCharts({
                       )}
                     </CardTitle>
                   </CardHeader>
-                  <CardContent>
-                    <ChartContainer config={wellbeingChartConfig} className="h-[180px] w-full">
-                      <ScatterChart margin={{ top: 5, right: 16, bottom: 16, left: 0 }}>
+                  <CardContent className="min-w-0 overflow-x-hidden">
+                    <ChartContainer
+                      config={wellbeingChartConfig}
+                      className="h-[180px] w-full max-w-full overflow-hidden"
+                    >
+                      <ScatterChart margin={{ top: 5, right: 8, bottom: 16, left: 0 }}>
                         <CartesianGrid
                           strokeDasharray="3 3"
                           stroke="var(--border)"
@@ -857,7 +868,7 @@ export function StatisticsCharts({
                           tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
                           axisLine={false}
                           tickLine={false}
-                          width={40}
+                          width={34}
                           tickFormatter={(v: number) =>
                             effectiveDisplayMode === "projected" && selectedDiscipline
                               ? formatDisplayValue(v)

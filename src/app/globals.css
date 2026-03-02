@@ -131,6 +131,17 @@
   }
 }
 
+@layer utilities {
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+}
+
 /* Recharts-Tooltip: Dark-Mode-Farben erzwingen (CSS-Variablen in Inline-Styles
    sind manchmal browserabhängig — dieses Override greift zuverlässig) */
 .dark .recharts-default-tooltip {

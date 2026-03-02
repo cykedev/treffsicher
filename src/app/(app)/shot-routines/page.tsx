@@ -13,14 +13,14 @@ export default async function ShotRoutinesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Schuss-Abläufe</h1>
           <p className="text-muted-foreground">
             Definiere und pflege deinen idealen Schuss-Ablauf.
           </p>
         </div>
-        <Button asChild>
+        <Button asChild className="w-full sm:w-auto">
           <Link href="/shot-routines/new">Neuer Ablauf</Link>
         </Button>
       </div>
@@ -35,14 +35,14 @@ export default async function ShotRoutinesPage() {
             const steps = Array.isArray(r.steps) ? r.steps : []
             return (
               <Card key={r.id}>
-                <CardContent className="flex items-center justify-between py-4">
-                  <div>
-                    <span className="font-medium">{r.name}</span>
+                <CardContent className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="min-w-0">
+                    <span className="break-words font-medium">{r.name}</span>
                     <p className="text-sm text-muted-foreground">
                       {steps.length} {steps.length === 1 ? "Schritt" : "Schritte"}
                     </p>
                   </div>
-                  <Button variant="outline" size="sm" asChild>
+                  <Button variant="outline" size="sm" asChild className="w-full sm:w-auto">
                     <Link href={`/shot-routines/${r.id}`}>Bearbeiten</Link>
                   </Button>
                 </CardContent>
