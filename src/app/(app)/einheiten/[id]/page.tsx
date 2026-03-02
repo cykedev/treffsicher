@@ -5,6 +5,7 @@ import {
   ArrowLeft,
   Download,
   Heart,
+  Goal,
   Target,
   Gauge,
   CheckCircle2,
@@ -166,7 +167,7 @@ export default async function EinheitDetailPage({ params }: { params: Promise<{ 
           {einheit.goals.length > 0 && (
             <div className="space-y-1 text-sm text-muted-foreground">
               <div className="flex items-start gap-1.5">
-                <Target className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                <Goal className="mt-0.5 h-3.5 w-3.5 shrink-0" />
                 <span>Zahlt auf folgende Saisonziele ein:</span>
               </div>
               <div className="flex flex-wrap gap-1.5 pl-5">
