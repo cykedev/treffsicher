@@ -119,7 +119,7 @@ export function GoalCardSection({ goal, sessions }: Props) {
     return (
       <form onSubmit={handleGoalSubmit} className="space-y-4 rounded-md border p-3">
         <p className="text-sm font-medium">Zieldaten bearbeiten</p>
-        <div className="grid gap-3 md:grid-cols-2">
+        <div className="grid gap-3 md:grid-cols-2 [&>*]:min-w-0">
           <div className="space-y-1.5">
             <Label htmlFor={`goal-title-${goal.id}`}>Titel</Label>
             <Input id={`goal-title-${goal.id}`} name="title" required defaultValue={goal.title} />
@@ -146,7 +146,7 @@ export function GoalCardSection({ goal, sessions }: Props) {
             defaultValue={goal.description ?? ""}
           />
         </div>
-        <div className="grid gap-3 md:grid-cols-2">
+        <div className="grid gap-3 md:grid-cols-2 [&>*]:min-w-0">
           <div className="space-y-1.5">
             <Label htmlFor={`goal-from-${goal.id}`}>Von</Label>
             <Input
