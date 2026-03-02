@@ -7,6 +7,7 @@ import { updateUser, type AdminActionResult, type AdminUserSummary } from "@/lib
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { MAX_USER_EMAIL_LENGTH } from "@/lib/authValidation"
 import {
   Select,
   SelectContent,
@@ -58,6 +59,7 @@ export function AdminEditUserForm({ user }: Props) {
           type="email"
           defaultValue={user.email}
           autoComplete="off"
+          maxLength={MAX_USER_EMAIL_LENGTH}
           required
           disabled={pending}
         />

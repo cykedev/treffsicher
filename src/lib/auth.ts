@@ -7,6 +7,7 @@ import {
   clearSuccessfulLoginAttempts,
   registerFailedLoginAttempt,
 } from "@/lib/auth-rate-limit"
+import { normalizeLoginEmail } from "@/lib/authValidation"
 
 function getHeaderValue(
   headers: Record<string, unknown> | undefined,
@@ -53,7 +54,11 @@ export const authOptions: NextAuthOptions = {
           return null
         }
 
-        const email = credentials.email.trim().toLowerCase()
+        const email = normalizeLoginEmail(credentials.email)
+        if (!email) {
+          return null
+        }
+
         const ipHeaderValue = extractClientIpHeader(req)
         const rateLimitState = checkLoginAllowed(email, ipHeaderValue)
         if (!rateLimitState.allowed) {
