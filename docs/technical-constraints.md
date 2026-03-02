@@ -130,6 +130,29 @@ if (process.env.NODE_ENV !== "production") {
 - **HTTPS**: In Produktion zwingend (via Reverse Proxy, z.B. Nginx oder Traefik auf TrueNAS)
 - **Secrets**: `NEXTAUTH_SECRET` und Datenbank-Credentials nur via Umgebungsvariablen
 
+### DoS-Schutz (verbindlich)
+
+- **Login-Rate-Limit**: In-Memory Buckets pro E-Mail und pro IP (`maxAttemptsPerEmail=5`, `maxAttemptsPerIp=30`, Fenster/Blockdauer je 15 Minuten)
+- **Login-Rate-Limit Speichergrenze**: Maximale Anzahl Buckets konfigurierbar (`AUTH_RATE_LIMIT_MAX_BUCKETS`, Standard 10'000), älteste Buckets werden bei Erreichen der Grenze verdrängt
+- **Proxy-Header-Vertrauen**: IP-basierte Limits nutzen `x-real-ip`/`x-forwarded-for` nur wenn `AUTH_TRUST_PROXY_HEADERS=true` gesetzt ist (sicherer Default: aus)
+- **Meyton-URL-Import**:
+  - `fetch` mit `AbortController` (Timeout 15 Sekunden)
+  - Keine Redirects (`redirect: "manual"`)
+  - `Content-Length` Vorab-Prüfung auf 10 MB
+  - Streaming-Download mit hartem Abbruch > 10 MB (kein ungebremstes `arrayBuffer()` mehr)
+- **Meyton-PDF-Dekompression**:
+  - Maximal 2 MB pro Flate-Stream (`inflateSync(..., { maxOutputLength })`)
+  - Maximal 8 MB dekomprimierter Inhalt insgesamt pro Import
+  - Maximal 25'000 extrahierte Text-Tokens
+- **Session-FormData (Server Action)**:
+  - Maximal 120 Serien pro Request
+  - Maximal 120 Schusswerte pro Serie (beim JSON-Array)
+  - Maximal 16 KB JSON-Text pro `shots`-Feld
+  - Maximal 100 Ziel-IDs (`goalIds`) pro Request
+- **Statistik-Abfragen**:
+  - Harte Server-Caps pro Request: max. 1'200 Sessions bzw. 12'000 Serienpunkte
+  - Ergebnisdarstellung bleibt chronologisch (intern `desc` + Reverse)
+
 ---
 
 ## Code Conventions
@@ -643,6 +666,8 @@ NEXTAUTH_URL=          # Öffentliche URL der App (z.B. https://training.example
 UPLOAD_DIR=            # Pfad zum Upload-Verzeichnis (Standard: /app/uploads)
 ADMIN_EMAIL=           # E-Mail des ersten Admin-Accounts (wird beim ersten Start angelegt)
 ADMIN_PASSWORD=        # Passwort des ersten Admin-Accounts (min. 12 Zeichen)
+AUTH_TRUST_PROXY_HEADERS=   # true nur bei vertrauenswürdigem Reverse Proxy (für IP-Rate-Limit)
+AUTH_RATE_LIMIT_MAX_BUCKETS= # Max. In-Memory Buckets für Login-Rate-Limit (Standard: 10000)
 ```
 
 ---
@@ -703,6 +728,11 @@ Admins koennen System-Disziplinen verwalten (anlegen, bearbeiten, archivieren/re
 - Import speichert nicht direkt in der DB: Speichern erst durch Nutzeraktion
 - Bei neuen, noch nicht gespeicherten Einheiten kann Datum/Uhrzeit aus dem Meyton-PDF übernommen werden
 - Fehlerstrategie: harter Abbruch mit deutscher Fehlermeldung, kein Teilimport
+- Schutzgrenzen:
+  - Datei-Grenze 10 MB (Upload und URL-Import)
+  - URL-Import: 15 Sekunden Timeout, keine Redirects
+  - Dekompression: 2 MB pro Stream, 8 MB gesamt, 25'000 Tokens
+  - Formularübernahme: max. 120 Serien, max. 120 Schusswerte pro Serie
 
 ---
 
@@ -753,5 +783,7 @@ Admins koennen System-Disziplinen verwalten (anlegen, bearbeiten, archivieren/re
 
 ## Änderungsnotizen
 
+- **02.03.2026**: DoS-Härtung dokumentiert: Streaming-URL-Import mit Hard-Cap, begrenzte PDF-Dekompression, serverseitige FormData-Limits und Statistik-Caps.
+- **02.03.2026**: Login-Rate-Limit weiter gehärtet: begrenzte Bucket-Anzahl (Speichergrenze) und optionales Proxy-Header-Vertrauen (`AUTH_TRUST_PROXY_HEADERS`).
 - **02.03.2026**: Sprach- und Benennungsregel präzisiert: UI und Code-Kommentare auf Deutsch, interne Komponenten- sowie Routen-/URL-Benennung auf Englisch.
 - **02.03.2026**: Umsetzung abgeschlossen: interne Routenpfade und Komponenten-Namen auf Englisch standardisiert (`/sessions`, `/disciplines`, `/statistics`, `/goals`, `/shot-routines`, `/admin/users`), ohne Altpfad-Redirects.

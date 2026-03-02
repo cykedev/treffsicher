@@ -1,5 +1,29 @@
 import { describe, expect, it } from "vitest"
-import { extractMeytonDateTime, parseMeytonSeriesFromText } from "./meytonImport"
+import { deflateSync } from "node:zlib"
+import {
+  extractMeytonDateTime,
+  extractTextFromPdfBuffer,
+  parseMeytonSeriesFromText,
+} from "./meytonImport"
+
+function buildPdfWithFlateStream(streamContent: Buffer): Buffer {
+  const header = Buffer.from(
+    `%PDF-1.4
+1 0 obj
+<< /Filter /FlateDecode /Length ${streamContent.length} >>
+stream
+`,
+    "latin1"
+  )
+  const footer = Buffer.from(
+    `
+endstream
+endobj
+%%EOF`,
+    "latin1"
+  )
+  return Buffer.concat([header, streamContent, footer])
+}
 
 describe("parseMeytonSeriesFromText", () => {
   it("extrahiert mehrere Serien mit Schuessen in Dokumentreihenfolge", () => {
@@ -143,5 +167,27 @@ gedruckt am: 30.01.2026 20:09
     const result = extractMeytonDateTime(text)
 
     expect(result).toBeNull()
+  })
+})
+
+describe("extractTextFromPdfBuffer", () => {
+  it("extrahiert Text aus gueltigen FlateDecode-Streams", async () => {
+    const content = "BT (Serie 1: 9.9 10.1) Tj ET"
+    const compressed = deflateSync(Buffer.from(content, "latin1"))
+    const pdf = buildPdfWithFlateStream(compressed)
+
+    const text = await extractTextFromPdfBuffer(pdf)
+
+    expect(text).toContain("Serie 1: 9.9 10.1")
+  })
+
+  it("ignoriert Streams mit uebermaessiger Dekompression ohne Abbruch des Imports", async () => {
+    const hugeLiteral = `BT (${"A".repeat(3 * 1024 * 1024)}) Tj ET`
+    const compressed = deflateSync(Buffer.from(hugeLiteral, "latin1"))
+    const pdf = buildPdfWithFlateStream(compressed)
+
+    const text = await extractTextFromPdfBuffer(pdf)
+
+    expect(text).toBe("")
   })
 })

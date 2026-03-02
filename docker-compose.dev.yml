@@ -26,6 +26,8 @@ services:
       - ADMIN_PASSWORD=admin-passwort-12
       - PRISMA_AUTO_RESOLVE_FAILED_MIGRATIONS=true
       - PRISMA_AUTO_RESOLVE_UNKNOWN_FAILED_MIGRATIONS=false
+      - AUTH_TRUST_PROXY_HEADERS=false
+      - AUTH_RATE_LIMIT_MAX_BUCKETS=10000
     depends_on:
       db:
         condition: service_healthy

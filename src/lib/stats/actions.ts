@@ -3,6 +3,9 @@
 import { db } from "@/lib/db"
 import { getAuthSession } from "@/lib/auth-helpers"
 
+const MAX_STATS_SESSIONS = 1200
+const MAX_STATS_SERIES_POINTS = 12000
+
 export type StatsFilters = {
   type?: "TRAINING" | "WETTKAMPF" | "all"
   from?: string // ISO-Datumsstring
@@ -113,10 +116,12 @@ export async function getStatsData(filters: StatsFilters): Promise<StatsSession[
         orderBy: { position: "asc" },
       },
     },
-    orderBy: { date: "asc" }, // Aufsteigend für Zeitverlauf-Charts
+    orderBy: { date: "desc" },
+    take: MAX_STATS_SESSIONS,
   })
 
-  return sessions.map((s) => {
+  const orderedSessions = [...sessions].reverse()
+  return orderedSessions.map((s) => {
     const fallback = s.discipline?.shotsPerSeries ?? 10
 
     // Serien serialisieren + Schussanzahl pro Serie ermitteln
@@ -201,10 +206,12 @@ export async function getWellbeingCorrelationData(
         select: { scoreTotal: true, isPractice: true, shots: true },
       },
     },
+    orderBy: { date: "desc" },
+    take: MAX_STATS_SESSIONS,
   })
 
   const result: WellbeingCorrelationPoint[] = []
-  for (const s of sessions) {
+  for (const s of [...sessions].reverse()) {
     if (!s.wellbeing) continue
 
     const fallback = s.discipline?.shotsPerSeries ?? 10
@@ -301,12 +308,13 @@ export async function getShotDistributionData(
         select: { shots: true, isPractice: true },
       },
     },
-    orderBy: { date: "asc" },
+    orderBy: { date: "desc" },
+    take: MAX_STATS_SESSIONS,
   })
 
   const result: ShotDistributionPoint[] = []
 
-  for (const s of sessions) {
+  for (const s of [...sessions].reverse()) {
     const isDecimal = s.discipline?.scoringType === "TENTH"
 
     // Alle Schüsse aus Wertungsserien sammeln
@@ -414,6 +422,8 @@ export async function getQualityVsScoreData(filters: StatsFilters): Promise<Qual
         },
       },
     },
+    orderBy: { createdAt: "desc" },
+    take: MAX_STATS_SERIES_POINTS,
   })
 
   return series
@@ -517,10 +527,12 @@ export async function getRadarComparisonData(
         },
       },
     },
-    orderBy: { date: "asc" },
+    orderBy: { date: "desc" },
+    take: MAX_STATS_SESSIONS,
   })
 
-  return sessions
+  return [...sessions]
+    .reverse()
     .filter((entry) => entry.prognosis !== null && entry.feedback !== null)
     .map((entry) => ({
       sessionId: entry.id,

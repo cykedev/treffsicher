@@ -67,6 +67,8 @@ ADMIN_EMAIL=admin@example.com
 ADMIN_PASSWORD=REPLACE_WITH_STRONG_ADMIN_PASSWORD
 PRISMA_AUTO_RESOLVE_FAILED_MIGRATIONS=true
 PRISMA_AUTO_RESOLVE_UNKNOWN_FAILED_MIGRATIONS=false
+AUTH_TRUST_PROXY_HEADERS=true
+AUTH_RATE_LIMIT_MAX_BUCKETS=10000
 
 # Postgres
 POSTGRES_USER=treffsicher
@@ -172,4 +174,6 @@ Rollback:
 - Standardempfehlung für TrueNAS:
   - `PRISMA_AUTO_RESOLVE_FAILED_MIGRATIONS=true`
   - `PRISMA_AUTO_RESOLVE_UNKNOWN_FAILED_MIGRATIONS=false`
+  - `AUTH_TRUST_PROXY_HEADERS=true` (wenn Reverse-Proxy/Ingress die Client-IP korrekt setzt)
+  - `AUTH_RATE_LIMIT_MAX_BUCKETS=10000` (bei sehr vielen Logins ggf. erhöhen)
   Damit werden bekannte Recovery-Fälle automatisiert, unbekannte Fälle aber weiterhin sichtbar gestoppt.
