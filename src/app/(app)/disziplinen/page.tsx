@@ -31,7 +31,7 @@ export default async function DisziplinenPage() {
           <h1 className="text-2xl font-bold tracking-tight">Disziplinen</h1>
           <p className="text-muted-foreground">
             {isAdmin
-              ? "System-Disziplinen fuer den Verein und eigene Konfigurationen."
+              ? "System-Disziplinen für den Verein und eigene Konfigurationen."
               : "System-Disziplinen und eigene Konfigurationen."}
           </p>
         </div>
@@ -77,7 +77,7 @@ export default async function DisziplinenPage() {
                       initialFavourite={favouriteDisciplineId === d.id}
                     />
                   )}
-                  {/* Eigene Disziplinen sind bearbeitbar; System-Disziplinen nur fuer Admins. */}
+                  {/* Eigene Disziplinen sind bearbeitbar; System-Disziplinen nur für Admins. */}
                   {(!d.isSystem || isAdmin) && (
                     <Button variant="outline" size="sm" asChild>
                       <Link href={`/disziplinen/${d.id}/bearbeiten`}>

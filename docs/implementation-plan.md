@@ -601,7 +601,7 @@ Nach dem Löschen: Redirect zu `/einheiten`.
 **Server Action** in `src/lib/disciplines/actions.ts`:
 
 - `updateDiscipline(id, formData)` — Name, `seriesCount`, `shotsPerSeries`, `practiceSeries`, `scoringType` aktualisieren
-  Auth-Check + Berechtigungspruefung (eigene Disziplinen; System-Disziplinen nur fuer Admin)
+  Auth-Check + Berechtigungspruefung (eigene Disziplinen; System-Disziplinen nur für Admin)
   Falls Disziplin bereits in Sessions verwendet: `scoringType`-Änderung ablehnen (Fehlermeldung)
 
 **Neue Route**: `src/app/(app)/disziplinen/[id]/bearbeiten/page.tsx`
