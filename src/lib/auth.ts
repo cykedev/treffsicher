@@ -2,6 +2,40 @@ import type { NextAuthOptions } from "next-auth"
 import CredentialsProvider from "next-auth/providers/credentials"
 import bcrypt from "bcryptjs"
 import { db } from "@/lib/db"
+import {
+  checkLoginAllowed,
+  clearSuccessfulLoginAttempts,
+  registerFailedLoginAttempt,
+} from "@/lib/auth-rate-limit"
+
+function getHeaderValue(
+  headers: Record<string, unknown> | undefined,
+  headerName: string
+): string | null {
+  if (!headers) return null
+
+  for (const [key, value] of Object.entries(headers)) {
+    if (key.toLowerCase() !== headerName.toLowerCase()) continue
+
+    if (typeof value === "string") return value
+    if (Array.isArray(value)) {
+      const firstString = value.find((entry): entry is string => typeof entry === "string")
+      return firstString ?? null
+    }
+  }
+
+  return null
+}
+
+function extractClientIpHeader(req: { headers?: Record<string, unknown> }): string | null {
+  const forwardedFor = getHeaderValue(req.headers, "x-forwarded-for")
+  if (forwardedFor) return forwardedFor
+
+  const realIp = getHeaderValue(req.headers, "x-real-ip")
+  if (realIp) return realIp
+
+  return null
+}
 
 // NextAuth v4 Konfiguration.
 // Wir verwenden ausschliesslich Email/Passwort — kein OAuth, kein Magic Link.
@@ -14,26 +48,37 @@ export const authOptions: NextAuthOptions = {
         email: { label: "E-Mail", type: "email" },
         password: { label: "Passwort", type: "password" },
       },
-      async authorize(credentials) {
+      async authorize(credentials, req) {
         if (!credentials?.email || !credentials?.password) {
+          return null
+        }
+
+        const email = credentials.email.trim().toLowerCase()
+        const ipHeaderValue = extractClientIpHeader(req)
+        const rateLimitState = checkLoginAllowed(email, ipHeaderValue)
+        if (!rateLimitState.allowed) {
           return null
         }
 
         // Nutzer anhand der E-Mail suchen
         const user = await db.user.findUnique({
-          where: { email: credentials.email },
+          where: { email },
         })
 
         // Kein Nutzer gefunden oder Passwort falsch — gleiche Fehlermeldung für beide Fälle
         // (verhindert User-Enumeration: kein Hinweis ob E-Mail existiert oder Passwort falsch ist)
         if (!user || !user.isActive) {
+          registerFailedLoginAttempt(rateLimitState.normalizedEmail, rateLimitState.normalizedIp)
           return null
         }
 
         const passwordValid = await bcrypt.compare(credentials.password, user.passwordHash)
         if (!passwordValid) {
+          registerFailedLoginAttempt(rateLimitState.normalizedEmail, rateLimitState.normalizedIp)
           return null
         }
+
+        clearSuccessfulLoginAttempts(rateLimitState.normalizedEmail)
 
         // Die zurückgegebenen Werte werden im JWT gespeichert und später in der Session verfügbar
         return {
