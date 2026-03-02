@@ -408,27 +408,19 @@ export function StatisticsCharts({
     Max: s.max,
     Avg: s.avg,
   }))
-  const seriesDomain = useMemo<[number, number]>(() => {
-    if (barData.length === 0) return [0, 1]
-
-    const values = barData
+  const seriesValues = useMemo(() => {
+    return barData
       .flatMap((s) => [s.Min, s.Avg, s.Max])
       .filter((v): v is number => Number.isFinite(v))
-
-    if (values.length === 0) return [0, 1]
-
-    const min = Math.min(...values)
-    const max = Math.max(...values)
-
-    if (min === max) {
-      const padding = Math.max(Math.abs(min) * 0.05, 0.5)
-      return [min - padding, max + padding]
-    }
-
-    const range = max - min
-    const padding = Math.max(range * 0.08, 0.5)
-    return [min - padding, max + padding]
   }, [barData])
+
+  const seriesYAxis = useMemo<{ domain: [number, number]; ticks: number[] }>(() => {
+    return computeStableAxis(seriesValues)
+  }, [seriesValues])
+
+  const seriesHasDecimals = useMemo(() => {
+    return seriesValues.some((v) => Math.abs(v - Math.round(v)) > 1e-6)
+  }, [seriesValues])
 
   const hasData = withScore.length > 0
 
@@ -814,7 +806,11 @@ export function StatisticsCharts({
                           tickLine={false}
                         />
                         <YAxis
-                          domain={seriesDomain}
+                          domain={seriesYAxis.domain}
+                          ticks={seriesYAxis.ticks}
+                          tickFormatter={(v: number) =>
+                            seriesHasDecimals ? v.toFixed(1).replace(/\.0$/, "") : String(Math.round(v))
+                          }
                           tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
                           axisLine={false}
                           tickLine={false}
