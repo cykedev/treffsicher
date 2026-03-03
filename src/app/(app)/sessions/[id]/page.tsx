@@ -23,6 +23,7 @@ import { ReflectionSection } from "@/components/app/ReflectionSection"
 import { PrognosisSection } from "@/components/app/PrognosisSection"
 import { FeedbackSection } from "@/components/app/FeedbackSection"
 import { ShotHistogram } from "@/components/app/ShotHistogram"
+import { HitLocationVisualization } from "@/components/app/HitLocationVisualization"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { Button } from "@/components/ui/button"
@@ -143,6 +144,13 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
   // Anhänge nur bei TRAINING und WETTKAMPF sinnvoll
   const hasAttachmentSection =
     sessionRecord.type === "TRAINING" || sessionRecord.type === "WETTKAMPF"
+  const hasHitLocation =
+    sessionRecord.hitLocationHorizontalMm !== null &&
+    sessionRecord.hitLocationHorizontalDirection !== null &&
+    sessionRecord.hitLocationVerticalMm !== null &&
+    sessionRecord.hitLocationVerticalDirection !== null
+  const showShotDistribution = hasScoring && hasShots
+  const showHitLocation = hasScoring && hasHitLocation
 
   return (
     <div className="space-y-6">
@@ -359,12 +367,23 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
                 </tbody>
               </table>
             </div>
+
+            {showHitLocation && (
+              <div className="mt-5 border-t border-border/40 pt-4">
+                <HitLocationVisualization
+                  horizontalMm={sessionRecord.hitLocationHorizontalMm!}
+                  horizontalDirection={sessionRecord.hitLocationHorizontalDirection!}
+                  verticalMm={sessionRecord.hitLocationVerticalMm!}
+                  verticalDirection={sessionRecord.hitLocationVerticalDirection!}
+                />
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
 
       {/* Schussverteilung — nur wenn Einzelschüsse erfasst wurden */}
-      {hasScoring && hasShots && (
+      {showShotDistribution && (
         <Card>
           <CardHeader>
             <CardTitle>Schussverteilung</CardTitle>

@@ -35,6 +35,16 @@ enum ScoringType {
   TENTH
 }
 
+enum HitLocationHorizontalDirection {
+  LEFT
+  RIGHT
+}
+
+enum HitLocationVerticalDirection {
+  HIGH
+  LOW
+}
+
 enum AttachmentType {
   IMAGE
   PDF
@@ -130,6 +140,11 @@ model TrainingSession {
   isFavourite  Boolean     @default(false)
   // Trainingsziel für TRAINING, TROCKENTRAINING und MENTAL (bei WETTKAMPF: Leistungsziel in Prognose)
   trainingGoal String?
+  // Trefferlage aus Meyton-Import (Betrag in mm + Richtung)
+  hitLocationHorizontalMm        Float?
+  hitLocationHorizontalDirection HitLocationHorizontalDirection?
+  hitLocationVerticalMm          Float?
+  hitLocationVerticalDirection   HitLocationVerticalDirection?
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
 

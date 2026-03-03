@@ -10,6 +10,7 @@ import { assertPublicImportTarget, validatePdfBuffer } from "@/lib/sessions/impo
 import { normalizeMeytonPdfUrlInput } from "@/lib/sessions/importUrl"
 import {
   extractMeytonDateTime,
+  extractMeytonHitLocation,
   extractTextFromPdfBuffer,
   parseMeytonSeriesFromText,
 } from "@/lib/sessions/meytonImport"
@@ -24,6 +25,8 @@ import type {
   Prognosis,
   Feedback,
   ScoringType,
+  HitLocationHorizontalDirection,
+  HitLocationVerticalDirection,
   PrismaClient,
 } from "@/generated/prisma/client"
 
@@ -85,9 +88,17 @@ export type MeytonImportPreviewSeries = {
   shots: string[]
 }
 
+export type MeytonImportPreviewHitLocation = {
+  horizontalMm: number
+  horizontalDirection: HitLocationHorizontalDirection
+  verticalMm: number
+  verticalDirection: HitLocationVerticalDirection
+}
+
 export type MeytonImportPreview = {
   date: string | null
   series: MeytonImportPreviewSeries[]
+  hitLocation: MeytonImportPreviewHitLocation | null
 }
 
 export type MeytonImportPreviewResult = {
@@ -120,6 +131,8 @@ const MAX_SERIES_PER_SESSION = 120
 const MAX_SHOTS_PER_SERIES = 120
 const MAX_SHOTS_JSON_LENGTH = 16 * 1024
 const MAX_GOAL_IDS_PER_REQUEST = 100
+const HORIZONTAL_DIRECTION_VALUES = ["LEFT", "RIGHT"] as const
+const VERTICAL_DIRECTION_VALUES = ["HIGH", "LOW"] as const
 
 function isScoringSessionType(type: TrainingSession["type"]): boolean {
   return type === "TRAINING" || type === "WETTKAMPF"
@@ -133,6 +146,59 @@ function parseGoalIdsFromFormData(formData: FormData): string[] {
     if (deduped.size >= MAX_GOAL_IDS_PER_REQUEST) break
   }
   return [...deduped]
+}
+
+type ParsedHitLocationInput = {
+  horizontalMm: number
+  horizontalDirection: HitLocationHorizontalDirection
+  verticalMm: number
+  verticalDirection: HitLocationVerticalDirection
+}
+
+function parseHitLocationMillimeters(rawValue: FormDataEntryValue | null): number | null {
+  if (typeof rawValue !== "string") return null
+  const normalized = rawValue.trim().replace(",", ".")
+  if (!normalized) return null
+  if (!/^\d+(?:\.\d{1,2})?$/.test(normalized)) return null
+
+  const parsed = Number(normalized)
+  if (!Number.isFinite(parsed) || parsed < 0 || parsed > 9999.99) return null
+  return Math.round(parsed * 100) / 100
+}
+
+function parseHitLocationFromFormData(formData: FormData): ParsedHitLocationInput | null | "INVALID" {
+  const horizontalMmRaw = formData.get("hitLocationHorizontalMm")
+  const horizontalDirectionRaw = formData.get("hitLocationHorizontalDirection")
+  const verticalMmRaw = formData.get("hitLocationVerticalMm")
+  const verticalDirectionRaw = formData.get("hitLocationVerticalDirection")
+
+  const hasAnyValue =
+    (typeof horizontalMmRaw === "string" && horizontalMmRaw.trim() !== "") ||
+    (typeof horizontalDirectionRaw === "string" && horizontalDirectionRaw.trim() !== "") ||
+    (typeof verticalMmRaw === "string" && verticalMmRaw.trim() !== "") ||
+    (typeof verticalDirectionRaw === "string" && verticalDirectionRaw.trim() !== "")
+
+  if (!hasAnyValue) return null
+
+  const horizontalMm = parseHitLocationMillimeters(horizontalMmRaw)
+  const verticalMm = parseHitLocationMillimeters(verticalMmRaw)
+  if (horizontalMm === null || verticalMm === null) return "INVALID"
+
+  if (
+    typeof horizontalDirectionRaw !== "string" ||
+    typeof verticalDirectionRaw !== "string" ||
+    !HORIZONTAL_DIRECTION_VALUES.includes(horizontalDirectionRaw as HitLocationHorizontalDirection) ||
+    !VERTICAL_DIRECTION_VALUES.includes(verticalDirectionRaw as HitLocationVerticalDirection)
+  ) {
+    return "INVALID"
+  }
+
+  return {
+    horizontalMm,
+    horizontalDirection: horizontalDirectionRaw as HitLocationHorizontalDirection,
+    verticalMm,
+    verticalDirection: verticalDirectionRaw as HitLocationVerticalDirection,
+  }
 }
 
 async function resolveAccessibleDisciplineId(
@@ -422,6 +488,10 @@ export async function createSession(formData: FormData): Promise<ActionResult> {
   }
 
   const selectedGoalIds = parseGoalIdsFromFormData(formData)
+  const hitLocationInput = parseHitLocationFromFormData(formData)
+  if (hitLocationInput === "INVALID") {
+    return { error: "Trefferlage ist ungültig." }
+  }
 
   // Einheit und Serien in einer Transaktion anlegen.
   // Omit entfernt die nicht-transaktionalen Methoden aus dem Typ — das ist der korrekte
@@ -442,6 +512,10 @@ export async function createSession(formData: FormData): Promise<ActionResult> {
           location: parsed.data.location,
           disciplineId,
           trainingGoal: parsed.data.trainingGoal || null,
+          hitLocationHorizontalMm: hitLocationInput?.horizontalMm ?? null,
+          hitLocationHorizontalDirection: hitLocationInput?.horizontalDirection ?? null,
+          hitLocationVerticalMm: hitLocationInput?.verticalMm ?? null,
+          hitLocationVerticalDirection: hitLocationInput?.verticalDirection ?? null,
         },
       })
 
@@ -573,10 +647,13 @@ export async function previewMeytonImport(formData: FormData): Promise<MeytonImp
     return { error: "Es wurden Serien erkannt, aber keine gueltigen Schusswerte gefunden." }
   }
 
+  const hitLocation = extractMeytonHitLocation(extractedText)
+
   return {
     data: {
       date: extractMeytonDateTime(extractedText),
       series: importedSeries,
+      hitLocation,
     },
   }
 }
@@ -803,6 +880,10 @@ export async function updateSession(id: string, formData: FormData): Promise<Act
   }
 
   const selectedGoalIds = parseGoalIdsFromFormData(formData)
+  const hitLocationInput = parseHitLocationFromFormData(formData)
+  if (hitLocationInput === "INVALID") {
+    return { error: "Trefferlage ist ungültig." }
+  }
 
   // Einheit und Serien atomar aktualisieren: alte Serien löschen, neue anlegen
   await db.$transaction(
@@ -820,6 +901,10 @@ export async function updateSession(id: string, formData: FormData): Promise<Act
           location: parsed.data.location ?? null,
           disciplineId,
           trainingGoal: parsed.data.trainingGoal || null,
+          hitLocationHorizontalMm: hitLocationInput?.horizontalMm ?? null,
+          hitLocationHorizontalDirection: hitLocationInput?.horizontalDirection ?? null,
+          hitLocationVerticalMm: hitLocationInput?.verticalMm ?? null,
+          hitLocationVerticalDirection: hitLocationInput?.verticalDirection ?? null,
         },
       })
 

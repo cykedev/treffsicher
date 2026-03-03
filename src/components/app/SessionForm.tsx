@@ -28,7 +28,11 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { SelectableRow } from "@/components/ui/selectable-row"
-import type { Discipline } from "@/generated/prisma/client"
+import type {
+  Discipline,
+  HitLocationHorizontalDirection,
+  HitLocationVerticalDirection,
+} from "@/generated/prisma/client"
 import type { GoalForSelection } from "@/lib/goals/actions"
 
 interface Props {
@@ -60,10 +64,29 @@ const typesWithDiscipline = ["TRAINING", "WETTKAMPF"]
 
 type ImportSourceType = "URL" | "UPLOAD"
 
+type SessionHitLocation = {
+  horizontalMm: string
+  horizontalDirection: HitLocationHorizontalDirection | ""
+  verticalMm: string
+  verticalDirection: HitLocationVerticalDirection | ""
+}
+
 function toDateTimeLocalValue(value: Date | string): string {
   const base = new Date(value)
   base.setMinutes(base.getMinutes() - base.getTimezoneOffset())
   return base.toISOString().slice(0, 16)
+}
+
+function formatMillimeters(value: number): string {
+  return value.toFixed(2)
+}
+
+function isValidHitLocationMillimeter(value: string): boolean {
+  const normalized = value.trim().replace(",", ".")
+  if (!/^\d+(?:\.\d{1,2})?$/.test(normalized)) return false
+
+  const parsed = Number(normalized)
+  return Number.isFinite(parsed) && parsed >= 0 && parsed <= 9999.99
 }
 
 function createSeriesDefaults(discipline: Discipline | undefined) {
@@ -199,6 +222,24 @@ export function SessionForm({
   const [selectedGoalIds, setSelectedGoalIds] = useState<string[]>(() =>
     initialData ? initialData.goals.map((entry) => entry.goalId) : []
   )
+  const [hitLocation, setHitLocation] = useState<SessionHitLocation | null>(() => {
+    if (
+      !initialData ||
+      initialData.hitLocationHorizontalMm === null ||
+      initialData.hitLocationHorizontalDirection === null ||
+      initialData.hitLocationVerticalMm === null ||
+      initialData.hitLocationVerticalDirection === null
+    ) {
+      return null
+    }
+
+    return {
+      horizontalMm: formatMillimeters(initialData.hitLocationHorizontalMm),
+      horizontalDirection: initialData.hitLocationHorizontalDirection,
+      verticalMm: formatMillimeters(initialData.hitLocationVerticalMm),
+      verticalDirection: initialData.hitLocationVerticalDirection,
+    }
+  })
 
   // Gewählte Disziplin aus der Liste suchen
   const selectedDiscipline = disciplines.find((d) => d.id === disciplineId)
@@ -232,6 +273,22 @@ export function SessionForm({
 
   const hasValidationErrors =
     invalidShots.some((serie) => serie.some(Boolean)) || invalidTotals.some(Boolean)
+
+  const isHitLocationComplete =
+    hitLocation !== null &&
+    isValidHitLocationMillimeter(hitLocation.horizontalMm) &&
+    hitLocation.horizontalDirection !== "" &&
+    isValidHitLocationMillimeter(hitLocation.verticalMm) &&
+    hitLocation.verticalDirection !== ""
+
+  const hasAnyHitLocationInput =
+    hitLocation !== null &&
+    (hitLocation.horizontalMm.trim() !== "" ||
+      hitLocation.horizontalDirection !== "" ||
+      hitLocation.verticalMm.trim() !== "" ||
+      hitLocation.verticalDirection !== "")
+
+  const hasHitLocationValidationError = hasAnyHitLocationInput && !isHitLocationComplete
 
   function toggleGoal(goalId: string) {
     setSelectedGoalIds((prev) => {
@@ -366,6 +423,32 @@ export function SessionForm({
     }
   }
 
+  function handleEnableHitLocation() {
+    setHitLocation({
+      horizontalMm: "",
+      horizontalDirection: "",
+      verticalMm: "",
+      verticalDirection: "",
+    })
+  }
+
+  function handleClearHitLocation() {
+    setHitLocation(null)
+  }
+
+  function handleHitLocationChange<K extends keyof SessionHitLocation>(
+    key: K,
+    value: SessionHitLocation[K]
+  ) {
+    setHitLocation((prev) => {
+      if (!prev) return prev
+      return {
+        ...prev,
+        [key]: value,
+      }
+    })
+  }
+
   async function handleMeytonImport() {
     if (!disciplineId) {
       setImportError("Bitte zuerst eine Disziplin wählen.")
@@ -413,6 +496,16 @@ export function SessionForm({
     setSeriesIsPractice(Array(newTotal).fill(false))
     setSeriesTotals(imported.map((serie) => serie.scoreTotal))
     setSeriesKeys(imported.map((serie, index) => `m-${Date.now()}-${index}-${serie.nr}`))
+    setHitLocation(
+      result.data.hitLocation
+        ? {
+            horizontalMm: formatMillimeters(result.data.hitLocation.horizontalMm),
+            horizontalDirection: result.data.hitLocation.horizontalDirection,
+            verticalMm: formatMillimeters(result.data.hitLocation.verticalMm),
+            verticalDirection: result.data.hitLocation.verticalDirection,
+          }
+        : null
+    )
 
     // Nur bei neuen, noch nicht gespeicherten Einheiten wird Datum/Uhrzeit aus dem PDF übernommen.
     if (!sessionId && result.data.date) {
@@ -432,6 +525,10 @@ export function SessionForm({
     // Validierung vor dem Absenden: ungültige Felder verhindern Speichern
     if (hasValidationErrors) {
       setFormError("Bitte ungültige Werte korrigieren.")
+      return
+    }
+    if (hasHitLocationValidationError) {
+      setFormError("Bitte Trefferlage vollständig und korrekt erfassen oder löschen.")
       return
     }
 
@@ -487,6 +584,7 @@ export function SessionForm({
                     setSeriesTotals([])
                     setShowShots(false)
                     setShots([])
+                    setHitLocation(null)
                     return
                   }
 
@@ -548,6 +646,139 @@ export function SessionForm({
               </Select>
             </div>
           )}
+
+          {needsDiscipline && (
+            <div className="space-y-3 rounded-lg border border-border/60 bg-muted/10 p-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <Label className="text-sm">Trefferlage (optional)</Label>
+                {hitLocation ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleClearHitLocation}
+                    disabled={pending}
+                  >
+                    Trefferlage löschen
+                  </Button>
+                ) : (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleEnableHitLocation}
+                    disabled={pending}
+                  >
+                    Trefferlage erfassen
+                  </Button>
+                )}
+              </div>
+
+              {hitLocation && (
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label className="text-xs text-muted-foreground">Horizontal</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        type="text"
+                        inputMode="decimal"
+                        placeholder="mm"
+                        value={hitLocation.horizontalMm}
+                        onChange={(event) =>
+                          handleHitLocationChange("horizontalMm", event.target.value)
+                        }
+                        disabled={pending}
+                        className={
+                          hasHitLocationValidationError && !isValidHitLocationMillimeter(hitLocation.horizontalMm)
+                            ? "border-destructive focus-visible:ring-destructive"
+                            : ""
+                        }
+                        aria-label="Trefferlage horizontal in mm"
+                      />
+                      <Select
+                        value={hitLocation.horizontalDirection || undefined}
+                        disabled={pending}
+                        onValueChange={(value) =>
+                          handleHitLocationChange(
+                            "horizontalDirection",
+                            value as HitLocationHorizontalDirection
+                          )
+                        }
+                      >
+                        <SelectTrigger className="w-32">
+                          <SelectValue placeholder="Richtung" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="LEFT">links</SelectItem>
+                          <SelectItem value="RIGHT">rechts</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-xs text-muted-foreground">Vertikal</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        type="text"
+                        inputMode="decimal"
+                        placeholder="mm"
+                        value={hitLocation.verticalMm}
+                        onChange={(event) =>
+                          handleHitLocationChange("verticalMm", event.target.value)
+                        }
+                        disabled={pending}
+                        className={
+                          hasHitLocationValidationError && !isValidHitLocationMillimeter(hitLocation.verticalMm)
+                            ? "border-destructive focus-visible:ring-destructive"
+                            : ""
+                        }
+                        aria-label="Trefferlage vertikal in mm"
+                      />
+                      <Select
+                        value={hitLocation.verticalDirection || undefined}
+                        disabled={pending}
+                        onValueChange={(value) =>
+                          handleHitLocationChange(
+                            "verticalDirection",
+                            value as HitLocationVerticalDirection
+                          )
+                        }
+                      >
+                        <SelectTrigger className="w-32">
+                          <SelectValue placeholder="Richtung" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="HIGH">hoch</SelectItem>
+                          <SelectItem value="LOW">tief</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {hasHitLocationValidationError && (
+                <p className="text-xs text-destructive">
+                  Trefferlage unvollständig oder ungültig. Bitte beide mm-Werte und Richtungen
+                  angeben oder die Trefferlage löschen.
+                </p>
+              )}
+            </div>
+          )}
+
+          <input type="hidden" name="hitLocationHorizontalMm" value={hitLocation?.horizontalMm ?? ""} />
+          <input
+            type="hidden"
+            name="hitLocationHorizontalDirection"
+            value={hitLocation?.horizontalDirection ?? ""}
+          />
+          <input type="hidden" name="hitLocationVerticalMm" value={hitLocation?.verticalMm ?? ""} />
+          <input
+            type="hidden"
+            name="hitLocationVerticalDirection"
+            value={hitLocation?.verticalDirection ?? ""}
+          />
 
           {/* Ort (optional) */}
           <div className="space-y-2">
@@ -654,6 +885,14 @@ export function SessionForm({
               </SelectableRow>
             </div>
           </div>
+          {hitLocation && isHitLocationComplete && (
+            <p className="text-xs text-muted-foreground">
+              Trefferlage: {hitLocation.horizontalMm} mm{" "}
+              {hitLocation.horizontalDirection === "RIGHT" ? "rechts" : "links"},{" "}
+              {hitLocation.verticalMm} mm{" "}
+              {hitLocation.verticalDirection === "HIGH" ? "hoch" : "tief"}
+            </p>
+          )}
 
           <div className="grid gap-3 sm:grid-cols-2">
             {Array.from({ length: totalSeries }, (_, i) => {
@@ -991,7 +1230,10 @@ export function SessionForm({
       </div>
 
       <div className="flex gap-3">
-        <Button type="submit" disabled={pending || !type || hasValidationErrors}>
+        <Button
+          type="submit"
+          disabled={pending || !type || hasValidationErrors || hasHitLocationValidationError}
+        >
           {pending ? "Speichern..." : sessionId ? "Änderungen speichern" : "Einheit speichern"}
         </Button>
         {!formError && hasValidationErrors && (
