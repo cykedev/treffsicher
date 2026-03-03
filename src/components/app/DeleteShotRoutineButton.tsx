@@ -46,9 +46,17 @@ export function DeleteShotRoutineButton({ routineId }: Props) {
       {message && <p className="text-sm text-destructive">{message}</p>}
       <AlertDialog>
         <AlertDialogTrigger asChild>
-          <Button variant="destructive" className="w-full sm:w-auto" disabled={isPending}>
-            <Trash2 className="mr-1.5 h-4 w-4" />
-            {isPending ? "Löschen..." : "Löschen"}
+          <Button
+            variant="destructive"
+            size="icon"
+            // Header-Aktionen bleiben auf Mobil als Icon-Leiste oben;
+            // ab `sm` wird das Textlabel wieder eingeblendet.
+            className="size-9 sm:h-8 sm:w-auto sm:px-3"
+            disabled={isPending}
+            aria-label={isPending ? "Löschen..." : "Löschen"}
+          >
+            <Trash2 className="h-4 w-4 sm:mr-1.5" />
+            <span className="hidden sm:inline">{isPending ? "Löschen..." : "Löschen"}</span>
           </Button>
         </AlertDialogTrigger>
         <AlertDialogContent>
