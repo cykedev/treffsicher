@@ -72,8 +72,8 @@ COPY --from=builder --chown=nextjs:nodejs /app/node_modules/@prisma ./node_modul
 RUN mkdir -p /app/uploads && chown nextjs:nodejs /app/uploads
 USER nextjs
 EXPOSE 3000
-# Startscript führt prisma migrate deploy mit Recovery für bekannte P3009-Fälle aus
-CMD ["./scripts/start-with-migrations.sh"]
+# App startet ohne Migrationsschritt; Migrationen laufen im separaten migrate-Container
+CMD ["node", "server.js"]
 ```
 
 `docker-compose.dev.yml` — Lokale Entwicklung mit Hot-Reload:
