@@ -1,9 +1,9 @@
 import { redirect } from "next/navigation"
 import Link from "next/link"
-import { Plus } from "lucide-react"
 import { getAuthSession } from "@/lib/auth-helpers"
 import { getShotRoutines } from "@/lib/shot-routines/actions"
 import type { RoutineStep } from "@/lib/shot-routines/actions"
+import { CreateItemLinkButton } from "@/components/app/CreateItemLinkButton"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 
@@ -30,12 +30,7 @@ export default async function ShotRoutinesPage() {
             Lege Abläufe mit ihren Schritten an und verfeinere sie laufend.
           </p>
         </div>
-        <Button asChild className="w-full sm:w-auto">
-          <Link href="/shot-routines/new">
-            <Plus className="mr-1.5 h-4 w-4" />
-            Neuer Ablauf
-          </Link>
-        </Button>
+        <CreateItemLinkButton href="/shot-routines/new" label="Neuer Ablauf" />
       </div>
 
       {routines.length === 0 ? (

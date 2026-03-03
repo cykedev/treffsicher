@@ -1,8 +1,19 @@
 "use client"
 
-import { useTransition, useRef } from "react"
+import { useTransition, useRef, useState } from "react"
 import { uploadAttachment, deleteAttachment } from "@/lib/sessions/actions"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent } from "@/components/ui/card"
 
@@ -26,15 +37,18 @@ interface Props {
 export function AttachmentSection({ sessionId, attachments }: Props) {
   const [isPending, startTransition] = useTransition()
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const [message, setMessage] = useState<string | null>(null)
+  const [deleteCandidate, setDeleteCandidate] = useState<AttachmentData | null>(null)
 
   function handleUpload(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     const formData = new FormData(e.currentTarget)
+    setMessage(null)
 
     startTransition(async () => {
       const result = await uploadAttachment(sessionId, formData)
       if (result.error) {
-        alert(result.error)
+        setMessage(result.error)
       } else {
         // Dateiauswahl zurücksetzen
         if (fileInputRef.current) fileInputRef.current.value = ""
@@ -42,19 +56,22 @@ export function AttachmentSection({ sessionId, attachments }: Props) {
     })
   }
 
-  function handleDelete(attachmentId: string, originalName: string) {
-    if (!confirm(`"${originalName}" wirklich löschen?`)) return
-
+  function handleDeleteConfirmed(): void {
+    if (!deleteCandidate) return
+    setMessage(null)
     startTransition(async () => {
-      const result = await deleteAttachment(attachmentId)
+      const result = await deleteAttachment(deleteCandidate.id)
       if (result.error) {
-        alert(result.error)
+        setMessage(result.error)
       }
+      setDeleteCandidate(null)
     })
   }
 
   return (
     <div className="space-y-4">
+      {message && <p className="text-sm text-destructive">{message}</p>}
+
       {/* Bestehende Anhänge */}
       {attachments.length > 0 && (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -95,11 +112,11 @@ export function AttachmentSection({ sessionId, attachments }: Props) {
                     {attachment.label ?? attachment.originalName}
                   </span>
                   <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-7 shrink-0 text-xs text-destructive hover:text-destructive"
+                    variant="destructive"
+                    size="xs"
+                    className="h-7 shrink-0"
                     disabled={isPending}
-                    onClick={() => handleDelete(attachment.id, attachment.originalName)}
+                    onClick={() => setDeleteCandidate(attachment)}
                   >
                     Löschen
                   </Button>
@@ -116,14 +133,13 @@ export function AttachmentSection({ sessionId, attachments }: Props) {
           <Label htmlFor="file" className="text-sm">
             Datei anhängen
           </Label>
-          <input
+          <Input
             ref={fileInputRef}
             id="file"
             name="file"
             type="file"
             accept="image/jpeg,image/png,image/webp,application/pdf"
             disabled={isPending}
-            className="block w-full text-sm text-muted-foreground file:mr-3 file:rounded file:border-0 file:bg-muted file:px-3 file:py-1.5 file:text-sm file:font-medium hover:file:bg-muted/80"
           />
           <p className="text-xs text-muted-foreground">JPEG, PNG, WebP oder PDF — max. 10 MB</p>
         </div>
@@ -131,6 +147,32 @@ export function AttachmentSection({ sessionId, attachments }: Props) {
           {isPending ? "Wird hochgeladen..." : "Hochladen"}
         </Button>
       </form>
+
+      <AlertDialog
+        open={deleteCandidate !== null}
+        onOpenChange={(open) => !open && setDeleteCandidate(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Anhang löschen?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {deleteCandidate
+                ? `"${deleteCandidate.originalName}" wird dauerhaft entfernt.`
+                : "Der Anhang wird dauerhaft entfernt."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isPending}>Abbrechen</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={isPending}
+              className="bg-destructive text-white hover:bg-destructive/90"
+              onClick={handleDeleteConfirmed}
+            >
+              Löschen
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

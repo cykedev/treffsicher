@@ -250,7 +250,7 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
   return new NextResponse(pdfBytes.buffer, {
     headers: {
       "Content-Type": "application/pdf",
-      "Content-Disposition": `inline; filename="einheit-${fileDate}.pdf"`,
+      "Content-Disposition": `inline; filename="session-${fileDate}.pdf"`,
       "Cache-Control": "private, no-store",
     },
   })

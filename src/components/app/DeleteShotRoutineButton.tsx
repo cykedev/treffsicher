@@ -3,7 +3,8 @@
 import { useState, useTransition } from "react"
 import { useRouter } from "next/navigation"
 import { Trash2 } from "lucide-react"
-import { deleteSession } from "@/lib/sessions/actions"
+
+import { deleteShotRoutine } from "@/lib/shot-routines/actions"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -17,14 +18,13 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button"
 
-interface Props {
-  sessionId: string
+type Props = {
+  routineId: string
 }
 
-// Löscht eine Einheit nach expliziter Bestätigung in einem Dialog.
-// Warum Dialog statt Browser-confirm: einheitliches Verhalten auf Desktop/Mobil
-// und konsistente Gestaltung mit den restlichen shadcn-Komponenten.
-export function DeleteSessionButton({ sessionId }: Props) {
+// Löscht einen Ablauf mit dem gleichen Dialogmuster wie andere destruktive Aktionen.
+// Warum: Nutzer sollen "Löschen" überall gleich erleben, egal in welchem Bereich.
+export function DeleteShotRoutineButton({ routineId }: Props) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [message, setMessage] = useState<string | null>(null)
@@ -32,14 +32,12 @@ export function DeleteSessionButton({ sessionId }: Props) {
   function handleDelete(): void {
     setMessage(null)
     startTransition(async () => {
-      const result = await deleteSession(sessionId)
+      const result = await deleteShotRoutine(routineId)
       if (result.error) {
         setMessage(result.error)
         return
       }
-      if (result.success) {
-        router.push("/sessions")
-      }
+      router.push("/shot-routines")
     })
   }
 
@@ -48,20 +46,14 @@ export function DeleteSessionButton({ sessionId }: Props) {
       {message && <p className="text-sm text-destructive">{message}</p>}
       <AlertDialog>
         <AlertDialogTrigger asChild>
-          <Button
-            variant="destructive"
-            size="sm"
-            className="px-2 sm:px-3"
-            disabled={isPending}
-            aria-label={isPending ? "Löschen..." : "Löschen"}
-          >
-            <Trash2 className="h-4 w-4 sm:mr-1.5" />
-            <span className="hidden sm:inline">{isPending ? "Löschen..." : "Löschen"}</span>
+          <Button variant="destructive" className="w-full sm:w-auto" disabled={isPending}>
+            <Trash2 className="mr-1.5 h-4 w-4" />
+            {isPending ? "Löschen..." : "Löschen"}
           </Button>
         </AlertDialogTrigger>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Einheit löschen?</AlertDialogTitle>
+            <AlertDialogTitle>Ablauf löschen?</AlertDialogTitle>
             <AlertDialogDescription>
               Diese Aktion kann nicht rückgängig gemacht werden.
             </AlertDialogDescription>

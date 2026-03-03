@@ -5,6 +5,16 @@ import { useState, useTransition } from "react"
 import { useRouter } from "next/navigation"
 import { Pencil } from "lucide-react"
 import { setUserActive, type AdminUserListItem } from "@/lib/admin/actions"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -51,17 +61,12 @@ export function AdminUsersTable({ users, currentAdminId }: Props) {
   const router = useRouter()
   const [pending, startTransition] = useTransition()
   const [message, setMessage] = useState<string | null>(null)
+  const [deactivationCandidate, setDeactivationCandidate] = useState<AdminUserListItem | null>(null)
 
-  function handleSetActive(user: AdminUserListItem, nextIsActive: boolean) {
-    if (!nextIsActive) {
-      const label = user.name ? `${user.name} <${user.email}>` : user.email
-      const confirmed = window.confirm(`Nutzer "${label}" wirklich deaktivieren?`)
-      if (!confirmed) return
-    }
-
+  function performSetActive(userId: string, nextIsActive: boolean): void {
     setMessage(null)
     startTransition(async () => {
-      const result = await setUserActive(user.id, nextIsActive)
+      const result = await setUserActive(userId, nextIsActive)
       if (result.error) {
         setMessage(result.error)
         return
@@ -69,6 +74,14 @@ export function AdminUsersTable({ users, currentAdminId }: Props) {
 
       router.refresh()
     })
+  }
+
+  function handleSetActive(user: AdminUserListItem, nextIsActive: boolean) {
+    if (!nextIsActive) {
+      setDeactivationCandidate(user)
+      return
+    }
+    performSetActive(user.id, nextIsActive)
   }
 
   return (
@@ -95,10 +108,13 @@ export function AdminUsersTable({ users, currentAdminId }: Props) {
                   </Badge>
                 </div>
 
-                <p className="text-xs text-muted-foreground">Angelegt: {formatDate(user.createdAt)}</p>
                 <p className="text-xs text-muted-foreground">
-                  Aktivität: {formatCount(user.sessionsCount)} Einheiten, {formatCount(user.goalsCount)} Ziele,{" "}
-                  {formatCount(user.shotRoutinesCount)} Abläufe
+                  Angelegt: {formatDate(user.createdAt)}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Aktivität: {formatCount(user.sessionsCount)} Einheiten,{" "}
+                  {formatCount(user.goalsCount)} Ziele, {formatCount(user.shotRoutinesCount)}{" "}
+                  Abläufe
                 </p>
                 <p className="text-xs text-muted-foreground">
                   Letzte Session-Änderung: {formatOptionalDate(user.lastSessionEditAt)}
@@ -148,7 +164,9 @@ export function AdminUsersTable({ users, currentAdminId }: Props) {
                     <div className="max-w-[280px] space-y-1">
                       <p className="break-words font-medium leading-tight">{user.name ?? "—"}</p>
                       <p className="break-all text-xs text-muted-foreground">{user.email}</p>
-                      <p className="text-xs text-muted-foreground">Angelegt: {formatDate(user.createdAt)}</p>
+                      <p className="text-xs text-muted-foreground">
+                        Angelegt: {formatDate(user.createdAt)}
+                      </p>
                     </div>
                   </td>
                   <td className="py-2 pr-4">
@@ -164,11 +182,16 @@ export function AdminUsersTable({ users, currentAdminId }: Props) {
                   <td className="py-3 pr-4">
                     <div className="space-y-1 text-xs text-muted-foreground">
                       <p>
-                        <span className="tabular-nums text-foreground">{formatCount(user.sessionsCount)}</span>{" "}
+                        <span className="tabular-nums text-foreground">
+                          {formatCount(user.sessionsCount)}
+                        </span>{" "}
                         Einheiten
                       </p>
                       <p>
-                        <span className="tabular-nums text-foreground">{formatCount(user.goalsCount)}</span> Ziele
+                        <span className="tabular-nums text-foreground">
+                          {formatCount(user.goalsCount)}
+                        </span>{" "}
+                        Ziele
                       </p>
                       <p>
                         <span className="tabular-nums text-foreground">
@@ -210,6 +233,37 @@ export function AdminUsersTable({ users, currentAdminId }: Props) {
       <p className="text-xs text-muted-foreground">
         Der eigene aktive Admin-Account kann nicht deaktiviert werden.
       </p>
+
+      <AlertDialog
+        open={deactivationCandidate !== null}
+        onOpenChange={(open) => !open && setDeactivationCandidate(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Nutzer deaktivieren?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {deactivationCandidate
+                ? `Der Account "${deactivationCandidate.name ? `${deactivationCandidate.name} <${deactivationCandidate.email}>` : deactivationCandidate.email}" kann sich danach nicht mehr anmelden.`
+                : "Der Account kann sich danach nicht mehr anmelden."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={pending}>Abbrechen</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-white hover:bg-destructive/90"
+              disabled={pending}
+              onClick={() => {
+                if (!deactivationCandidate) return
+                const candidateId = deactivationCandidate.id
+                setDeactivationCandidate(null)
+                performSetActive(candidateId, false)
+              }}
+            >
+              Deaktivieren
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

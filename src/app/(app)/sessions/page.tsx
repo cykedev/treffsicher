@@ -1,14 +1,14 @@
 import { getAuthSession } from "@/lib/auth-helpers"
 import { redirect } from "next/navigation"
 import Link from "next/link"
-import { Plus, Heart } from "lucide-react"
+import { Heart } from "lucide-react"
 import { getSessions } from "@/lib/sessions/actions"
 import { calculateTotalScore } from "@/lib/sessions/calculateScore"
 import { getSeriesMax, type ScoringType } from "@/lib/sessions/validation"
-import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import { SessionsFilters } from "@/components/app/SessionsFilters"
+import { CreateItemLinkButton } from "@/components/app/CreateItemLinkButton"
 
 // Farbige Badges je Einheitentyp (dark-mode-optimiert)
 const typeBadgeClass: Record<string, string> = {
@@ -101,12 +101,7 @@ export default async function SessionsPage({
                 : formatSessionCount(sessions.length)}
           </p>
         </div>
-        <Button asChild className="w-full sm:w-auto">
-          <Link href="/sessions/new">
-            <Plus className="mr-1.5 h-4 w-4" />
-            Neue Einheit
-          </Link>
-        </Button>
+        <CreateItemLinkButton href="/sessions/new" label="Neue Einheit" />
       </div>
 
       {sessions.length > 0 && (

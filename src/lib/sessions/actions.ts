@@ -121,6 +121,10 @@ const MAX_SHOTS_PER_SERIES = 120
 const MAX_SHOTS_JSON_LENGTH = 16 * 1024
 const MAX_GOAL_IDS_PER_REQUEST = 100
 
+function isScoringSessionType(type: TrainingSession["type"]): boolean {
+  return type === "TRAINING" || type === "WETTKAMPF"
+}
+
 function parseGoalIdsFromFormData(formData: FormData): string[] {
   const deduped = new Set<string>()
   for (const value of formData.getAll("goalIds")) {
@@ -322,7 +326,9 @@ const SeriesInputSchema = z.object({
     }),
 })
 
-function parseSeriesFromFormData(formData: FormData): Array<z.infer<typeof SeriesInputSchema>> | null {
+function parseSeriesFromFormData(
+  formData: FormData
+): Array<z.infer<typeof SeriesInputSchema>> | null {
   const seriesData: Array<z.infer<typeof SeriesInputSchema>> = []
 
   let i = 0
@@ -343,9 +349,16 @@ function parseSeriesFromFormData(formData: FormData): Array<z.infer<typeof Serie
       executionQuality: qualityRaw ?? undefined,
     })
 
-    if (seriesParsed.success) {
-      seriesData.push(seriesParsed.data)
+    if (!seriesParsed.success) {
+      // Warum harter Abbruch: Teilimporte führen zu schwer nachvollziehbaren Abweichungen
+      // zwischen sichtbarer Eingabe und gespeicherten Werten.
+      console.warn("Session-Import abgebrochen: ungueltige Serien-Daten", {
+        index: i,
+        issues: seriesParsed.error.issues,
+      })
+      return null
     }
+    seriesData.push(seriesParsed.data)
     i++
   }
 
@@ -372,9 +385,9 @@ function parseSeriesFromFormData(formData: FormData): Array<z.infer<typeof Serie
  * entweder alles oder nichts (keine halbfertigen Einheiten in der DB).
  * Nach Erfolg: Redirect zur Detailansicht der neuen Einheit.
  */
-export async function createSession(formData: FormData): Promise<void> {
+export async function createSession(formData: FormData): Promise<ActionResult> {
   const session = await getAuthSession()
-  if (!session) redirect("/login")
+  if (!session) return { error: "Nicht angemeldet" }
 
   // Basis-Daten der Einheit validieren
   const parsed = CreateSessionSchema.safeParse({
@@ -386,9 +399,8 @@ export async function createSession(formData: FormData): Promise<void> {
   })
 
   if (!parsed.success) {
-    // TODO: Fehler an die UI weitergeben (useActionState) — kommt in nächster Iteration
     console.error("Validierungsfehler:", parsed.error.flatten())
-    return
+    return { error: "Bitte die Pflichtfelder prüfen." }
   }
 
   const disciplineId = await resolveAccessibleDisciplineId(
@@ -399,13 +411,15 @@ export async function createSession(formData: FormData): Promise<void> {
     console.warn("createSession: ungueltige oder nicht erlaubte disciplineId", {
       userId: session.user.id,
     })
-    return
+    return { error: "Die gewählte Disziplin ist nicht verfügbar." }
   }
 
   // Serien aus dem Formular lesen
   // Format im Formular: series[0][scoreTotal], series[0][isPractice], series[0][shots], ...
   const seriesData = parseSeriesFromFormData(formData)
-  if (seriesData === null) return
+  if (seriesData === null) {
+    return { error: "Seriendaten sind ungültig oder überschreiten die Grenzwerte." }
+  }
 
   const selectedGoalIds = parseGoalIdsFromFormData(formData)
 
@@ -679,6 +693,10 @@ export async function uploadAttachment(
     where: { id: sessionId, userId: session.user.id },
   })
   if (!trainingSession) return { error: "Einheit nicht gefunden" }
+  if (!isScoringSessionType(trainingSession.type)) {
+    // Warum serverseitig: UI-Regeln sind kein Schutz gegen manipulierte Requests.
+    return { error: "Anhänge sind nur bei Training und Wettkampf verfügbar." }
+  }
 
   const file = formData.get("file")
   if (!file || !(file instanceof File)) return { error: "Keine Datei ausgewählt" }
@@ -743,15 +761,15 @@ export async function deleteAttachment(attachmentId: string): Promise<ActionResu
  * Alle alten Serien werden gelöscht und durch die neuen ersetzt (einfacher als Diff).
  * Nach Erfolg: Redirect zur Detailansicht.
  */
-export async function updateSession(id: string, formData: FormData): Promise<void> {
+export async function updateSession(id: string, formData: FormData): Promise<ActionResult> {
   const session = await getAuthSession()
-  if (!session) redirect("/login")
+  if (!session) return { error: "Nicht angemeldet" }
 
   // Sicherstellen dass die Einheit dem Nutzer gehört
   const existing = await db.trainingSession.findFirst({
     where: { id, userId: session.user.id },
   })
-  if (!existing) redirect("/sessions")
+  if (!existing) return { error: "Einheit nicht gefunden" }
 
   const parsed = CreateSessionSchema.safeParse({
     type: formData.get("type"),
@@ -763,7 +781,7 @@ export async function updateSession(id: string, formData: FormData): Promise<voi
 
   if (!parsed.success) {
     console.error("Validierungsfehler beim Update:", parsed.error.flatten())
-    return
+    return { error: "Bitte die Pflichtfelder prüfen." }
   }
 
   const disciplineId = await resolveAccessibleDisciplineId(
@@ -775,12 +793,14 @@ export async function updateSession(id: string, formData: FormData): Promise<voi
       userId: session.user.id,
       sessionId: id,
     })
-    return
+    return { error: "Die gewählte Disziplin ist nicht verfügbar." }
   }
 
   // Serien aus dem Formular lesen (gleiche Logik wie createSession)
   const seriesData = parseSeriesFromFormData(formData)
-  if (seriesData === null) return
+  if (seriesData === null) {
+    return { error: "Seriendaten sind ungültig oder überschreiten die Grenzwerte." }
+  }
 
   const selectedGoalIds = parseGoalIdsFromFormData(formData)
 
@@ -1001,6 +1021,9 @@ export async function savePrognosis(
     where: { id: sessionId, userId: session.user.id },
   })
   if (!trainingSession) return { error: "Einheit nicht gefunden" }
+  if (!isScoringSessionType(trainingSession.type)) {
+    return { error: "Prognose ist nur bei Training und Wettkampf verfügbar." }
+  }
 
   const DimensionSchema = z.number({ message: "Ungültiger Wert" }).int().min(0).max(100)
   const PrognosisSchema = z.object({
@@ -1069,6 +1092,9 @@ export async function saveFeedback(
     where: { id: sessionId, userId: session.user.id },
   })
   if (!trainingSession) return { error: "Einheit nicht gefunden" }
+  if (!isScoringSessionType(trainingSession.type)) {
+    return { error: "Feedback ist nur bei Training und Wettkampf verfügbar." }
+  }
 
   const DimensionSchema = z.number({ message: "Ungültiger Wert" }).int().min(0).max(100)
   const FeedbackSchema = z.object({

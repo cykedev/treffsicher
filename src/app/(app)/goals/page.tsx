@@ -1,11 +1,9 @@
 import { redirect } from "next/navigation"
-import Link from "next/link"
-import { Plus } from "lucide-react"
 import { getAuthSession } from "@/lib/auth-helpers"
 import { getGoalsWithAssignments, getGoalSessionOptions } from "@/lib/goals/actions"
 import { GoalCardSection } from "@/components/app/GoalCardSection"
+import { CreateItemLinkButton } from "@/components/app/CreateItemLinkButton"
 import { Card, CardContent } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
 
 export default async function GoalsPage() {
   const session = await getAuthSession()
@@ -22,12 +20,7 @@ export default async function GoalsPage() {
             Lege Ziele an, passe sie an und markiere Einheiten, die darauf einzahlen.
           </p>
         </div>
-        <Button asChild className="w-full sm:w-auto">
-          <Link href="/goals/new">
-            <Plus className="mr-1.5 h-4 w-4" />
-            Neues Ziel
-          </Link>
-        </Button>
+        <CreateItemLinkButton href="/goals/new" label="Neues Ziel" />
       </div>
 
       {goals.length === 0 ? (

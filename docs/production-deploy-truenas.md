@@ -176,4 +176,45 @@ Rollback:
   - `PRISMA_AUTO_RESOLVE_UNKNOWN_FAILED_MIGRATIONS=false`
   - `AUTH_TRUST_PROXY_HEADERS=true` (wenn Reverse-Proxy/Ingress die Client-IP korrekt setzt)
   - `AUTH_RATE_LIMIT_MAX_BUCKETS=10000` (bei sehr vielen Logins ggf. erhöhen)
-  Damit werden bekannte Recovery-Fälle automatisiert, unbekannte Fälle aber weiterhin sichtbar gestoppt.
+    Damit werden bekannte Recovery-Fälle automatisiert, unbekannte Fälle aber weiterhin sichtbar gestoppt.
+
+## 9) Fehlerfälle im Betrieb (Runbook)
+
+### 9.1 App nicht erreichbar
+
+1. In TrueNAS prüfen, ob `app` und `db` laufen und `db` healthy ist.
+2. App-Logs prüfen:
+   - `docker logs <app-container> --tail 200`
+3. DB-Logs prüfen:
+   - `docker logs <db-container> --tail 200`
+4. Bei wiederholten Crashes zuerst auf das letzte funktionierende Image-Tag zurückrollen (siehe Abschnitt 7).
+
+### 9.2 Migration blockiert beim Start
+
+1. In den App-Logs nach `P3009` oder `migrate deploy failed` suchen.
+2. Wenn ein bekannter Recovery-Fall automatisch aufgelöst wurde, läuft der Start weiter.
+3. Bei unbekanntem Recovery-Fall (`manual intervention required`):
+   - Deployment stoppen
+   - DB-Snapshot sichern
+   - Migration manuell analysieren und erst dann erneut deployen
+
+### 9.3 Uploads schlagen fehl
+
+1. App-Logs auf Upload-Fehler prüfen.
+2. Freien Speicher des Volumes `uploads_data` prüfen.
+3. Rechte und Mount des Upload-Verzeichnisses (`/app/uploads`) kontrollieren.
+4. Nach Fehlerbehebung einen Test-Upload durchführen.
+
+### 9.4 Login-Probleme / Rate-Limit
+
+1. Prüfen, ob `NEXTAUTH_URL` und `NEXTAUTH_SECRET` korrekt gesetzt sind.
+2. Bei vielen legitimen Login-Versuchen `AUTH_RATE_LIMIT_MAX_BUCKETS` und Proxy-Konfiguration prüfen.
+3. Für vergessene Passwörter Admin-Reset wie in den Produktanforderungen verwenden.
+
+## 10) Restore-Drill (regelmäßig testen)
+
+1. Testsystem bereitstellen (separates Namespace/Host).
+2. Snapshot von `postgres_data` und `uploads_data` einspielen.
+3. App mit gleichem Image-Tag und angepasster `NEXTAUTH_URL` starten.
+4. Mit Test-User anmelden, mindestens eine Einheit öffnen und einen Anhang prüfen.
+5. Ergebnis dokumentieren (Datum, Dauer, Auffälligkeiten, offene Maßnahmen).

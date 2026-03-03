@@ -4,11 +4,7 @@ import { getShotRoutineById } from "@/lib/shot-routines/actions"
 import { ShotRoutineEditor } from "@/components/app/ShotRoutineEditor"
 import type { RoutineStep } from "@/lib/shot-routines/actions"
 
-export default async function EditShotRoutinePage({
-  params,
-}: {
-  params: Promise<{ id: string }>
-}) {
+export default async function EditShotRoutinePage({ params }: { params: Promise<{ id: string }> }) {
   const session = await getAuthSession()
   if (!session) redirect("/login")
 

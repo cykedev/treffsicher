@@ -1,10 +1,8 @@
 import { redirect } from "next/navigation"
-import Link from "next/link"
-import { Plus } from "lucide-react"
 import { getAuthSession } from "@/lib/auth-helpers"
 import { getAdminUsers } from "@/lib/admin/actions"
 import { AdminUsersTable } from "@/components/app/AdminUsersTable"
-import { Button } from "@/components/ui/button"
+import { CreateItemLinkButton } from "@/components/app/CreateItemLinkButton"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
 export default async function AdminPage() {
@@ -20,16 +18,12 @@ export default async function AdminPage() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Nutzerverwaltung</h1>
           <p className="text-muted-foreground">
-            Nutzer anzeigen, bearbeiten und Aktivität übersichtlich anhand der erfassten Daten sehen.
+            Nutzer anzeigen, bearbeiten und Aktivität übersichtlich anhand der erfassten Daten
+            sehen.
           </p>
         </div>
         <div className="flex w-full flex-wrap gap-2 sm:w-auto sm:justify-end">
-          <Button asChild className="w-full sm:w-auto">
-            <Link href="/admin/users/new">
-              <Plus className="mr-1.5 h-4 w-4" />
-              Neuer Nutzer
-            </Link>
-          </Button>
+          <CreateItemLinkButton href="/admin/users/new" label="Neuer Nutzer" />
         </div>
       </div>
 

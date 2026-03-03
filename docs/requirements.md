@@ -218,7 +218,7 @@ Anhänge sind ausschliesslich bei Einheiten des Typs **Training** und **Wettkamp
 
 - Bilder (z.B. Schussbild / Trefferbild)
 - PDFs (z.B. Wettkampfausdruck)
-- Beliebige Dateien
+- Erlaubte Dateitypen: JPEG, PNG, WebP und PDF
 - Je Anhang kann eine optionale Beschriftung vergeben werden
 
 ---
@@ -320,11 +320,14 @@ Analog zu Meyton-Schiessständen — einheitlich in Detailansicht und Statistik:
   - Die Anwendung ist für Nutzer ausschliesslich auf Deutsch.
   - Code-Kommentare sind auf Deutsch.
   - Komponenten sowie Routen/URLs werden intern in Englisch benannt.
+- **Verbindlichkeit der Umsetzung**:
+  - Verbindliche technische Konsistenzregeln (UI-Muster, Fehlerpfade, Benennung, Betrieb/Fehlerfälle) sind in `docs/technical-constraints.md` festgelegt und für Implementierungen massgeblich.
 
 ---
 
 ## Änderungsnotizen
 
+- **03.03.2026**: Verbindlichkeit präzisiert: technische Konsistenzregeln werden zentral in `docs/technical-constraints.md` geführt und sind für die Umsetzung massgeblich.
 - **02.03.2026**: Lastschutz-Anforderungen ergänzt (DoS-Schutzgrenzen für Import/Statistik/Login) und fachliche Freiheit von technischen Sicherheitsgrenzen abgegrenzt.
 - **02.03.2026**: Sprachregel präzisiert (Deutsch für UI und Kommentare, Englisch für interne Komponenten- und Routen-/URL-Benennung).
 - **02.03.2026**: Bestehende interne Komponenten- und URL-Benennungen auf Englisch umgestellt (`/sessions`, `/disciplines`, `/statistics`, `/goals`, `/shot-routines`, `/admin/users`) ohne Redirects von den alten deutschen Pfaden.

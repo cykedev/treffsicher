@@ -85,7 +85,7 @@ Der Dev-Workflow nutzt [Compose Watch](https://docs.docker.com/compose/how-tos/f
 | ---------------------- | -------------- | ---------------------------------------------------------------------- |
 | `src/**`               | Bind-Mount HMR | Next.js Hot-Reload (kein Compose-Watch-Eintrag)                        |
 | `prisma/schema.prisma` | `restart`      | App-Container startet neu, `prisma db push` + `prisma generate` laufen |
-| `prisma/migrations/**` | `restart`      | App-Container startet neu, `prisma migrate deploy` läuft erneut         |
+| `prisma/migrations/**` | `restart`      | App-Container startet neu, `prisma migrate deploy` läuft erneut        |
 | `next.config.ts`       | `restart`      | App-Container startet neu                                              |
 | `package.json`         | `rebuild`      | Image neu gebaut (npm ci), Container neu gestartet                     |
 | `package-lock.json`    | `rebuild`      | Wie `package.json`                                                     |
@@ -131,16 +131,16 @@ docker compose -f docker-compose.dev.yml run --rm app npm run format
 
 Alle Konfiguration erfolgt über Umgebungsvariablen. Die Vorlage liegt in `.env.example`.
 
-| Variable          | Beschreibung                                                    | Beispiel                                     |
-| ----------------- | --------------------------------------------------------------- | -------------------------------------------- |
-| `DATABASE_URL`    | PostgreSQL Connection String                                    | `postgresql://user:pass@db:5432/treffsicher` |
-| `NEXTAUTH_SECRET` | Zufälliger Secret für Session-Verschlüsselung (min. 32 Zeichen) | `openssl rand -base64 32`                    |
-| `NEXTAUTH_URL`    | Öffentliche URL der App                                         | `https://training.example.com`               |
-| `UPLOAD_DIR`      | Pfad zum Upload-Verzeichnis im Container                        | `/app/uploads`                               |
-| `ADMIN_EMAIL`     | E-Mail des ersten Admin-Accounts                                | `admin@example.com`                          |
-| `ADMIN_PASSWORD`  | Passwort des ersten Admin-Accounts (min. 12 Zeichen)            | sicheres Passwort                            |
-| `PRISMA_AUTO_RESOLVE_FAILED_MIGRATIONS` | Aktiviert automatische Recovery für fehlgeschlagene Migrationen beim Start | `true` |
-| `PRISMA_AUTO_RESOLVE_UNKNOWN_FAILED_MIGRATIONS` | Erlaubt Fallback für unbekannte fehlgeschlagene Migrationen (`--rolled-back`) | `false` |
+| Variable                                        | Beschreibung                                                                  | Beispiel                                     |
+| ----------------------------------------------- | ----------------------------------------------------------------------------- | -------------------------------------------- |
+| `DATABASE_URL`                                  | PostgreSQL Connection String                                                  | `postgresql://user:pass@db:5432/treffsicher` |
+| `NEXTAUTH_SECRET`                               | Zufälliger Secret für Session-Verschlüsselung (min. 32 Zeichen)               | `openssl rand -base64 32`                    |
+| `NEXTAUTH_URL`                                  | Öffentliche URL der App                                                       | `https://training.example.com`               |
+| `UPLOAD_DIR`                                    | Pfad zum Upload-Verzeichnis im Container                                      | `/app/uploads`                               |
+| `ADMIN_EMAIL`                                   | E-Mail des ersten Admin-Accounts                                              | `admin@example.com`                          |
+| `ADMIN_PASSWORD`                                | Passwort des ersten Admin-Accounts (min. 12 Zeichen)                          | sicheres Passwort                            |
+| `PRISMA_AUTO_RESOLVE_FAILED_MIGRATIONS`         | Aktiviert automatische Recovery für fehlgeschlagene Migrationen beim Start    | `true`                                       |
+| `PRISMA_AUTO_RESOLVE_UNKNOWN_FAILED_MIGRATIONS` | Erlaubt Fallback für unbekannte fehlgeschlagene Migrationen (`--rolled-back`) | `false`                                      |
 
 **Entwicklung**: Werte sind direkt in `docker-compose.dev.yml` gesetzt — für den oben beschriebenen Container-Workflow ist keine `.env` nötig.
 

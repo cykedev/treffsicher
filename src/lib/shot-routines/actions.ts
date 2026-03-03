@@ -25,7 +25,9 @@ const RoutineStepSchema = z.object({
   description: z.string().max(500).optional(),
 })
 
-const RoutineStepsSchema = z.array(RoutineStepSchema).min(1, "Mindestens ein Schritt ist erforderlich")
+const RoutineStepsSchema = z
+  .array(RoutineStepSchema)
+  .min(1, "Mindestens ein Schritt ist erforderlich")
 
 const ShotRoutineSchema = z.object({
   name: z.string().min(1, "Name ist erforderlich").max(100),
@@ -55,7 +57,9 @@ const ShotRoutineSchema = z.object({
   }),
 })
 
-function getShotRoutineValidationError(error: z.ZodError<z.infer<typeof ShotRoutineSchema>>): string {
+function getShotRoutineValidationError(
+  error: z.ZodError<z.infer<typeof ShotRoutineSchema>>
+): string {
   const fields = error.flatten().fieldErrors
   return fields.name?.[0] ?? fields.steps?.[0] ?? error.issues[0]?.message ?? "Ungültige Eingabe"
 }

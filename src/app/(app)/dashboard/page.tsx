@@ -48,7 +48,8 @@ const quickActions = [
   },
   {
     title: "Disziplinen",
-    description: "Pflege System- und eigene Disziplinen, setze Favoriten und archiviere bei Bedarf.",
+    description:
+      "Pflege System- und eigene Disziplinen, setze Favoriten und archiviere bei Bedarf.",
     icon: Target,
     href: "/disciplines",
     buttonLabel: "Disziplinen öffnen",

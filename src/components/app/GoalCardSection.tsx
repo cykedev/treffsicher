@@ -2,7 +2,7 @@
 
 import { useState, useTransition, type FormEvent } from "react"
 import { useRouter } from "next/navigation"
-import { Check, Pencil, Target, Trash2 } from "lucide-react"
+import { Pencil, Target, Trash2 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -15,10 +15,23 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { SelectableRow } from "@/components/ui/selectable-row"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 import {
   deleteGoal,
   updateGoal,
   updateGoalAssignments,
+  type GoalActionResult,
   type GoalSessionOption,
   type GoalWithAssignments,
 } from "@/lib/goals/actions"
@@ -67,6 +80,7 @@ export function GoalCardSection({ goal, sessions }: Props) {
   const [editingGoal, setEditingGoal] = useState(false)
   const [editingAssignments, setEditingAssignments] = useState(false)
   const [selectedSessionIds, setSelectedSessionIds] = useState<string[]>(goal.sessionIds)
+  const [message, setMessage] = useState<string | null>(null)
   const [pending, startTransition] = useTransition()
 
   function openAssignmentsEditor() {
@@ -87,9 +101,14 @@ export function GoalCardSection({ goal, sessions }: Props) {
   function handleGoalSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const formData = new FormData(event.currentTarget)
+    setMessage(null)
 
     startTransition(async () => {
-      await updateGoal(goal.id, formData)
+      const result: GoalActionResult = await updateGoal(goal.id, formData)
+      if (result.error) {
+        setMessage(result.error)
+        return
+      }
       setEditingGoal(false)
       router.refresh()
     })
@@ -98,19 +117,27 @@ export function GoalCardSection({ goal, sessions }: Props) {
   function handleAssignmentsSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const formData = new FormData(event.currentTarget)
+    setMessage(null)
 
     startTransition(async () => {
-      await updateGoalAssignments(goal.id, formData)
+      const result: GoalActionResult = await updateGoalAssignments(goal.id, formData)
+      if (result.error) {
+        setMessage(result.error)
+        return
+      }
       setEditingAssignments(false)
       router.refresh()
     })
   }
 
-  function handleDeleteSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-
+  function handleDelete(): void {
+    setMessage(null)
     startTransition(async () => {
-      await deleteGoal(goal.id)
+      const result: GoalActionResult = await deleteGoal(goal.id)
+      if (result.error) {
+        setMessage(result.error)
+        return
+      }
       router.refresh()
     })
   }
@@ -118,6 +145,7 @@ export function GoalCardSection({ goal, sessions }: Props) {
   if (editingGoal) {
     return (
       <form onSubmit={handleGoalSubmit} className="space-y-4 rounded-md border p-3">
+        {message && <p className="text-sm text-destructive">{message}</p>}
         <p className="text-sm font-medium">Zieldaten bearbeiten</p>
         <div className="grid gap-3 md:grid-cols-2 [&>*]:min-w-0">
           <div className="space-y-1.5">
@@ -189,6 +217,7 @@ export function GoalCardSection({ goal, sessions }: Props) {
   if (editingAssignments) {
     return (
       <form onSubmit={handleAssignmentsSubmit} className="space-y-3">
+        {message && <p className="text-sm text-destructive">{message}</p>}
         <div className="rounded-md border border-dashed p-3 text-sm text-muted-foreground">
           <p className="font-medium text-foreground">Was bedeutet „Zahlt auf das Ziel ein“?</p>
           <p>
@@ -204,40 +233,26 @@ export function GoalCardSection({ goal, sessions }: Props) {
               const selected = selectedSessionIds.includes(entry.id)
 
               return (
-                <button
+                <SelectableRow
                   key={entry.id}
-                  type="button"
-                  onClick={() => toggleSession(entry.id)}
+                  selected={selected}
+                  onToggle={() => toggleSession(entry.id)}
                   disabled={pending}
-                  className={`flex w-full items-start gap-2 px-3 py-2.5 text-left text-sm transition-colors ${
-                    index > 0 ? "border-t border-border/40" : ""
-                  } ${
-                    selected ? "bg-primary/10" : "bg-background/10 hover:bg-muted/20"
-                  }`}
-                  aria-pressed={selected}
+                  className={
+                    index > 0
+                      ? "w-full rounded-none border-t border-border/40"
+                      : "w-full rounded-none"
+                  }
                 >
-                  <span
-                    className={`mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full ${
-                      selected
-                        ? "bg-primary text-primary-foreground"
-                        : "border border-border/60 bg-background/20 text-muted-foreground/40"
-                    }`}
-                  >
-                    <Check className={`h-3.5 w-3.5 ${selected ? "opacity-100" : "opacity-0"}`} />
-                  </span>
-                  <span className="leading-5">
-                    <span className="font-medium">
-                      {sessionTypeLabels[entry.type] ?? entry.type}
-                    </span>
-                    <span className="text-muted-foreground"> · {formatDateTime(entry.date)}</span>
-                    {entry.disciplineName && (
-                      <span className="text-muted-foreground"> · {entry.disciplineName}</span>
-                    )}
-                    {entry.location && (
-                      <span className="text-muted-foreground"> · {entry.location}</span>
-                    )}
-                  </span>
-                </button>
+                  <span className="font-medium">{sessionTypeLabels[entry.type] ?? entry.type}</span>
+                  <span className="text-muted-foreground"> · {formatDateTime(entry.date)}</span>
+                  {entry.disciplineName && (
+                    <span className="text-muted-foreground"> · {entry.disciplineName}</span>
+                  )}
+                  {entry.location && (
+                    <span className="text-muted-foreground"> · {entry.location}</span>
+                  )}
+                </SelectableRow>
               )
             })}
           </div>
@@ -273,6 +288,7 @@ export function GoalCardSection({ goal, sessions }: Props) {
 
   return (
     <div className="space-y-3">
+      {message && <p className="text-sm text-destructive">{message}</p>}
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0 space-y-2">
           <div className="flex flex-wrap items-center gap-2">
@@ -302,18 +318,31 @@ export function GoalCardSection({ goal, sessions }: Props) {
             <Target className="mr-1.5 h-4 w-4" />
             Zahlt auf Ziel ein
           </Button>
-          <form onSubmit={handleDeleteSubmit}>
-            <Button
-              type="submit"
-              size="sm"
-              variant="ghost"
-              disabled={pending}
-              className="text-destructive hover:bg-destructive/10 hover:text-destructive"
-            >
-              <Trash2 className="mr-1.5 h-4 w-4" />
-              Löschen
-            </Button>
-          </form>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button size="sm" variant="destructive" disabled={pending}>
+                <Trash2 className="mr-1.5 h-4 w-4" />
+                Löschen
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Ziel löschen?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Das Ziel und alle Verknüpfungen zu Einheiten werden entfernt.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Abbrechen</AlertDialogCancel>
+                <AlertDialogAction
+                  className="bg-destructive text-white hover:bg-destructive/90"
+                  onClick={handleDelete}
+                >
+                  Löschen
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
       </div>
     </div>

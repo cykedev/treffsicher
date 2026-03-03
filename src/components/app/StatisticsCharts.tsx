@@ -123,7 +123,10 @@ function niceNumber(value: number, round: boolean): number {
   return niceFraction * 10 ** exponent
 }
 
-function computeStableAxis(values: number[], targetTickCount = 5): { domain: [number, number]; ticks: number[] } {
+function computeStableAxis(
+  values: number[],
+  targetTickCount = 5
+): { domain: [number, number]; ticks: number[] } {
   if (values.length === 0) {
     return { domain: [0, 1], ticks: [0, 0.25, 0.5, 0.75, 1] }
   }
@@ -798,7 +801,11 @@ export function StatisticsCharts({
                   <CardContent>
                     <ChartContainer config={seriesChartConfig} className="h-[240px] w-full">
                       <BarChart data={barData} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
-                        <CartesianGrid stroke="var(--border)" strokeOpacity={0.4} vertical={false} />
+                        <CartesianGrid
+                          stroke="var(--border)"
+                          strokeOpacity={0.4}
+                          vertical={false}
+                        />
                         <XAxis
                           dataKey="name"
                           tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
@@ -809,7 +816,9 @@ export function StatisticsCharts({
                           domain={seriesYAxis.domain}
                           ticks={seriesYAxis.ticks}
                           tickFormatter={(v: number) =>
-                            seriesHasDecimals ? v.toFixed(1).replace(/\.0$/, "") : String(Math.round(v))
+                            seriesHasDecimals
+                              ? v.toFixed(1).replace(/\.0$/, "")
+                              : String(Math.round(v))
                           }
                           tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
                           axisLine={false}
@@ -939,7 +948,11 @@ export function StatisticsCharts({
                       className="h-[180px] w-full max-w-full overflow-hidden"
                     >
                       <ScatterChart margin={{ top: 5, right: 8, bottom: 16, left: 0 }}>
-                        <CartesianGrid stroke="var(--border)" strokeOpacity={0.4} vertical={false} />
+                        <CartesianGrid
+                          stroke="var(--border)"
+                          strokeOpacity={0.4}
+                          vertical={false}
+                        />
                         <XAxis
                           dataKey={key}
                           type="number"
