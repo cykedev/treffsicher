@@ -19,6 +19,7 @@ import {
   YAxis,
   CartesianGrid,
   Legend,
+  ReferenceLine,
 } from "recharts"
 import { calculateMovingAverage } from "@/lib/stats/calculateMovingAverage"
 import { calculateSeriesStats } from "@/lib/stats/calculateSeriesStats"
@@ -103,6 +104,17 @@ const shotDistributionColors: Record<string, string> = {
   r10: "#ef4444",
 }
 
+const HIT_LOCATION_CLOUD_MARGIN = { top: 12, right: 12, bottom: 12, left: 12 } as const
+const HIT_LOCATION_CLOUD_AXIS_SIZE = 44
+
+type HitLocationPoint = {
+  sessionId: string
+  date: Date
+  x: number
+  y: number
+  disciplineId: string | null
+}
+
 function niceNumber(value: number, round: boolean): number {
   if (!Number.isFinite(value) || value <= 0) return 1
 
@@ -162,6 +174,27 @@ function computeStableAxis(
     domain: [ticks[0] ?? niceMin, ticks[ticks.length - 1] ?? niceMax],
     ticks,
   }
+}
+
+function computeCenteredAxis(values: number[], minAbsMax = 1): { domain: [number, number]; ticks: number[] } {
+  if (values.length === 0) {
+    return { domain: [-minAbsMax, minAbsMax], ticks: [-minAbsMax, 0, minAbsMax] }
+  }
+
+  const absMaxRaw = Math.max(...values.map((v) => Math.abs(v)))
+  const absMax = Math.max(minAbsMax, absMaxRaw)
+  const niceMax = niceNumber(absMax * 1.12, false)
+  const half = Math.round((niceMax / 2) * 100) / 100
+
+  return {
+    domain: [-niceMax, niceMax],
+    ticks: [-niceMax, -half, 0, half, niceMax],
+  }
+}
+
+function calculateMean(values: number[]): number | null {
+  if (values.length === 0) return null
+  return values.reduce((sum, v) => sum + v, 0) / values.length
 }
 
 // Datumsstring für Presets berechnen
@@ -312,6 +345,78 @@ export function StatisticsCharts({
     return radarData.filter((p) => filteredSessionIds.has(p.sessionId))
   }, [radarData, filteredSessionIds])
 
+  const filteredHitLocations = useMemo<HitLocationPoint[]>(() => {
+    return filtered
+      .filter(
+        (s) =>
+          s.hitLocationHorizontalMm !== null &&
+          s.hitLocationHorizontalDirection !== null &&
+          s.hitLocationVerticalMm !== null &&
+          s.hitLocationVerticalDirection !== null
+      )
+      .map((s) => {
+        const signedX =
+          s.hitLocationHorizontalDirection === "RIGHT"
+            ? s.hitLocationHorizontalMm!
+            : -s.hitLocationHorizontalMm!
+        const signedY =
+          s.hitLocationVerticalDirection === "HIGH"
+            ? s.hitLocationVerticalMm!
+            : -s.hitLocationVerticalMm!
+        return {
+          sessionId: s.id,
+          date: s.date,
+          x: Math.round(signedX * 100) / 100,
+          y: Math.round(signedY * 100) / 100,
+          disciplineId: s.disciplineId,
+        }
+      })
+  }, [filtered])
+
+  const hitLocationCloudAxes = useMemo(() => {
+    const values = filteredHitLocations.flatMap((point) => [point.x, point.y])
+    const centered = computeCenteredAxis(values, 1)
+    return {
+      xDomain: centered.domain,
+      xTicks: centered.ticks,
+      yDomain: centered.domain,
+      yTicks: centered.ticks,
+    }
+  }, [filteredHitLocations])
+
+  const hitLocationMetrics = useMemo(() => {
+    const xs = filteredHitLocations.map((point) => point.x)
+    const ys = filteredHitLocations.map((point) => point.y)
+
+    return {
+      meanX: calculateMean(xs),
+      meanY: calculateMean(ys),
+    }
+  }, [filteredHitLocations])
+
+  const hitLocationTrendData = useMemo(() => {
+    if (filteredHitLocations.length === 0) return []
+
+    return filteredHitLocations.map((point, i) => ({
+      i,
+      date: point.date,
+      dateLabel: new Intl.DateTimeFormat("de-CH", {
+        day: "2-digit",
+        month: "2-digit",
+        timeZone: DISPLAY_TIME_ZONE,
+      }).format(new Date(point.date)),
+      x: point.x,
+      y: point.y,
+    }))
+  }, [filteredHitLocations])
+
+  const hitLocationTrendAxis = useMemo<{ domain: [number, number]; ticks: number[] }>(() => {
+    const values = hitLocationTrendData
+      .flatMap((point) => [point.x, point.y])
+      .filter((value): value is number => typeof value === "number" && Number.isFinite(value))
+    return computeCenteredAxis(values, 1)
+  }, [hitLocationTrendData])
+
   // Befinden-Anzeigedaten: bei Hochrechnung auf Gesamtschusszahl der Disziplin projizieren
   const wellbeingDisplayData = useMemo(() => {
     return filteredWellbeing.map((p) => ({
@@ -389,6 +494,28 @@ export function StatisticsCharts({
       return selectedDiscipline.scoringType === "TENTH" ? value.toFixed(1) : String(value)
     }
     return value.toFixed(2)
+  }
+
+  function formatSignedMillimeters(value: number | null): string {
+    if (value === null || !Number.isFinite(value)) return "–"
+    const sign = value > 0 ? "+" : value < 0 ? "−" : "±"
+    return `${sign}${Math.abs(value).toFixed(2)} mm`
+  }
+
+  function formatDirectionalMillimeters(value: number | null, axis: "x" | "y"): string {
+    if (value === null || !Number.isFinite(value)) return "–"
+
+    const absValue = `${Math.abs(value).toFixed(2)} mm`
+
+    if (axis === "x") {
+      if (value > 0) return `→ ${absValue}`
+      if (value < 0) return `← ${absValue}`
+      return `↔ ${absValue}`
+    }
+
+    if (value > 0) return `↑ ${absValue}`
+    if (value < 0) return `↓ ${absValue}`
+    return `↕ ${absValue}`
   }
 
   // Daten für den Verlaufschart
@@ -546,6 +673,22 @@ export function StatisticsCharts({
     []
   )
 
+  const hitLocationCloudChartConfig = useMemo<ChartConfig>(
+    () => ({
+      x: { label: "X (rechts+/links−)", color: "var(--chart-1)" },
+      y: { label: "Y (hoch+/tief−)", color: "var(--chart-2)" },
+    }),
+    []
+  )
+
+  const hitLocationTrendChartConfig = useMemo<ChartConfig>(
+    () => ({
+      x: { label: "→ X", color: "var(--chart-1)" },
+      y: { label: "↑ Y", color: "var(--chart-2)" },
+    }),
+    []
+  )
+
   return (
     <div className="space-y-6">
       {/* Filter */}
@@ -682,6 +825,9 @@ export function StatisticsCharts({
           <TabsList className="mb-2 w-max min-w-full">
             <TabsTrigger value="verlauf" className="shrink-0 flex-none">
               Verlauf
+            </TabsTrigger>
+            <TabsTrigger value="trefferlage" className="shrink-0 flex-none">
+              Trefferlage
             </TabsTrigger>
             <TabsTrigger value="selbstbild" className="shrink-0 flex-none">
               Selbsteinschätzung
@@ -844,7 +990,242 @@ export function StatisticsCharts({
           )}
         </TabsContent>
 
-        {/* Tab 2: Prognose vs. Feedback in den 7 Dimensionen */}
+        {/* Tab 2: Trefferlage-Analyse */}
+        <TabsContent value="trefferlage" className="space-y-4">
+          {filteredHitLocations.length > 0 ? (
+            <>
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex flex-wrap items-baseline gap-2">
+                    Trefferlagen-Cloud
+                    <span className="text-base font-normal text-muted-foreground">
+                      {filteredHitLocations.length} Einheit
+                      {filteredHitLocations.length !== 1 ? "en" : ""}
+                    </span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="mx-auto aspect-square w-full max-w-[560px]">
+                    <ChartContainer config={hitLocationCloudChartConfig} className="h-full w-full">
+                      <ScatterChart margin={HIT_LOCATION_CLOUD_MARGIN}>
+                        <CartesianGrid stroke="var(--border)" strokeOpacity={0.4} />
+                        <XAxis
+                          type="number"
+                          dataKey="x"
+                          domain={hitLocationCloudAxes.xDomain}
+                          ticks={hitLocationCloudAxes.xTicks}
+                          tickFormatter={(value: number) =>
+                            `${value > 0 ? "+" : ""}${value.toFixed(1)}`
+                          }
+                          tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
+                          axisLine={false}
+                          tickLine={false}
+                          height={HIT_LOCATION_CLOUD_AXIS_SIZE}
+                          label={{
+                            value: "X (rechts + / links −) in mm",
+                            position: "insideBottom",
+                            offset: -6,
+                            fontSize: 11,
+                            fill: "var(--muted-foreground)",
+                          }}
+                        />
+                        <YAxis
+                          type="number"
+                          dataKey="y"
+                          domain={hitLocationCloudAxes.yDomain}
+                          ticks={hitLocationCloudAxes.yTicks}
+                          tickFormatter={(value: number) =>
+                            `${value > 0 ? "+" : ""}${value.toFixed(1)}`
+                          }
+                          tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
+                          axisLine={false}
+                          tickLine={false}
+                          width={HIT_LOCATION_CLOUD_AXIS_SIZE}
+                          label={{
+                            value: "Y (hoch + / tief −) in mm",
+                            angle: -90,
+                            position: "insideLeft",
+                            style: { textAnchor: "middle", fill: "var(--muted-foreground)" },
+                            fontSize: 11,
+                          }}
+                        />
+                      <ReferenceLine
+                        x={0}
+                        stroke="var(--muted-foreground)"
+                        strokeOpacity={0.7}
+                        strokeWidth={1.8}
+                      />
+                      <ReferenceLine
+                        y={0}
+                        stroke="var(--muted-foreground)"
+                        strokeOpacity={0.7}
+                        strokeWidth={1.8}
+                      />
+                      <ChartTooltip
+                        cursor={{ stroke: "var(--muted-foreground)", strokeOpacity: 0.45 }}
+                        content={
+                          <ChartTooltipContent
+                            labelFormatter={(_label, payload) => {
+                              const dateValue = payload?.[0]?.payload?.date
+                              if (!dateValue) return ""
+                              return new Intl.DateTimeFormat("de-CH", {
+                                day: "2-digit",
+                                month: "2-digit",
+                                year: "numeric",
+                                timeZone: DISPLAY_TIME_ZONE,
+                              }).format(new Date(dateValue as Date))
+                            }}
+                            formatter={(value, name) => (
+                              <div className="flex w-full items-center justify-between gap-6">
+                                <span className="text-muted-foreground">{name === "x" ? "X" : "Y"}</span>
+                                <span className="text-foreground font-mono font-medium tabular-nums">
+                                  {formatSignedMillimeters(
+                                    typeof value === "number" ? value : Number(value)
+                                  )}
+                                </span>
+                              </div>
+                            )}
+                          />
+                        }
+                      />
+                      <Scatter
+                        data={filteredHitLocations}
+                        fill="var(--chart-1)"
+                        shape={(props: { cx?: number; cy?: number }) => (
+                          <circle
+                            cx={props.cx}
+                            cy={props.cy}
+                            r={5}
+                            fill="var(--chart-1)"
+                            opacity={0.78}
+                          />
+                        )}
+                      />
+                      </ScatterChart>
+                    </ChartContainer>
+                  </div>
+
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      <div className="rounded-lg border border-border/60 bg-muted/10 p-3">
+                        <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                          Mittelwert X (→/←)
+                        </p>
+                        <p className="text-lg font-semibold tabular-nums">
+                          {formatDirectionalMillimeters(hitLocationMetrics.meanX, "x")}
+                        </p>
+                      </div>
+                      <div className="rounded-lg border border-border/60 bg-muted/10 p-3">
+                        <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                          Mittelwert Y (↑/↓)
+                        </p>
+                        <p className="text-lg font-semibold tabular-nums">
+                          {formatDirectionalMillimeters(hitLocationMetrics.meanY, "y")}
+                        </p>
+                      </div>
+                    </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex flex-wrap items-baseline gap-2">
+                    Trefferlage-Trend über Zeit
+                    <span className="text-base font-normal text-muted-foreground">
+                      → X (rechts/links) · ↑ Y (hoch/tief)
+                    </span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ChartContainer config={hitLocationTrendChartConfig} className="h-[280px] w-full">
+                    <LineChart data={hitLocationTrendData} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
+                      <CartesianGrid stroke="var(--border)" strokeOpacity={0.4} vertical={false} />
+                      <XAxis
+                        dataKey="i"
+                        tickFormatter={(i: number) => hitLocationTrendData[i]?.dateLabel ?? ""}
+                        tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
+                        axisLine={false}
+                        tickLine={false}
+                      />
+                      <YAxis
+                        domain={hitLocationTrendAxis.domain}
+                        ticks={hitLocationTrendAxis.ticks}
+                        tickFormatter={(value: number) =>
+                          `${value > 0 ? "+" : ""}${value.toFixed(1)}`
+                        }
+                        tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
+                        axisLine={false}
+                        tickLine={false}
+                        width={46}
+                      />
+                      <ReferenceLine
+                        y={0}
+                        stroke="var(--muted-foreground)"
+                        strokeOpacity={0.7}
+                        strokeWidth={1.8}
+                      />
+                      <ChartTooltip
+                        content={
+                          <ChartTooltipContent
+                            labelFormatter={(_label, payload) => {
+                              const index = Number(payload?.[0]?.payload?.i)
+                              const dateValue = hitLocationTrendData[index]?.date
+                              if (!dateValue) return ""
+                              return new Intl.DateTimeFormat("de-CH", {
+                                day: "2-digit",
+                                month: "2-digit",
+                                year: "numeric",
+                                timeZone: DISPLAY_TIME_ZONE,
+                              }).format(new Date(dateValue))
+                            }}
+                            formatter={(value, name) => (
+                              <div className="flex w-full items-center justify-between gap-6">
+                                <span className="text-muted-foreground">
+                                  {name === "x" ? "X" : "Y"}
+                                </span>
+                                <span className="text-foreground font-mono font-medium tabular-nums">
+                                  {formatSignedMillimeters(
+                                    typeof value === "number" ? value : Number(value)
+                                  )}
+                                </span>
+                              </div>
+                            )}
+                          />
+                        }
+                      />
+                      <ChartLegend content={<ChartLegendContent />} />
+                      <Line
+                        type="monotone"
+                        dataKey="x"
+                        name="x"
+                        stroke="var(--chart-1)"
+                        strokeWidth={2}
+                        dot={{ r: 2.8 }}
+                        connectNulls={false}
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="y"
+                        name="y"
+                        stroke="var(--chart-2)"
+                        strokeWidth={2}
+                        dot={{ r: 2.8 }}
+                        connectNulls={false}
+                      />
+                    </LineChart>
+                  </ChartContainer>
+                </CardContent>
+              </Card>
+            </>
+          ) : (
+            <Card>
+              <CardContent className="py-12 text-center text-muted-foreground">
+                Keine Trefferlagen-Daten für den gewählten Filter.
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
+
+        {/* Tab 3: Prognose vs. Feedback in den 7 Dimensionen */}
         <TabsContent value="selbstbild">
           {radarChartData.length > 0 ? (
             <Card>
@@ -920,7 +1301,7 @@ export function StatisticsCharts({
           )}
         </TabsContent>
 
-        {/* Tab 3: Befinden-Korrelation — je Dimension eine eigene Card (2 Spalten auf Desktop) */}
+        {/* Tab 4: Befinden-Korrelation — je Dimension eine eigene Card (2 Spalten auf Desktop) */}
         <TabsContent value="befinden" className="overflow-x-hidden">
           {filteredWellbeing.length > 0 ? (
             <div className="grid min-w-0 gap-4 sm:grid-cols-2">
@@ -1034,7 +1415,7 @@ export function StatisticsCharts({
           )}
         </TabsContent>
 
-        {/* Tab 4: Ausführungsqualität + Schussverteilung */}
+        {/* Tab 5: Ausführungsqualität + Schussverteilung */}
         <TabsContent value="qualitaet" className="space-y-4">
           {/* Schussqualität vs. Serienergebnis — nach Disziplin gefiltert, normalisiert auf Ringe/Sch. */}
           {filteredQuality.length > 1 && (
