@@ -15,6 +15,7 @@ import {
   Shield,
   LogOut,
 } from "lucide-react"
+import { Button } from "@/components/ui/button"
 
 const baseNavLinks = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -59,14 +60,14 @@ export function Navigation() {
                   <Link
                     key={link.href}
                     href={link.href}
-                    className={`flex min-h-11 min-w-11 items-center justify-center gap-1.5 whitespace-nowrap rounded-md px-3 py-2.5 text-sm font-medium transition-colors md:px-2.5 lg:min-w-0 lg:justify-start lg:px-3 ${
+                    className={`flex min-h-11 min-w-16 flex-col items-center justify-center gap-0.5 whitespace-nowrap rounded-md px-2 py-1.5 text-[11px] font-medium transition-colors sm:min-w-11 sm:flex-row sm:gap-1.5 sm:px-2.5 sm:py-2 sm:text-sm ${
                       isActive
                         ? "bg-secondary text-foreground"
                         : "text-muted-foreground hover:bg-secondary/50 hover:text-foreground"
                     }`}
                   >
-                    <Icon className="h-5 w-5 shrink-0 lg:h-4 lg:w-4" />
-                    <span className="hidden lg:inline">{link.label}</span>
+                    <Icon className="h-4 w-4 shrink-0" />
+                    <span>{link.label}</span>
                   </Link>
                 )
               })}
@@ -74,13 +75,16 @@ export function Navigation() {
           </div>
 
           {/* Abmelden */}
-          <button
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
             onClick={() => signOut({ callbackUrl: "/login" })}
-            className="flex min-h-11 min-w-11 shrink-0 items-center justify-center gap-1.5 rounded-md px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors sm:px-2.5 md:px-3 xl:min-w-0 xl:justify-start hover:bg-secondary/50 hover:text-foreground"
+            className="min-h-11 min-w-16 shrink-0 flex-col gap-0.5 px-2 py-1.5 text-[11px] text-muted-foreground sm:min-w-11 sm:flex-row sm:gap-1.5 sm:px-2.5 sm:py-2 sm:text-sm"
           >
-            <LogOut className="h-5 w-5 shrink-0 xl:h-4 xl:w-4" />
-            <span className="hidden xl:inline">Abmelden</span>
-          </button>
+            <LogOut className="h-4 w-4 shrink-0" />
+            <span>Abmelden</span>
+          </Button>
         </div>
       </div>
     </nav>

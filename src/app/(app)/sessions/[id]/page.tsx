@@ -100,11 +100,11 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
   if (!session) redirect("/login")
 
   const { id } = await params
-  const einheit = await getSessionById(id)
-  if (!einheit) notFound()
+  const sessionRecord = await getSessionById(id)
+  if (!sessionRecord) notFound()
 
   const totalScore = calculateTotalScore(
-    einheit.series.map((s) => ({
+    sessionRecord.series.map((s) => ({
       scoreTotal:
         typeof s.scoreTotal === "object" && s.scoreTotal !== null
           ? parseFloat(String(s.scoreTotal))
@@ -115,66 +115,69 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
     }))
   )
 
-  const hasScoring = einheit.type === "TRAINING" || einheit.type === "WETTKAMPF"
-  const isDecimal = einheit.discipline?.scoringType === "TENTH"
+  const hasScoring = sessionRecord.type === "TRAINING" || sessionRecord.type === "WETTKAMPF"
+  const isDecimal = sessionRecord.discipline?.scoringType === "TENTH"
   // Prognose und Feedback nur bei TRAINING und WETTKAMPF anzeigen
   const hasPrognosisFeedback = hasScoring
 
   // Serien für die Anzeige sortiert: Probeschüsse zuerst, dann Wertungsserien.
   // Relative Reihenfolge innerhalb jeder Gruppe bleibt erhalten.
-  const sortedSeries = [...einheit.series].sort((a, b) => {
+  const sortedSeries = [...sessionRecord.series].sort((a, b) => {
     if (a.isPractice === b.isPractice) return 0
     return a.isPractice ? -1 : 1
   })
 
   // Nur Wertungsschüsse für das Histogramm — Probeschüsse sind nicht Teil der Auswertung
-  const allShots = einheit.series
+  const allShots = sessionRecord.series
     .filter((serie) => !serie.isPractice)
     .flatMap((serie) => parseShotsJson(serie.shots) ?? [])
   const hasShots = allShots.length > 0
 
   // Schüsse-Spalte nur anzeigen wenn mindestens eine Serie Einzelschüsse enthält —
   // verhindert Layout-Unterschiede zwischen Einheiten mit und ohne Einzelschuss-Erfassung
-  const hasAnyShots = einheit.series.some((serie) => {
+  const hasAnyShots = sessionRecord.series.some((serie) => {
     const shots = parseShotsJson(serie.shots)
     return shots !== null && shots.length > 0
   })
 
   // Anhänge nur bei TRAINING und WETTKAMPF sinnvoll
-  const hasAttachmentSection = einheit.type === "TRAINING" || einheit.type === "WETTKAMPF"
+  const hasAttachmentSection =
+    sessionRecord.type === "TRAINING" || sessionRecord.type === "WETTKAMPF"
 
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0 flex-1 space-y-1.5">
-          <Badge variant="outline" className={typeBadgeClass[einheit.type] ?? ""}>
-            {sessionTypeLabels[einheit.type] ?? einheit.type}
+          <Badge variant="outline" className={typeBadgeClass[sessionRecord.type] ?? ""}>
+            {sessionTypeLabels[sessionRecord.type] ?? sessionRecord.type}
           </Badge>
-          <h1 className="text-2xl font-bold">{formatDate(einheit.date)}</h1>
+          <h1 className="text-2xl font-bold">{formatDate(sessionRecord.date)}</h1>
           <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-            {einheit.discipline && <span className="break-words">{einheit.discipline.name}</span>}
-            {einheit.location && (
+            {sessionRecord.discipline && (
+              <span className="break-words">{sessionRecord.discipline.name}</span>
+            )}
+            {sessionRecord.location && (
               <span className="break-words">
-                {einheit.discipline ? `· ${einheit.location}` : einheit.location}
+                {sessionRecord.discipline ? `· ${sessionRecord.location}` : sessionRecord.location}
               </span>
             )}
           </div>
           {/* Trainingsziel — nur wenn gesetzt und nicht WETTKAMPF (dort: Leistungsziel in Prognose) */}
-          {einheit.trainingGoal && (
+          {sessionRecord.trainingGoal && (
             <div className="flex items-start gap-1.5 text-sm text-muted-foreground">
               <Target className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-              <span>{einheit.trainingGoal}</span>
+              <span>{sessionRecord.trainingGoal}</span>
             </div>
           )}
-          {einheit.goals.length > 0 && (
+          {sessionRecord.goals.length > 0 && (
             <div className="space-y-1 text-sm text-muted-foreground">
               <div className="flex items-start gap-1.5">
                 <Goal className="mt-0.5 h-3.5 w-3.5 shrink-0" />
                 <span>Zahlt auf folgende Saisonziele ein:</span>
               </div>
               <div className="flex flex-wrap gap-1.5 pl-0 sm:pl-5">
-                {einheit.goals.map((entry) => (
+                {sessionRecord.goals.map((entry) => (
                   <Badge key={entry.goalId} variant="outline" className="text-xs">
                     {entry.goal.title}
                   </Badge>
@@ -184,10 +187,13 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
           )}
         </div>
         <div className="flex w-full flex-wrap items-center justify-end gap-0.5 sm:ml-2 sm:w-auto sm:shrink-0 sm:gap-1">
-          <FavouriteButton sessionId={einheit.id} initialFavourite={einheit.isFavourite} />
+          <FavouriteButton
+            sessionId={sessionRecord.id}
+            initialFavourite={sessionRecord.isFavourite}
+          />
           <Button variant="ghost" size="sm" className="px-2 sm:px-3" asChild>
             <Link
-              href={`/sessions/${einheit.id}/export/pdf`}
+              href={`/sessions/${sessionRecord.id}/export/pdf`}
               target="_blank"
               aria-label="Als PDF exportieren"
             >
@@ -196,11 +202,11 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
             </Link>
           </Button>
           <Button variant="ghost" size="icon" asChild>
-            <Link href={`/sessions/${einheit.id}/edit`} aria-label="Bearbeiten">
+            <Link href={`/sessions/${sessionRecord.id}/edit`} aria-label="Bearbeiten">
               <Pencil className="h-4 w-4" />
             </Link>
           </Button>
-          <DeleteSessionButton sessionId={einheit.id} />
+          <DeleteSessionButton sessionId={sessionRecord.id} />
           <Button variant="ghost" size="sm" className="px-2 sm:px-3" asChild>
             <Link href="/sessions" aria-label="Zurück zu Einheiten">
               <ArrowLeft className="h-4 w-4 sm:mr-1.5" />
@@ -213,7 +219,7 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
       <Separator />
 
       {/* Ergebnis + Serien */}
-      {hasScoring && einheit.series.length > 0 && (
+      {hasScoring && sessionRecord.series.length > 0 && (
         <Card>
           <CardHeader>
             <CardTitle className="flex flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between">
@@ -233,7 +239,9 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
                     ? parseFloat(String(serie.scoreTotal))
                     : null
 
-                const practicesBefore = sortedSeries.slice(0, idx).filter((s) => s.isPractice).length
+                const practicesBefore = sortedSeries
+                  .slice(0, idx)
+                  .filter((s) => s.isPractice).length
                 const regularsBefore = idx - practicesBefore
                 const seriesLabel = serie.isPractice
                   ? `Probe ${practicesBefore + 1}`
@@ -252,7 +260,11 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
                         {serie.isPractice && <span className="ml-1 text-xs">(P)</span>}
                       </p>
                       <p className="text-sm font-semibold tabular-nums">
-                        {scoreValue !== null ? (isDecimal ? scoreValue.toFixed(1) : scoreValue) : "–"}
+                        {scoreValue !== null
+                          ? isDecimal
+                            ? scoreValue.toFixed(1)
+                            : scoreValue
+                          : "–"}
                       </p>
                     </div>
                     <div className="flex items-center justify-between gap-3">
@@ -365,17 +377,17 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
             <CardTitle className="flex items-center gap-2">
               <Paperclip className="h-4 w-4 text-muted-foreground" />
               Anhänge
-              {einheit.attachments.length > 0 && (
+              {sessionRecord.attachments.length > 0 && (
                 <span className="text-base font-normal text-muted-foreground">
-                  ({einheit.attachments.length})
+                  ({sessionRecord.attachments.length})
                 </span>
               )}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <AttachmentSection
-              sessionId={einheit.id}
-              attachments={einheit.attachments.map((a) => ({
+              sessionId={sessionRecord.id}
+              attachments={sessionRecord.attachments.map((a) => ({
                 id: a.id,
                 filePath: a.filePath,
                 fileType: a.fileType,
@@ -396,7 +408,7 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <WellbeingSection sessionId={einheit.id} initialData={einheit.wellbeing} />
+          <WellbeingSection sessionId={sessionRecord.id} initialData={sessionRecord.wellbeing} />
         </CardContent>
       </Card>
 
@@ -410,7 +422,7 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <PrognosisSection sessionId={einheit.id} initialData={einheit.prognosis} />
+            <PrognosisSection sessionId={sessionRecord.id} initialData={sessionRecord.prognosis} />
           </CardContent>
         </Card>
       )}
@@ -425,13 +437,13 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <FeedbackSection sessionId={einheit.id} initialData={einheit.feedback} />
+            <FeedbackSection sessionId={sessionRecord.id} initialData={sessionRecord.feedback} />
           </CardContent>
         </Card>
       )}
 
       {/* Vergleich Prognose vs. Feedback — eigene Card, nur wenn beide erfasst */}
-      {hasPrognosisFeedback && einheit.prognosis && einheit.feedback && (
+      {hasPrognosisFeedback && sessionRecord.prognosis && sessionRecord.feedback && (
         <Card>
           <CardHeader>
             <CardTitle>Vergleich Prognose vs. Feedback</CardTitle>
@@ -439,8 +451,8 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
           <CardContent>
             <div className="space-y-2 md:hidden">
               {comparisonDimensions.map(({ key, label }) => {
-                const prog = einheit.prognosis![key]
-                const feed = einheit.feedback![key]
+                const prog = sessionRecord.prognosis![key]
+                const feed = sessionRecord.feedback![key]
                 const diff = feed - prog
                 return (
                   <div key={key} className="space-y-2 rounded-lg border border-border/50 p-3">
@@ -486,8 +498,8 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
                 </thead>
                 <tbody className="divide-y divide-border/50">
                   {comparisonDimensions.map(({ key, label }) => {
-                    const prog = einheit.prognosis![key]
-                    const feed = einheit.feedback![key]
+                    const prog = sessionRecord.prognosis![key]
+                    const feed = sessionRecord.feedback![key]
                     const diff = feed - prog
                     return (
                       <tr key={key}>
@@ -524,7 +536,7 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <ReflectionSection sessionId={einheit.id} initialData={einheit.reflection} />
+          <ReflectionSection sessionId={sessionRecord.id} initialData={sessionRecord.reflection} />
         </CardContent>
       </Card>
     </div>

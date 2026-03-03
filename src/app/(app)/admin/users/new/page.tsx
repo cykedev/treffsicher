@@ -11,7 +11,9 @@ export default async function AdminUserCreatePage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Neuer Nutzer</h1>
-        <p className="text-muted-foreground">Neues Konto mit Name und temporaerem Passwort anlegen.</p>
+        <p className="text-muted-foreground">
+          Neues Konto mit Name und temporaerem Passwort anlegen.
+        </p>
       </div>
       <AdminCreateUserForm />
     </div>

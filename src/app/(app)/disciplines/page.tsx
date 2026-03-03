@@ -1,12 +1,13 @@
 import { getAuthSession } from "@/lib/auth-helpers"
 import { redirect } from "next/navigation"
 import Link from "next/link"
-import { Plus, Pencil } from "lucide-react"
+import { Pencil } from "lucide-react"
 import { getDisciplinesForManagement, getFavouriteDisciplineId } from "@/lib/disciplines/actions"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import { ArchiveDisciplineButton } from "@/components/app/ArchiveDisciplineButton"
+import { CreateItemLinkButton } from "@/components/app/CreateItemLinkButton"
 import { FavouriteDisciplineButton } from "@/components/app/FavouriteDisciplineButton"
 
 const scoringTypeLabel: Record<string, string> = {
@@ -35,12 +36,10 @@ export default async function DisciplinesPage() {
               : "Nutze System-Disziplinen, verwalte eigene Disziplinen und setze deinen Favoriten."}
           </p>
         </div>
-        <Button asChild className="w-full sm:w-auto">
-          <Link href="/disciplines/new">
-            <Plus className="mr-1.5 h-4 w-4" />
-            {isAdmin ? "Neue (System-)Disziplin" : "Neue Disziplin"}
-          </Link>
-        </Button>
+        <CreateItemLinkButton
+          href="/disciplines/new"
+          label={isAdmin ? "Neue (System-)Disziplin" : "Neue Disziplin"}
+        />
       </div>
 
       {disciplines.length === 0 ? (
@@ -87,11 +86,7 @@ export default async function DisciplinesPage() {
                     </Button>
                   )}
                   {(!d.isSystem || isAdmin) && (
-                    <ArchiveDisciplineButton
-                      disciplineId={d.id}
-                      isArchived={d.isArchived}
-                      isSystem={d.isSystem}
-                    />
+                    <ArchiveDisciplineButton disciplineId={d.id} isArchived={d.isArchived} />
                   )}
                 </div>
               </CardContent>

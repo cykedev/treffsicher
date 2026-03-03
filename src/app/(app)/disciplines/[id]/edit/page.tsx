@@ -3,11 +3,7 @@ import { getAuthSession } from "@/lib/auth-helpers"
 import { getDisciplineById } from "@/lib/disciplines/actions"
 import { DisciplineForm } from "@/components/app/DisciplineForm"
 
-export default async function EditDisciplinePage({
-  params,
-}: {
-  params: Promise<{ id: string }>
-}) {
+export default async function EditDisciplinePage({ params }: { params: Promise<{ id: string }> }) {
   const session = await getAuthSession()
   if (!session) redirect("/login")
 

@@ -4,6 +4,7 @@ import { useActionState, useState, useEffect } from "react"
 import { saveFeedback, type ActionResult } from "@/lib/sessions/actions"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
+import { SelectableRow } from "@/components/ui/selectable-row"
 import { Slider } from "@/components/ui/slider"
 import { Textarea } from "@/components/ui/textarea"
 import type { Feedback } from "@/generated/prisma/client"
@@ -92,17 +93,16 @@ export function FeedbackForm({ sessionId, initialData, onCancel, onSuccess }: Pr
       </div>
 
       <div className="space-y-2">
-        <label className="flex cursor-pointer items-center gap-2 text-sm font-medium">
-          <input
-            type="checkbox"
-            name="goalAchieved"
-            checked={goalAchieved}
-            onChange={(e) => setGoalAchieved(e.target.checked)}
-            disabled={pending}
-            className="h-4 w-4"
-          />
+        {/* Boolean-Feld per Hidden-Input übergeben, damit die Server-Action konsistent "on"/leer auswertet. */}
+        {goalAchieved && <input type="hidden" name="goalAchieved" value="on" />}
+        <SelectableRow
+          selected={goalAchieved}
+          onToggle={() => setGoalAchieved(!goalAchieved)}
+          disabled={pending}
+          className="w-full rounded-md"
+        >
           Leistungsziel erreicht
-        </label>
+        </SelectableRow>
         {goalAchieved && (
           <div className="ml-6">
             <Textarea

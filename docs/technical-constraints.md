@@ -118,6 +118,20 @@ if (process.env.NODE_ENV !== "production") {
 - Validierung via **Zod** (serverseitig in jeder Server Action)
 - Formulare nutzen den React `useActionState` Hook für Fehler-Feedback
 
+### Verbindliche Konsistenzregeln (fachlich + technisch)
+
+1. **Fachregeln werden serverseitig erzwungen** (nicht nur im UI):
+   - Attachments sind nur bei `TRAINING` und `WETTKAMPF` erlaubt.
+   - Prognose und Feedback sind nur bei `TRAINING` und `WETTKAMPF` erlaubt.
+2. **Fehlerpfade sind immer explizit und nutzerführend**:
+   - Server Actions liefern strukturierte Rückgaben (ActionResult-Stil) statt stillen Abbrüchen.
+   - Es gibt kein "silent fail": Jede Aktion liefert für die UI ein klares Erfolg-/Fehlersignal.
+3. **Upload-Whitelist ist verbindlich**:
+   - Erlaubte MIME-Typen sind ausschliesslich `image/jpeg`, `image/png`, `image/webp`, `application/pdf`.
+4. **Interne Benennung bleibt konsequent englisch**:
+   - Komponenten, Funktionen, Dateinamen und Routen/URL-Segmente sind intern englisch.
+   - Neue interne deutsche Benennungen oder deutsche URL-Segmente sind nicht erlaubt.
+
 ---
 
 ## Authentifizierung & Sicherheit
@@ -747,6 +761,21 @@ Admins koennen System-Disziplinen verwalten (anlegen, bearbeiten, archivieren/re
 - **Dark Mode**: Ausschliesslich Dark Mode — kein Light Mode, kein Toggle. `class="dark"` ist fest auf `<html>` gesetzt.
 - **Offline**: Kein Offline-Support im ersten Schritt
 
+### Verbindliche UI-Konsistenzregeln
+
+1. **Einheitliches Komponenten-System**:
+   - Interaktive UI-Elemente (Dialoge, Auswahlen, Bestätigungen, Eingaben) nutzen durchgängig `shadcn/ui`.
+   - Native Browser-Dialoge (`alert`, `confirm`) werden in App-Flows nicht verwendet.
+2. **Einheitliches Auswahlmuster**:
+   - Boolesche und Modus-Auswahlen nutzen ein konsistentes, klickbares Row-Muster (z.B. Stil "zahlt auf Ziel ein").
+   - Das gilt auch für fachlich gleiche Interaktionen wie "Leistungsziel erreicht", "Probe/Wertung" und analoge Umschalter.
+3. **Konsistente Flows für Anlegen und Löschen/Archivieren**:
+   - "Neu anlegen"-Aktionen folgen durchgängig demselben Muster (Bezeichnung, Platzierung, Route `/.../new`).
+   - Destruktive Aktionen (Löschen/Archivieren) verwenden immer denselben Bestätigungsdialog-Stil inkl. klarer Folgenbeschreibung.
+4. **Mobil ist gleichwertig, nicht reduziert**:
+   - Navigation und zentrale Aktionen bleiben auf Mobilgeräten textlich verständlich (keine rein icon-basierte Hauptnavigation).
+   - Das Interaktionsverhalten ist auf Desktop und Mobil konsistent.
+
 ---
 
 ## App-Name
@@ -762,6 +791,15 @@ Admins koennen System-Disziplinen verwalten (anlegen, bearbeiten, archivieren/re
 
 - **Backup**: TrueNAS-seitig via Volume-Snapshots — kein app-seitiger Mechanismus nötig
 - **Import**: Kein Massenimport von Bestandsdaten; einzige Ausnahme ist der manuelle Meyton-PDF-Import pro einzelner Einheit
+
+---
+
+## Betrieb & Fehlerfälle (verbindlich)
+
+- Betriebsdokumentation für Deployment, Recovery und Inbetriebnahme ist Pflicht und liegt in `docs/production-deploy-truenas.md`.
+- Für kritische Fehlerfälle (DB nicht erreichbar, Migration fehlgeschlagen, Upload-Volume nicht verfügbar, fehlende Secrets) gibt es dokumentierte Diagnose- und Wiederanlauf-Schritte.
+- Nutzer erhalten in der UI klare deutsche Fehlermeldungen; technische Details bleiben im Server-Log.
+- Wiederherstellbarkeit von Datenbank **und** Uploads muss regelmässig praktisch geprüft werden (Restore-Test), nicht nur theoretisch dokumentiert.
 
 ---
 
@@ -787,6 +825,7 @@ Admins koennen System-Disziplinen verwalten (anlegen, bearbeiten, archivieren/re
 
 ## Änderungsnotizen
 
+- **03.03.2026**: Verbindliche Konsistenzregeln ergänzt: serverseitige Fachregel-Erzwingung, explizite Fehlerpfade ohne silent fail, feste Upload-Whitelist, englische interne Benennung/Routen sowie verbindliche UI-Muster (shadcn/ui, einheitliche Auswahl-/Delete-/Archive-Flows, mobile Verständlichkeit) plus Betriebs-/Fehlerfall-Regeln mit Restore-Test-Pflicht.
 - **02.03.2026**: DoS-Härtung dokumentiert: Streaming-URL-Import mit Hard-Cap, begrenzte PDF-Dekompression, serverseitige FormData-Limits und Statistik-Caps.
 - **02.03.2026**: Login-Rate-Limit weiter gehärtet: begrenzte Bucket-Anzahl (Speichergrenze) und optionales Proxy-Header-Vertrauen (`AUTH_TRUST_PROXY_HEADERS`).
 - **02.03.2026**: Sprach- und Benennungsregel präzisiert: UI und Code-Kommentare auf Deutsch, interne Komponenten- sowie Routen-/URL-Benennung auf Englisch.

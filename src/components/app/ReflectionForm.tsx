@@ -4,6 +4,7 @@ import { useActionState, useState, useEffect } from "react"
 import { saveReflection, type ActionResult } from "@/lib/sessions/actions"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
+import { SelectableRow } from "@/components/ui/selectable-row"
 import { Textarea } from "@/components/ui/textarea"
 import type { Reflection } from "@/generated/prisma/client"
 
@@ -77,17 +78,16 @@ export function ReflectionForm({ sessionId, initialData, onSuccess, onCancel }: 
       </div>
 
       <div className="space-y-2">
-        <label className="flex cursor-pointer items-center gap-2 text-sm font-medium">
-          <input
-            type="checkbox"
-            name="routineFollowed"
-            checked={routineFollowed}
-            onChange={(e) => setRoutineFollowed(e.target.checked)}
-            disabled={pending}
-            className="h-4 w-4"
-          />
+        {/* Boolean-Feld per Hidden-Input übergeben, damit die Server-Action konsistent "on"/leer auswertet. */}
+        {routineFollowed && <input type="hidden" name="routineFollowed" value="on" />}
+        <SelectableRow
+          selected={routineFollowed}
+          onToggle={() => setRoutineFollowed(!routineFollowed)}
+          disabled={pending}
+          className="w-full rounded-md"
+        >
           Schuss-Ablauf eingehalten
-        </label>
+        </SelectableRow>
 
         {/* Abweichungsfeld nur wenn Ablauf nicht eingehalten */}
         {!routineFollowed && (

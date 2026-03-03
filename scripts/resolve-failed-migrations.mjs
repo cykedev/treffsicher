@@ -7,13 +7,9 @@ const PRISMA_CLI_JS = "/app/node_modules/prisma/build/index.js"
 
 function runPrismaResolve(mode, migrationName) {
   const prismaArgs = ["migrate", "resolve", mode, migrationName]
-  const result = spawnSync(
-    "node",
-    [PRISMA_CLI_JS, ...prismaArgs],
-    {
-      stdio: "inherit",
-    }
-  )
+  const result = spawnSync("node", [PRISMA_CLI_JS, ...prismaArgs], {
+    stdio: "inherit",
+  })
 
   if (result.error?.code === "ENOENT") {
     throw new Error("Prisma CLI not found at /app/node_modules/prisma/build/index.js.")
@@ -29,12 +25,7 @@ function runPrismaResolve(mode, migrationName) {
 }
 
 function isMissingMigrationsTable(error) {
-  return (
-    typeof error === "object" &&
-    error !== null &&
-    "code" in error &&
-    error.code === "42P01"
-  )
+  return typeof error === "object" && error !== null && "code" in error && error.code === "42P01"
 }
 
 async function loadFailedMigrations(client) {
@@ -49,9 +40,7 @@ async function loadFailedMigrations(client) {
   } catch (error) {
     // Frische Datenbank: Tabelle existiert noch nicht, also keine failed migrations.
     if (isMissingMigrationsTable(error)) {
-      console.warn(
-        "[migrate-recovery] _prisma_migrations table not found yet. Skipping recovery."
-      )
+      console.warn("[migrate-recovery] _prisma_migrations table not found yet. Skipping recovery.")
       return null
     }
     throw error
@@ -105,8 +94,7 @@ async function main() {
     throw new Error("DATABASE_URL is required for migration recovery.")
   }
 
-  const autoResolveUnknown =
-    process.env.PRISMA_AUTO_RESOLVE_UNKNOWN_FAILED_MIGRATIONS === "true"
+  const autoResolveUnknown = process.env.PRISMA_AUTO_RESOLVE_UNKNOWN_FAILED_MIGRATIONS === "true"
 
   const client = new Client({ connectionString: databaseUrl })
   await client.connect()

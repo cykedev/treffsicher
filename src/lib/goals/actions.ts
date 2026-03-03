@@ -34,6 +34,11 @@ export type GoalForSelection = {
   dateTo: Date
 }
 
+export type GoalActionResult = {
+  error?: string
+  success?: boolean
+}
+
 const CreateGoalSchema = z.object({
   title: z.string().trim().min(1, "Titel ist erforderlich"),
   description: z.string().trim().optional(),
@@ -46,7 +51,7 @@ function parseDateFromInput(value: string): Date {
   return new Date(`${value}T00:00:00`)
 }
 
-async function createGoalForUser(userId: string, formData: FormData): Promise<boolean> {
+async function createGoalForUser(userId: string, formData: FormData): Promise<GoalActionResult> {
   const parsed = CreateGoalSchema.safeParse({
     title: formData.get("title"),
     description: formData.get("description") || undefined,
@@ -57,14 +62,14 @@ async function createGoalForUser(userId: string, formData: FormData): Promise<bo
 
   if (!parsed.success) {
     console.error("Goal validation failed:", parsed.error.flatten())
-    return false
+    return { error: "Bitte die Pflichtfelder prüfen." }
   }
 
   const dateFrom = parseDateFromInput(parsed.data.dateFrom)
   const dateTo = parseDateFromInput(parsed.data.dateTo)
   if (dateFrom > dateTo) {
     console.error("Goal validation failed: dateFrom is after dateTo")
-    return false
+    return { error: "Das Enddatum muss am oder nach dem Startdatum liegen." }
   }
 
   await db.goal.create({
@@ -78,7 +83,7 @@ async function createGoalForUser(userId: string, formData: FormData): Promise<bo
     },
   })
 
-  return true
+  return { success: true }
 }
 
 export async function getGoalsWithAssignments(): Promise<GoalWithAssignments[]> {
@@ -150,35 +155,42 @@ export async function getGoalsForSelection(): Promise<GoalForSelection[]> {
   return goals
 }
 
-export async function createGoal(formData: FormData): Promise<void> {
+export async function createGoal(formData: FormData): Promise<GoalActionResult> {
   const session = await getAuthSession()
-  if (!session) return
+  if (!session) return { error: "Nicht angemeldet" }
 
-  await createGoalForUser(session.user.id, formData)
+  const result = await createGoalForUser(session.user.id, formData)
+  if (result.error) return result
 
   revalidatePath("/goals")
+  return { success: true }
 }
 
 export async function createGoalAndRedirect(formData: FormData): Promise<void> {
   const session = await getAuthSession()
   if (!session) redirect("/login")
 
-  const success = await createGoalForUser(session.user.id, formData)
-  if (!success) return
+  const result = await createGoalForUser(session.user.id, formData)
+  if (result.error) {
+    // Warum Redirect mit Query: serverseitiges Form-Submit braucht einen stabilen Rückkanal
+    // für klare Fehlermeldungen ohne Browser-Standarddialoge.
+    const message = encodeURIComponent(result.error)
+    redirect(`/goals/new?error=${message}`)
+  }
 
   revalidatePath("/goals")
   redirect("/goals")
 }
 
-export async function updateGoal(goalId: string, formData: FormData): Promise<void> {
+export async function updateGoal(goalId: string, formData: FormData): Promise<GoalActionResult> {
   const session = await getAuthSession()
-  if (!session) return
+  if (!session) return { error: "Nicht angemeldet" }
 
   const goal = await db.goal.findFirst({
     where: { id: goalId, userId: session.user.id },
     select: { id: true },
   })
-  if (!goal) return
+  if (!goal) return { error: "Ziel nicht gefunden" }
 
   const parsed = CreateGoalSchema.safeParse({
     title: formData.get("title"),
@@ -190,14 +202,14 @@ export async function updateGoal(goalId: string, formData: FormData): Promise<vo
 
   if (!parsed.success) {
     console.error("Goal update validation failed:", parsed.error.flatten())
-    return
+    return { error: "Bitte die Pflichtfelder prüfen." }
   }
 
   const dateFrom = parseDateFromInput(parsed.data.dateFrom)
   const dateTo = parseDateFromInput(parsed.data.dateTo)
   if (dateFrom > dateTo) {
     console.error("Goal update validation failed: dateFrom is after dateTo")
-    return
+    return { error: "Das Enddatum muss am oder nach dem Startdatum liegen." }
   }
 
   await db.goal.update({
@@ -212,17 +224,21 @@ export async function updateGoal(goalId: string, formData: FormData): Promise<vo
   })
 
   revalidatePath("/goals")
+  return { success: true }
 }
 
-export async function updateGoalAssignments(goalId: string, formData: FormData): Promise<void> {
+export async function updateGoalAssignments(
+  goalId: string,
+  formData: FormData
+): Promise<GoalActionResult> {
   const session = await getAuthSession()
-  if (!session) return
+  if (!session) return { error: "Nicht angemeldet" }
 
   const goal = await db.goal.findFirst({
     where: { id: goalId, userId: session.user.id },
     select: { id: true },
   })
-  if (!goal) return
+  if (!goal) return { error: "Ziel nicht gefunden" }
 
   const selectedIds = [
     ...new Set(
@@ -256,18 +272,20 @@ export async function updateGoalAssignments(goalId: string, formData: FormData):
   })
 
   revalidatePath("/goals")
+  return { success: true }
 }
 
-export async function deleteGoal(goalId: string): Promise<void> {
+export async function deleteGoal(goalId: string): Promise<GoalActionResult> {
   const session = await getAuthSession()
-  if (!session) return
+  if (!session) return { error: "Nicht angemeldet" }
 
   const goal = await db.goal.findFirst({
     where: { id: goalId, userId: session.user.id },
     select: { id: true },
   })
-  if (!goal) return
+  if (!goal) return { error: "Ziel nicht gefunden" }
 
   await db.goal.delete({ where: { id: goalId } })
   revalidatePath("/goals")
+  return { success: true }
 }

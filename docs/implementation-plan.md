@@ -315,13 +315,13 @@ src/app/
     ├── layout.tsx         # Layout mit Navigation-Leiste
     ├── dashboard/
     │   └── page.tsx      # Startseite: letzte Einheiten, Schnellstatistik
-    ├── einheiten/
+    ├── sessions/
     │   ├── page.tsx       # Tagebuch: alle Einheiten
-    │   └── neu/
+    │   └── new/
     │       └── page.tsx   # Neue Einheit erfassen
-    └── disziplinen/
+    └── disciplines/
         ├── page.tsx       # Liste aller Disziplinen
-        └── neu/
+        └── new/
             └── page.tsx   # Neue Disziplin anlegen
 ```
 
@@ -586,10 +586,10 @@ zusätzlich `revalidatePath("/sessions", "layout")` aufrufen — invalidiert all
 Server Component — lädt die Einheit via `getSessionById`, zeigt vorausgefülltes Formular.
 `notFound()` wenn Einheit nicht gefunden.
 
-**Formular**: Wiederverwendung von `EinheitForm` mit neuem `initialData`-Prop.
+**Formular**: Wiederverwendung von `SessionForm` mit neuem `initialData`-Prop.
 Vorausgefüllte Werte: Typ, Disziplin, Datum, Ort, Serien (inkl. Einzelschüsse und Ausführungsqualität).
 
-**Löschen**: Button in der Detailansicht (`/sessions/[id]`), mit Bestätigungsdialog (native `confirm` oder einfaches Inline-Confirm-Pattern ohne externe Abhängigkeit).
+**Löschen**: Button in der Detailansicht (`/sessions/[id]`) mit `AlertDialog` aus shadcn/ui für ein konsistentes Verhalten auf Desktop und Mobil.
 Nach dem Löschen: Redirect zu `/sessions`.
 
 **Detailansicht erweitern**: Link "Bearbeiten" → `/sessions/[id]/edit`.
@@ -729,7 +729,7 @@ Editierbares Dokument (kein Versionsverlauf — bewusste Entscheidung):
 - Farben analog Meyton (10 rot, 9 gelb, 8–0 Grauabstufungen); X-Achse: Datum, Y-Achse: 0–100 %
 - Tooltip zeigt nur Buckets mit Wert > 0
 
-**Betroffene Dateien**: `ShotHistogram.tsx` (neu), `einheiten/[id]/page.tsx`, `lib/stats/actions.ts`, `StatistikCharts.tsx`, `StatistikChartsWrapper.tsx`, `statistiken/page.tsx`
+**Betroffene Dateien**: `ShotHistogram.tsx` (neu), `sessions/[id]/page.tsx`, `lib/stats/actions.ts`, `StatisticsCharts.tsx`, `StatisticsChartsWrapper.tsx`, `statistics/page.tsx`
 
 **Schema-Migration**: Keine — `Series.shots` (Json) bereits vorhanden.
 
@@ -1074,12 +1074,12 @@ technischen Regeln (`docs/technical-constraints.md`) widersprechen:
 │       ├── (app)/
 │       │   ├── layout.tsx
 │       │   ├── dashboard/page.tsx
-│       │   ├── einheiten/
+│       │   ├── sessions/
 │       │   │   ├── page.tsx
-│       │   │   └── neu/page.tsx
-│       │   └── disziplinen/
+│       │   │   └── new/page.tsx
+│       │   └── disciplines/
 │       │       ├── page.tsx
-│       │       └── neu/page.tsx
+│       │       └── new/page.tsx
 │       └── api/
 │           └── auth/[...nextauth]/route.ts
 ```

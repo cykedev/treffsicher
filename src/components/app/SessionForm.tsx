@@ -2,7 +2,6 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { Check } from "lucide-react"
 import { createSession, previewMeytonImport, updateSession } from "@/lib/sessions/actions"
 import type { SessionDetail } from "@/lib/sessions/actions"
 import { calculateSumFromShots } from "@/lib/sessions/calculateScore"
@@ -19,6 +18,15 @@ import {
 } from "@/components/ui/select"
 import { Card, CardContent } from "@/components/ui/card"
 import { Textarea } from "@/components/ui/textarea"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { SelectableRow } from "@/components/ui/selectable-row"
 import type { Discipline } from "@/generated/prisma/client"
 import type { GoalForSelection } from "@/lib/goals/actions"
 
@@ -100,6 +108,7 @@ export function SessionForm({
 }: Props) {
   const router = useRouter()
   const [pending, setPending] = useState(false)
+  const [formError, setFormError] = useState<string | null>(null)
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false)
   const [isImportPending, setIsImportPending] = useState(false)
   const [importSource, setImportSource] = useState<ImportSourceType>("URL")
@@ -417,9 +426,13 @@ export function SessionForm({
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
+    setFormError(null)
 
     // Validierung vor dem Absenden: ungültige Felder verhindern Speichern
-    if (hasValidationErrors) return
+    if (hasValidationErrors) {
+      setFormError("Bitte ungültige Werte korrigieren.")
+      return
+    }
 
     setPending(true)
 
@@ -433,12 +446,17 @@ export function SessionForm({
       })
     }
 
-    if (sessionId) {
-      await updateSession(sessionId, formData)
-    } else {
-      await createSession(formData)
+    const result = sessionId
+      ? await updateSession(sessionId, formData)
+      : await createSession(formData)
+
+    if (result.error) {
+      setFormError(result.error)
+      setPending(false)
+      return
     }
-    // Actions führen intern redirect() durch bei Erfolg
+
+    // Falls keine Navigation erfolgt, Formular wieder freigeben.
     setPending(false)
   }
 
@@ -568,37 +586,23 @@ export function SessionForm({
                 {goals.map((goal, index) => {
                   const selected = selectedGoalIds.includes(goal.id)
                   return (
-                    <button
+                    <SelectableRow
                       key={goal.id}
-                      type="button"
-                      onClick={() => toggleGoal(goal.id)}
+                      selected={selected}
+                      onToggle={() => toggleGoal(goal.id)}
                       disabled={pending}
-                      className={`flex w-full items-start gap-2 px-3 py-2.5 text-left text-sm transition-colors ${
-                        index > 0 ? "border-t border-border/40" : ""
-                      } ${
-                        selected ? "bg-primary/10" : "bg-background/10 hover:bg-muted/20"
-                      }`}
-                      aria-pressed={selected}
+                      className={
+                        index > 0
+                          ? "w-full rounded-none border-t border-border/40"
+                          : "w-full rounded-none"
+                      }
                     >
-                      <span
-                        className={`mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full ${
-                          selected
-                            ? "bg-primary text-primary-foreground"
-                            : "border border-border/60 bg-background/20 text-muted-foreground/40"
-                        }`}
-                      >
-                        <Check
-                          className={`h-3.5 w-3.5 ${selected ? "opacity-100" : "opacity-0"}`}
-                        />
+                      <span className="font-medium">{goal.title}</span>
+                      <span className="text-muted-foreground">
+                        {" "}
+                        · {goal.type === "RESULT" ? "Ergebnisziel" : "Prozessziel"}
                       </span>
-                      <span className="leading-5">
-                        <span className="font-medium">{goal.title}</span>
-                        <span className="text-muted-foreground">
-                          {" "}
-                          · {goal.type === "RESULT" ? "Ergebnisziel" : "Prozessziel"}
-                        </span>
-                      </span>
-                    </button>
+                    </SelectableRow>
                   )
                 })}
               </div>
@@ -638,16 +642,15 @@ export function SessionForm({
                 Meyton importieren
               </Button>
               {/* Einzelschuss-Toggle — erlaubt detailliertere Erfassung für Analyse */}
-              <label className="flex cursor-pointer items-center gap-2 text-sm">
-                <input
-                  type="checkbox"
-                  checked={showShots}
-                  onChange={(e) => handleShotToggle(e.target.checked)}
-                  disabled={pending}
-                  className="h-4 w-4"
-                />
+              <SelectableRow
+                selected={showShots}
+                onToggle={() => handleShotToggle(!showShots)}
+                disabled={pending}
+                className="w-auto rounded-md px-2 py-1.5 text-xs"
+                indicatorClassName="h-4 w-4"
+              >
                 Einzelschüsse erfassen
-              </label>
+              </SelectableRow>
             </div>
           </div>
 
@@ -717,28 +720,28 @@ export function SessionForm({
                           )}
                         </Label>
                         <div className="flex items-center gap-1">
-                          <button
-                            type="button"
-                            onClick={() => handleTogglePractice(i)}
+                          {/* Gleicher Auswahlstil wie bei Ziel-Markierungen:
+                              reduziert visuelle Sonderfälle und ist auf Mobil klarer erkennbar. */}
+                          <SelectableRow
+                            selected={isPractice}
+                            onToggle={() => handleTogglePractice(i)}
                             disabled={pending}
-                            aria-label={
-                              isPractice
-                                ? "Als Wertungsserie markieren"
-                                : "Als Probeschuss-Serie markieren"
-                            }
-                            className="rounded border border-border px-1.5 py-0.5 text-xs text-muted-foreground hover:border-foreground hover:text-foreground disabled:cursor-not-allowed disabled:opacity-30"
+                            className="w-auto rounded-md px-2 py-1 text-xs"
+                            indicatorClassName="h-4 w-4"
                           >
-                            {isPractice ? "→ Wertung" : "→ Probe"}
-                          </button>
-                          <button
+                            Probeschuss
+                          </SelectableRow>
+                          <Button
                             type="button"
+                            variant="ghost"
+                            size="icon-xs"
                             onClick={() => handleRemoveSeries(i)}
                             disabled={pending || totalSeries <= 1}
                             aria-label={`${seriesLabel} entfernen`}
-                            className="h-5 w-5 rounded text-xs text-muted-foreground hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-30"
+                            className="text-muted-foreground hover:text-foreground"
                           >
                             ×
-                          </button>
+                          </Button>
                         </div>
                       </div>
 
@@ -901,92 +904,94 @@ export function SessionForm({
         </div>
       )}
 
-      {isImportDialogOpen && selectedDiscipline && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-          <Card className="w-full max-w-xl">
-            <CardContent className="space-y-4 pt-6">
-              <div>
-                <h3 className="text-lg font-semibold">Meyton-Import</h3>
-                <p className="text-sm text-muted-foreground">
-                  Die importierten Daten ersetzen alle aktuellen Serien in dieser Einheit.
-                </p>
+      {selectedDiscipline && (
+        <Dialog open={isImportDialogOpen} onOpenChange={setIsImportDialogOpen}>
+          <DialogContent className="max-w-xl">
+            <DialogHeader>
+              <DialogTitle>Meyton-Import</DialogTitle>
+              <DialogDescription>
+                Die importierten Daten ersetzen alle aktuellen Serien in dieser Einheit.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="meyton-source">Quelle</Label>
+                <Select
+                  value={importSource}
+                  onValueChange={(value) => {
+                    setImportSource(value as ImportSourceType)
+                    setImportError(null)
+                    setImportUrl("")
+                    setImportFile(null)
+                  }}
+                >
+                  <SelectTrigger id="meyton-source" className="w-full">
+                    <SelectValue placeholder="Quelle wählen" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="URL">PDF-URL</SelectItem>
+                    <SelectItem value="UPLOAD">PDF-Upload</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
-              <div className="space-y-4">
+              {importSource === "URL" ? (
                 <div className="space-y-2">
-                  <Label htmlFor="meyton-source">Quelle</Label>
-                  <Select
-                    value={importSource}
-                    onValueChange={(value) => {
-                      setImportSource(value as ImportSourceType)
-                      setImportError(null)
-                      setImportUrl("")
-                      setImportFile(null)
-                    }}
-                  >
-                    <SelectTrigger id="meyton-source" className="w-full">
-                      <SelectValue placeholder="Quelle wählen" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="URL">PDF-URL</SelectItem>
-                      <SelectItem value="UPLOAD">PDF-Upload</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {importSource === "URL" ? (
-                  <div className="space-y-2">
-                    <Label htmlFor="pdfUrl">PDF-URL</Label>
-                    <Input
-                      key="meyton-url-input"
-                      id="pdfUrl"
-                      type="url"
-                      placeholder="example.com/meyton.pdf"
-                      value={importUrl}
-                      onChange={(event) => setImportUrl(event.target.value)}
-                      disabled={isImportPending}
-                    />
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    <Label htmlFor="file">PDF-Datei</Label>
-                    <Input
-                      key="meyton-file-input"
-                      id="file"
-                      type="file"
-                      accept="application/pdf,.pdf"
-                      onChange={(event) => setImportFile(event.target.files?.[0] ?? null)}
-                      disabled={isImportPending}
-                    />
-                  </div>
-                )}
-
-                {importError && <p className="text-sm text-destructive">{importError}</p>}
-
-                <div className="flex gap-2">
-                  <Button type="button" disabled={isImportPending} onClick={handleMeytonImport}>
-                    {isImportPending ? "Importiere..." : "Importieren"}
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
+                  <Label htmlFor="pdfUrl">PDF-URL</Label>
+                  <Input
+                    key="meyton-url-input"
+                    id="pdfUrl"
+                    type="url"
+                    placeholder="example.com/meyton.pdf"
+                    value={importUrl}
+                    onChange={(event) => setImportUrl(event.target.value)}
                     disabled={isImportPending}
-                    onClick={() => setIsImportDialogOpen(false)}
-                  >
-                    Abbrechen
-                  </Button>
+                  />
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+              ) : (
+                <div className="space-y-2">
+                  <Label htmlFor="file">PDF-Datei</Label>
+                  <Input
+                    key="meyton-file-input"
+                    id="file"
+                    type="file"
+                    accept="application/pdf,.pdf"
+                    onChange={(event) => setImportFile(event.target.files?.[0] ?? null)}
+                    disabled={isImportPending}
+                  />
+                </div>
+              )}
+
+              {importError && <p className="text-sm text-destructive">{importError}</p>}
+            </div>
+
+            <DialogFooter>
+              <Button type="button" disabled={isImportPending} onClick={handleMeytonImport}>
+                {isImportPending ? "Importiere..." : "Importieren"}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                disabled={isImportPending}
+                onClick={() => setIsImportDialogOpen(false)}
+              >
+                Abbrechen
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       )}
+
+      <div className="space-y-2">
+        {formError && <p className="text-sm text-destructive">{formError}</p>}
+      </div>
 
       <div className="flex gap-3">
         <Button type="submit" disabled={pending || !type || hasValidationErrors}>
           {pending ? "Speichern..." : sessionId ? "Änderungen speichern" : "Einheit speichern"}
         </Button>
-        {hasValidationErrors && (
+        {!formError && hasValidationErrors && (
           <p className="self-center text-sm text-destructive">Bitte ungültige Werte korrigieren.</p>
         )}
         <Button

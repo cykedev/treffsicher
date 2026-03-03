@@ -4,6 +4,7 @@ import { ArrowLeft, Pencil } from "lucide-react"
 import { getAuthSession } from "@/lib/auth-helpers"
 import { getShotRoutineById } from "@/lib/shot-routines/actions"
 import { ShotRoutineView } from "@/components/app/ShotRoutineView"
+import { DeleteShotRoutineButton } from "@/components/app/DeleteShotRoutineButton"
 import type { RoutineStep } from "@/lib/shot-routines/actions"
 import { Button } from "@/components/ui/button"
 
@@ -32,7 +33,7 @@ export default async function ShotRoutineDetailPage({
             Übersicht deines Schuss-Ablaufs in geordneter Reihenfolge.
           </p>
         </div>
-        <div className="flex w-full gap-2 sm:w-auto">
+        <div className="flex w-full flex-wrap gap-2 sm:w-auto">
           <Button variant="outline" className="w-full sm:w-auto" asChild>
             <Link href="/shot-routines">
               <ArrowLeft className="mr-1.5 h-4 w-4" />
@@ -45,6 +46,7 @@ export default async function ShotRoutineDetailPage({
               Bearbeiten
             </Link>
           </Button>
+          <DeleteShotRoutineButton routineId={id} />
         </div>
       </div>
 

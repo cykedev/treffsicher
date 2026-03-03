@@ -15,9 +15,14 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 
-export default async function NewGoalPage() {
+export default async function NewGoalPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string }>
+}) {
   const session = await getAuthSession()
   if (!session) redirect("/login")
+  const { error } = await searchParams
 
   return (
     <div className="space-y-6">
@@ -31,6 +36,7 @@ export default async function NewGoalPage() {
           <CardTitle>Zieldaten</CardTitle>
         </CardHeader>
         <CardContent>
+          {error && <p className="mb-3 text-sm text-destructive">{error}</p>}
           <form action={createGoalAndRedirect} className="space-y-4">
             <div className="grid gap-4 md:grid-cols-2 [&>*]:min-w-0">
               <div className="space-y-2">
