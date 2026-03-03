@@ -1,6 +1,7 @@
 "use server"
 
 import bcrypt from "bcryptjs"
+import { isIP } from "node:net"
 import { z } from "zod"
 import { revalidatePath } from "next/cache"
 import { db } from "@/lib/db"
@@ -45,13 +46,30 @@ export type AdminSystemDisciplineSummary = {
   updatedAt: Date
 }
 
+export type AdminLoginRateLimitBucket = {
+  key: string
+  type: "EMAIL" | "IP"
+  identifier: string
+  attempts: number
+  windowStartedAt: Date
+  blockedUntil: Date | null
+  lastAttemptAt: Date
+}
+
+export type AdminLoginRateLimitInsights = {
+  totalBucketCount: number
+  activeBlockedCount: number
+  activeBlockedBuckets: AdminLoginRateLimitBucket[]
+  topNoisyBuckets: AdminLoginRateLimitBucket[]
+}
+
 const CreateUserSchema = z.object({
   name: z.string().trim().min(1, "Bitte einen Namen angeben.").max(120, "Name ist zu lang."),
   email: z
     .string()
     .trim()
     .max(MAX_USER_EMAIL_LENGTH, "E-Mail ist zu lang.")
-    .email("Bitte eine gueltige E-Mail angeben."),
+    .email("Bitte eine gültige E-Mail angeben."),
   tempPassword: z
     .string()
     .min(
@@ -68,10 +86,20 @@ const UpdateUserSchema = z.object({
     .string()
     .trim()
     .max(MAX_USER_EMAIL_LENGTH, "E-Mail ist zu lang.")
-    .email("Bitte eine gueltige E-Mail angeben."),
+    .email("Bitte eine gültige E-Mail angeben."),
   role: z.enum(["USER", "ADMIN"] as const),
   isActive: z.boolean(),
 })
+
+const LoginRateLimitBucketKeySchema = z
+  .string()
+  .trim()
+  .min(1, "Ungültiger Rate-Limit-Schlüssel.")
+  .max(400, "Ungültiger Rate-Limit-Schlüssel.")
+  .refine((value) => parseLoginRateLimitKey(value) !== null, "Ungültiger Rate-Limit-Schlüssel.")
+
+const TOP_NOISY_WINDOW_HOURS = 24
+const TOP_NOISY_LIMIT = 10
 
 async function requireAdminSession(): Promise<{ id: string } | null> {
   const session = await getAuthSession()
@@ -86,8 +114,51 @@ function revalidateAdminPaths(): void {
   revalidatePath("/admin", "layout")
 }
 
+function parseLoginRateLimitKey(
+  key: string
+): { type: AdminLoginRateLimitBucket["type"]; identifier: string } | null {
+  if (key.startsWith("email:")) {
+    const identifier = key.slice("email:".length)
+    if (!identifier || identifier.length > MAX_USER_EMAIL_LENGTH) {
+      return null
+    }
+    return { type: "EMAIL", identifier }
+  }
+
+  if (key.startsWith("ip:")) {
+    const identifier = key.slice("ip:".length)
+    if (!identifier || isIP(identifier) === 0) {
+      return null
+    }
+    return { type: "IP", identifier }
+  }
+
+  return null
+}
+
+function mapLoginRateLimitRowToAdminBucket(row: {
+  key: string
+  attempts: number
+  windowStartedAt: Date
+  blockedUntil: Date | null
+  lastAttemptAt: Date
+}): AdminLoginRateLimitBucket | null {
+  const parsedKey = parseLoginRateLimitKey(row.key)
+  if (!parsedKey) return null
+
+  return {
+    key: row.key,
+    type: parsedKey.type,
+    identifier: parsedKey.identifier,
+    attempts: row.attempts,
+    windowStartedAt: row.windowStartedAt,
+    blockedUntil: row.blockedUntil,
+    lastAttemptAt: row.lastAttemptAt,
+  }
+}
+
 /**
- * Gibt alle Nutzer für die Admin-Verwaltung zurueck (ohne Passwort-Hashes).
+ * Gibt alle Nutzer für die Admin-Verwaltung zurück (ohne Passwort-Hashes).
  */
 export async function getAdminUsers(): Promise<AdminUserListItem[]> {
   const admin = await requireAdminSession()
@@ -157,7 +228,7 @@ export async function getAdminUserById(userId: string): Promise<AdminUserSummary
 }
 
 /**
- * Gibt alle System-Disziplinen für die Admin-Verwaltung zurueck.
+ * Gibt alle System-Disziplinen für die Admin-Verwaltung zurück.
  */
 export async function getAdminSystemDisciplines(): Promise<AdminSystemDisciplineSummary[]> {
   const admin = await requireAdminSession()
@@ -181,7 +252,135 @@ export async function getAdminSystemDisciplines(): Promise<AdminSystemDiscipline
 }
 
 /**
- * Legt einen neuen Nutzer (USER oder ADMIN) mit temporaerem Passwort an.
+ * Gibt aktuell aktive Login-Sperren (E-Mail/IP) für die Admin-Ansicht zurück.
+ */
+export async function getAdminBlockedLoginRateLimitBuckets(): Promise<AdminLoginRateLimitBucket[]> {
+  const admin = await requireAdminSession()
+  if (!admin) return []
+
+  const now = new Date()
+  const rows = await db.loginRateLimitBucket.findMany({
+    where: {
+      blockedUntil: {
+        gt: now,
+      },
+    },
+    select: {
+      key: true,
+      attempts: true,
+      windowStartedAt: true,
+      blockedUntil: true,
+      lastAttemptAt: true,
+    },
+    orderBy: [{ blockedUntil: "asc" }, { lastAttemptAt: "desc" }],
+    take: 200,
+  })
+
+  return rows.flatMap((row) => {
+    const mapped = mapLoginRateLimitRowToAdminBucket(row)
+    return mapped ? [mapped] : []
+  })
+}
+
+/**
+ * Liefert Insights zur Login-Rate-Limit-Tabelle für die Admin-Oberfläche.
+ */
+export async function getAdminLoginRateLimitInsights(): Promise<AdminLoginRateLimitInsights> {
+  const admin = await requireAdminSession()
+  if (!admin) {
+    return {
+      totalBucketCount: 0,
+      activeBlockedCount: 0,
+      activeBlockedBuckets: [],
+      topNoisyBuckets: [],
+    }
+  }
+
+  const now = new Date()
+  const noisyWindowStart = new Date(now.getTime() - TOP_NOISY_WINDOW_HOURS * 60 * 60 * 1000)
+
+  const [totalBucketCount, activeBlockedCount, activeRows, noisyRows] = await Promise.all([
+    db.loginRateLimitBucket.count(),
+    db.loginRateLimitBucket.count({
+      where: {
+        blockedUntil: {
+          gt: now,
+        },
+      },
+    }),
+    db.loginRateLimitBucket.findMany({
+      where: {
+        blockedUntil: {
+          gt: now,
+        },
+      },
+      select: {
+        key: true,
+        attempts: true,
+        windowStartedAt: true,
+        blockedUntil: true,
+        lastAttemptAt: true,
+      },
+      orderBy: [{ blockedUntil: "asc" }, { lastAttemptAt: "desc" }],
+      take: 200,
+    }),
+    db.loginRateLimitBucket.findMany({
+      where: {
+        lastAttemptAt: {
+          gte: noisyWindowStart,
+        },
+      },
+      select: {
+        key: true,
+        attempts: true,
+        windowStartedAt: true,
+        blockedUntil: true,
+        lastAttemptAt: true,
+      },
+      orderBy: [{ attempts: "desc" }, { lastAttemptAt: "desc" }, { key: "asc" }],
+      take: TOP_NOISY_LIMIT,
+    }),
+  ])
+
+  const activeBlockedBuckets = activeRows.flatMap((row) => {
+    const mapped = mapLoginRateLimitRowToAdminBucket(row)
+    return mapped ? [mapped] : []
+  })
+  const topNoisyBuckets = noisyRows.flatMap((row) => {
+    const mapped = mapLoginRateLimitRowToAdminBucket(row)
+    return mapped ? [mapped] : []
+  })
+
+  return {
+    totalBucketCount,
+    activeBlockedCount,
+    activeBlockedBuckets,
+    topNoisyBuckets,
+  }
+}
+
+/**
+ * Entfernt eine aktive Login-Sperre (einzelner Bucket-Schlüssel).
+ */
+export async function clearLoginRateLimitBucket(bucketKey: string): Promise<AdminActionResult> {
+  const admin = await requireAdminSession()
+  if (!admin) return { error: "Keine Berechtigung." }
+
+  const parsed = LoginRateLimitBucketKeySchema.safeParse(bucketKey)
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Ungültiger Rate-Limit-Schlüssel." }
+  }
+
+  await db.loginRateLimitBucket.deleteMany({
+    where: { key: parsed.data },
+  })
+
+  revalidateAdminPaths()
+  return { success: true }
+}
+
+/**
+ * Legt einen neuen Nutzer (USER oder ADMIN) mit temporärem Passwort an.
  */
 export async function createUser(
   _prevState: AdminActionResult | null,
@@ -198,7 +397,7 @@ export async function createUser(
   })
 
   if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? "Ungueltige Eingaben." }
+    return { error: parsed.error.issues[0]?.message ?? "Ungültige Eingaben." }
   }
 
   const email = parsed.data.email.toLowerCase()
@@ -272,7 +471,7 @@ export async function setUserActive(
 
 /**
  * Aktualisiert E-Mail, Rolle und Status eines Nutzers.
- * Optional kann in derselben Aktion ein neues temporaeres Passwort gesetzt werden.
+ * Optional kann in derselben Aktion ein neues temporäres Passwort gesetzt werden.
  */
 export async function updateUser(
   userId: string,
@@ -295,7 +494,7 @@ export async function updateUser(
     isActive: String(formData.get("isActive")) === "true",
   })
   if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? "Ungueltige Eingaben." }
+    return { error: parsed.error.issues[0]?.message ?? "Ungültige Eingaben." }
   }
 
   const email = parsed.data.email.toLowerCase()

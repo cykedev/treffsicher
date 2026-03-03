@@ -24,6 +24,8 @@ interface Props {
   currentAdminId: string
 }
 
+const DISPLAY_TIME_ZONE = "Europe/Berlin"
+
 function getRoleBadgeClass(role: AdminUserListItem["role"]): string {
   if (role === "ADMIN") {
     return "border-amber-800 bg-amber-950 text-amber-300"
@@ -45,6 +47,7 @@ function formatDate(date: Date): string {
     year: "numeric",
     hour: "2-digit",
     minute: "2-digit",
+    timeZone: DISPLAY_TIME_ZONE,
   }).format(new Date(date))
 }
 

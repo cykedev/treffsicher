@@ -107,7 +107,7 @@ export const authOptions: NextAuthOptions = {
         }
 
         const ipHeaderValue = extractClientIpHeader(req)
-        const rateLimitState = checkLoginAllowed(email, ipHeaderValue)
+        const rateLimitState = await checkLoginAllowed(email, ipHeaderValue)
         if (!rateLimitState.allowed) {
           return null
         }
@@ -120,17 +120,23 @@ export const authOptions: NextAuthOptions = {
         // Kein Nutzer gefunden oder Passwort falsch — gleiche Fehlermeldung für beide Fälle
         // (verhindert User-Enumeration: kein Hinweis ob E-Mail existiert oder Passwort falsch ist)
         if (!user || !user.isActive) {
-          registerFailedLoginAttempt(rateLimitState.normalizedEmail, rateLimitState.normalizedIp)
+          await registerFailedLoginAttempt(
+            rateLimitState.normalizedEmail,
+            rateLimitState.normalizedIp
+          )
           return null
         }
 
         const passwordValid = await bcrypt.compare(credentials.password, user.passwordHash)
         if (!passwordValid) {
-          registerFailedLoginAttempt(rateLimitState.normalizedEmail, rateLimitState.normalizedIp)
+          await registerFailedLoginAttempt(
+            rateLimitState.normalizedEmail,
+            rateLimitState.normalizedIp
+          )
           return null
         }
 
-        clearSuccessfulLoginAttempts(rateLimitState.normalizedEmail)
+        await clearSuccessfulLoginAttempts(rateLimitState.normalizedEmail)
 
         // Die zurückgegebenen Werte werden im JWT gespeichert und später in der Session verfügbar
         return {
