@@ -111,6 +111,37 @@ export async function getGoalsWithAssignments(): Promise<GoalWithAssignments[]> 
   }))
 }
 
+/**
+ * Lädt ein einzelnes Ziel inkl. Verknüpfungen für die Detailansicht.
+ * Warum eigene Funktion: Detailseite soll die gleiche Datenbasis wie die Liste nutzen,
+ * aber mit klarer 404-Behandlung wenn das Ziel nicht dem Nutzer gehört.
+ */
+export async function getGoalById(goalId: string): Promise<GoalWithAssignments | null> {
+  const session = await getAuthSession()
+  if (!session) return null
+
+  const goal = await db.goal.findFirst({
+    where: { id: goalId, userId: session.user.id },
+    include: {
+      sessions: { select: { sessionId: true } },
+      _count: { select: { sessions: true } },
+    },
+  })
+
+  if (!goal) return null
+
+  return {
+    id: goal.id,
+    title: goal.title,
+    description: goal.description,
+    type: goal.type,
+    dateFrom: goal.dateFrom,
+    dateTo: goal.dateTo,
+    sessionCount: goal._count.sessions,
+    sessionIds: goal.sessions.map((entry) => entry.sessionId),
+  }
+}
+
 export async function getGoalSessionOptions(): Promise<GoalSessionOption[]> {
   const session = await getAuthSession()
   if (!session) return []

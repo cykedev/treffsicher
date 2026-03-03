@@ -26,27 +26,25 @@ export default async function ShotRoutineDetailPage({
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+      <div className="space-y-3">
+        <div className="flex items-start justify-end">
+          <div className="flex w-full flex-wrap items-center justify-end gap-0.5 sm:w-auto sm:shrink-0 sm:gap-1">
+            <Button variant="ghost" size="icon" asChild>
+              <Link href={`/shot-routines/${id}/edit`} aria-label="Ablauf bearbeiten">
+                <Pencil className="h-4 w-4" />
+              </Link>
+            </Button>
+            <DeleteShotRoutineButton routineId={id} />
+            <Button variant="ghost" size="sm" className="px-2 sm:px-3" asChild>
+              <Link href="/shot-routines" aria-label="Zurück zu Abläufen">
+                <ArrowLeft className="h-4 w-4 sm:mr-1.5" />
+                <span className="hidden sm:inline">Zurück</span>
+              </Link>
+            </Button>
+          </div>
+        </div>
         <div className="space-y-1">
           <h1 className="break-words text-2xl font-bold tracking-tight">{routine.name}</h1>
-          <p className="text-muted-foreground">
-            Übersicht deines Schuss-Ablaufs in geordneter Reihenfolge.
-          </p>
-        </div>
-        <div className="flex w-full flex-wrap items-center justify-end gap-0.5 sm:ml-2 sm:w-auto sm:shrink-0 sm:gap-1">
-          <Button variant="ghost" size="sm" className="px-2 sm:px-3" asChild>
-            <Link href="/shot-routines" aria-label="Zurück zu Abläufen">
-              <ArrowLeft className="h-4 w-4 sm:mr-1.5" />
-              <span className="hidden sm:inline">Zurück</span>
-            </Link>
-          </Button>
-          <Button variant="ghost" size="sm" className="px-2 sm:px-3" asChild>
-            <Link href={`/shot-routines/${id}/edit`} aria-label="Ablauf bearbeiten">
-              <Pencil className="h-4 w-4 sm:mr-1.5" />
-              <span className="hidden sm:inline">Bearbeiten</span>
-            </Link>
-          </Button>
-          <DeleteShotRoutineButton routineId={id} />
         </div>
       </div>
 

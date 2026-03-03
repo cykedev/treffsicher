@@ -20,11 +20,12 @@ import { Button } from "@/components/ui/button"
 interface Props {
   disciplineId: string
   isArchived: boolean
+  compact?: boolean
 }
 
 // Schaltet den Archiv-Status einer Disziplin um.
 // System-Disziplinen koennen nur durch Admins umgeschaltet werden.
-export function ArchiveDisciplineButton({ disciplineId, isArchived }: Props) {
+export function ArchiveDisciplineButton({ disciplineId, isArchived, compact = false }: Props) {
   const [isPending, startTransition] = useTransition()
   const [confirmOpen, setConfirmOpen] = useState(false)
   const router = useRouter()
@@ -42,13 +43,25 @@ export function ArchiveDisciplineButton({ disciplineId, isArchived }: Props) {
   return (
     <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
       <AlertDialogTrigger asChild>
-        <Button variant={isArchived ? "secondary" : "outline"} size="sm" disabled={isPending}>
+        <Button
+          variant={nextArchived ? "destructive" : "secondary"}
+          size={compact ? "icon" : "sm"}
+          disabled={isPending}
+          className={compact ? "size-9 sm:h-8 sm:w-auto sm:px-3" : undefined}
+          aria-label={nextArchived ? "Disziplin archivieren" : "Disziplin aktivieren"}
+        >
           {isArchived ? (
-            <RotateCcw className="mr-1.5 h-3.5 w-3.5" />
+            <RotateCcw className={compact ? "h-4 w-4 sm:mr-1.5" : "mr-1.5 h-3.5 w-3.5"} />
           ) : (
-            <Archive className="mr-1.5 h-3.5 w-3.5" />
+            <Archive className={compact ? "h-4 w-4 sm:mr-1.5" : "mr-1.5 h-3.5 w-3.5"} />
           )}
-          {isPending ? "..." : isArchived ? "Aktivieren" : "Archivieren"}
+          {compact ? (
+            <span className="hidden sm:inline">
+              {isPending ? "..." : isArchived ? "Aktivieren" : "Archivieren"}
+            </span>
+          ) : (
+            <span>{isPending ? "..." : isArchived ? "Aktivieren" : "Archivieren"}</span>
+          )}
         </Button>
       </AlertDialogTrigger>
       <AlertDialogContent>
