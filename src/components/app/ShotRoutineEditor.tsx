@@ -3,6 +3,7 @@
 import { useActionState, useState } from "react"
 import { useRouter } from "next/navigation"
 import { useEffect } from "react"
+import { Trash2 } from "lucide-react"
 import {
   createShotRoutine,
   updateShotRoutine,
@@ -134,13 +135,15 @@ export function ShotRoutineEditor({ initialName, initialSteps, routineId }: Prop
                   <Button
                     type="button"
                     variant="ghost"
-                    size="sm"
+                    size="icon-xs"
                     onClick={() => removeStep(i)}
                     disabled={pending}
                     aria-label="Schritt entfernen"
-                    className="h-7 w-7 p-0 text-destructive hover:text-destructive"
+                    // Gleiches destruktives Klein-Button-Muster wie beim Serien-Löschen:
+                    // so ist "Entfernen" in allen Formularen sofort wiedererkennbar.
+                    className="text-destructive hover:bg-destructive/10 hover:text-destructive"
                   >
-                    ×
+                    <Trash2 className="h-3 w-3" />
                   </Button>
                 </div>
               </div>

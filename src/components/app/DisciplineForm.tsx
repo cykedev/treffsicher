@@ -107,7 +107,7 @@ export function DisciplineForm({ initialData, disciplineId, canCreateSystem = fa
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="practiceSeries">Probeschuss-Serien (optional)</Label>
+            <Label htmlFor="practiceSeries">Probe-Serien (optional)</Label>
             <Input
               id="practiceSeries"
               name="practiceSeries"

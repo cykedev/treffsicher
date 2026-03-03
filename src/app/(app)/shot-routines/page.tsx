@@ -4,7 +4,6 @@ import { getAuthSession } from "@/lib/auth-helpers"
 import { getShotRoutines } from "@/lib/shot-routines/actions"
 import type { RoutineStep } from "@/lib/shot-routines/actions"
 import { CreateItemLinkButton } from "@/components/app/CreateItemLinkButton"
-import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 
 function formatDate(date: Date): string {
@@ -45,19 +44,20 @@ export default async function ShotRoutinesPage() {
             const steps: RoutineStep[] = Array.isArray(r.steps) ? (r.steps as RoutineStep[]) : []
             const stepCountText = `${steps.length} ${steps.length === 1 ? "Schritt" : "Schritte"}`
             return (
-              <Card key={r.id}>
-                <CardContent className="flex flex-col gap-4 py-4 sm:flex-row sm:items-center sm:justify-between">
-                  <div className="min-w-0 space-y-0.5">
-                    <p className="break-words font-medium">{r.name}</p>
-                    <p className="break-words text-sm text-muted-foreground">
-                      {stepCountText} · Zuletzt geändert am {formatDate(r.updatedAt)}
-                    </p>
-                  </div>
-                  <Button variant="outline" size="sm" asChild className="w-full sm:w-auto">
-                    <Link href={`/shot-routines/${r.id}`}>Anzeigen</Link>
-                  </Button>
-                </CardContent>
-              </Card>
+              // Ganze Karte klickbar statt separatem Detail-Button:
+              // das entspricht dem Tagebuch-Flow und reduziert einen unnötigen Extra-Schritt.
+              <Link key={r.id} href={`/shot-routines/${r.id}`} className="block">
+                <Card className="transition-colors hover:bg-muted/30">
+                  <CardContent className="py-4">
+                    <div className="min-w-0 space-y-0.5">
+                      <p className="break-words font-medium">{r.name}</p>
+                      <p className="break-words text-sm text-muted-foreground">
+                        {stepCountText} · Zuletzt geändert am {formatDate(r.updatedAt)}
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+              </Link>
             )
           })}
         </div>
