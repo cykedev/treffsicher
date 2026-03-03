@@ -13,7 +13,21 @@ COPY . .
 RUN npx prisma generate
 RUN npm run build
 
-# Stufe 3: Produktions-Image (minimal, ohne Build-Tools)
+# Stufe 3: Migrations-Image (one-shot Job)
+FROM node:20-alpine AS migrator
+WORKDIR /app
+ENV NODE_ENV=production
+
+COPY --from=deps /app/node_modules ./node_modules
+COPY prisma ./prisma
+COPY prisma.config.ts ./prisma.config.ts
+COPY scripts ./scripts
+
+RUN chmod +x /app/scripts/run-migrations-with-recovery.sh
+
+CMD ["./scripts/run-migrations-with-recovery.sh"]
+
+# Stufe 4: Produktions-Image (App-Only, ohne Prisma-CLI-Startlogik)
 FROM node:20-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production
@@ -30,13 +44,9 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 # Prisma-Schema und generierter Client werden beim Start benötigt.
 COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
 COPY --from=builder --chown=nextjs:nodejs /app/src/generated/prisma ./src/generated/prisma
-# Vollständiges node_modules, damit Prisma CLI inkl. transitiver Abhängigkeiten verfügbar ist.
-COPY --from=builder --chown=nextjs:nodejs /app/node_modules ./node_modules
-COPY --from=builder --chown=nextjs:nodejs /app/scripts ./scripts
 
 # Upload-Verzeichnis anlegen — wird später als Volume gemountet
 RUN mkdir -p /app/uploads && chown nextjs:nodejs /app/uploads
-RUN chmod +x /app/scripts/start-with-migrations.sh
 
 USER nextjs
 
@@ -44,5 +54,5 @@ EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
-# Migrationen mit Recovery beim Start ausführen, dann App starten
-CMD ["./scripts/start-with-migrations.sh"]
+# App startet ohne Migrationslogik — Migrationen laufen im separaten one-shot Container.
+CMD ["node", "server.js"]

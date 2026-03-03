@@ -1,11 +1,47 @@
 services:
+  migrate:
+    build:
+      context: .
+      # Dev nutzt volle Dependencies, damit Prisma CLI ohne Rebuild verfügbar ist.
+      target: deps
+    command: sh /app/scripts/run-migrations-with-recovery.sh
+    volumes:
+      # Quellcode live einbinden, damit neue Migrationen/Skripte direkt verfügbar sind.
+      - .:/app
+      # node_modules aus dem Container nicht überschreiben (verhindert Plattform-Konflikte)
+      - /app/node_modules
+    environment:
+      - DATABASE_URL=postgresql://treffsicher:treffsicher@db:5432/treffsicher
+      - PRISMA_AUTO_RESOLVE_FAILED_MIGRATIONS=true
+      - PRISMA_AUTO_RESOLVE_UNKNOWN_FAILED_MIGRATIONS=false
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+    develop:
+      watch:
+        # Neue/angepasste Migrationen direkt erneut ausführen.
+        - path: ./prisma/migrations
+          action: restart
+
+        # Recovery-Logik geändert -> Migrationscontainer neu starten.
+        - path: ./scripts/run-migrations-with-recovery.sh
+          action: restart
+        - path: ./scripts/resolve-failed-migrations.mjs
+          action: restart
+
+        # Bei Dependency-Änderungen neu bauen, damit Prisma CLI-Versionen konsistent bleiben.
+        - path: ./package.json
+          action: rebuild
+        - path: ./package-lock.json
+          action: rebuild
+
   app:
     build:
       context: .
       # Nur die deps-Stufe bauen — kein vollständiger Build für Entwicklung
       target: deps
     # Dev-Automatismus:
-    # - eingecheckte Migrationen anwenden
     # - lokale Schemaänderungen ohne manuelle Schritte auf die DB pushen
     # - Prisma Client generieren
     command: sh /app/scripts/start-dev-with-migrations.sh
@@ -28,21 +64,24 @@ services:
       - PRISMA_AUTO_RESOLVE_UNKNOWN_FAILED_MIGRATIONS=false
       - AUTH_TRUST_PROXY_HEADERS=false
       - AUTH_RATE_LIMIT_MAX_BUCKETS=10000
+      - SKIP_MIGRATE_DEPLOY=true
     depends_on:
       db:
         condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
     develop:
       watch:
         # Schemaänderung -> Container neu starten -> db push + generate laufen automatisch
         - path: ./prisma/schema.prisma
           action: restart
 
-        # Neue/angepasste Migrationen -> Container neu starten -> migrate deploy läuft erneut
-        - path: ./prisma/migrations
-          action: restart
-
         # Next.js-Konfiguration wird beim Start eingelesen -> Restart nötig
         - path: ./next.config.ts
+          action: restart
+
+        # Startscript geändert -> App neu starten
+        - path: ./scripts/start-dev-with-migrations.sh
           action: restart
 
         # Abhängigkeiten geändert → Image neu bauen (npm ci) + Container neu starten

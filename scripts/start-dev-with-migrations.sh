@@ -1,23 +1,10 @@
 #!/bin/sh
 set -eu
 
-echo "[dev-startup] Running prisma migrate deploy..."
-if npx prisma migrate deploy; then
-  echo "[dev-startup] Migration deploy succeeded."
+if [ "${SKIP_MIGRATE_DEPLOY:-false}" = "true" ]; then
+  echo "[dev-startup] Skipping prisma migrate deploy because SKIP_MIGRATE_DEPLOY=true."
 else
-  deploy_exit_code=$?
-  echo "[dev-startup] prisma migrate deploy failed with code ${deploy_exit_code}."
-
-  if [ "${PRISMA_AUTO_RESOLVE_FAILED_MIGRATIONS:-true}" = "true" ]; then
-    echo "[dev-startup] Attempting migration recovery for failed migrations..."
-    node /app/scripts/resolve-failed-migrations.mjs
-
-    echo "[dev-startup] Retrying prisma migrate deploy..."
-    npx prisma migrate deploy
-  else
-    echo "[dev-startup] Automatic migration recovery disabled (PRISMA_AUTO_RESOLVE_FAILED_MIGRATIONS=false)."
-    exit "${deploy_exit_code}"
-  fi
+  sh /app/scripts/run-migrations-with-recovery.sh
 fi
 
 echo "[dev-startup] Running prisma db push for live schema sync..."

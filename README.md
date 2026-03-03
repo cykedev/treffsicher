@@ -32,8 +32,10 @@ docker compose -f docker-compose.dev.yml ps
 docker compose -f docker-compose.dev.yml up --watch
 ```
 
-Der Container-Start führt automatisch das Script `scripts/start-dev-with-migrations.sh` aus
-(`prisma migrate deploy` mit Recovery, danach `prisma db push` und `prisma generate`).
+Beim Start läuft zuerst der dedizierte Service `migrate`
+(`prisma migrate deploy` mit optionaler Recovery).
+Danach startet der App-Container über `scripts/start-dev-with-migrations.sh`
+(`prisma db push` und `prisma generate`, dann Next.js dev server).
 Standarddisziplinen und der erste Admin-Account werden beim ersten Request automatisch angelegt (Startup-Initialisierung).
 
 Die App läuft unter [http://localhost:3000](http://localhost:3000).
@@ -85,12 +87,13 @@ Der Dev-Workflow nutzt [Compose Watch](https://docs.docker.com/compose/how-tos/f
 | ---------------------- | -------------- | ---------------------------------------------------------------------- |
 | `src/**`               | Bind-Mount HMR | Next.js Hot-Reload (kein Compose-Watch-Eintrag)                        |
 | `prisma/schema.prisma` | `restart`      | App-Container startet neu, `prisma db push` + `prisma generate` laufen |
-| `prisma/migrations/**` | `restart`      | App-Container startet neu, `prisma migrate deploy` läuft erneut        |
+| `prisma/migrations/**` | `restart`      | `migrate`-Container läuft erneut und wendet Migrationen an             |
 | `next.config.ts`       | `restart`      | App-Container startet neu                                              |
 | `package.json`         | `rebuild`      | Image neu gebaut (npm ci), Container neu gestartet                     |
 | `package-lock.json`    | `rebuild`      | Wie `package.json`                                                     |
 
-Der Container-Start läuft über `scripts/start-dev-with-migrations.sh`.
+Der App-Container läuft über `scripts/start-dev-with-migrations.sh`,
+Migrationen über `scripts/run-migrations-with-recovery.sh`.
 
 ---
 
@@ -139,7 +142,7 @@ Alle Konfiguration erfolgt über Umgebungsvariablen. Die Vorlage liegt in `.env.
 | `UPLOAD_DIR`                                    | Pfad zum Upload-Verzeichnis im Container                                      | `/app/uploads`                               |
 | `ADMIN_EMAIL`                                   | E-Mail des ersten Admin-Accounts                                              | `admin@example.com`                          |
 | `ADMIN_PASSWORD`                                | Passwort des ersten Admin-Accounts (min. 12 Zeichen)                          | sicheres Passwort                            |
-| `PRISMA_AUTO_RESOLVE_FAILED_MIGRATIONS`         | Aktiviert automatische Recovery für fehlgeschlagene Migrationen beim Start    | `true`                                       |
+| `PRISMA_AUTO_RESOLVE_FAILED_MIGRATIONS`         | Aktiviert automatische Recovery für fehlgeschlagene Migrationen im `migrate`-Service | `true`                                       |
 | `PRISMA_AUTO_RESOLVE_UNKNOWN_FAILED_MIGRATIONS` | Erlaubt Fallback für unbekannte fehlgeschlagene Migrationen (`--rolled-back`) | `false`                                      |
 
 **Entwicklung**: Werte sind direkt in `docker-compose.dev.yml` gesetzt — für den oben beschriebenen Container-Workflow ist keine `.env` nötig.
@@ -180,9 +183,9 @@ docker compose -f docker-compose.prod.yml up -d
 ```
 
 Erfordert eine ausgefüllte `.env`-Datei (siehe Abschnitt oben).
-Migrationen laufen automatisch beim App-Start (`prisma migrate deploy`).
-Wenn `migrate deploy` fehlschlägt und ein P3009-Fall vorliegt, versucht das Startscript eine automatische Recovery
-für bekannte sichere Migrationsfälle und startet danach `migrate deploy` erneut.
+Migrationen laufen vor dem App-Start im dedizierten `migrate`-Service (`prisma migrate deploy`).
+Wenn `migrate deploy` fehlschlägt und ein P3009-Fall vorliegt, versucht der `migrate`-Service
+eine automatische Recovery für bekannte sichere Migrationsfälle und führt danach `migrate deploy` erneut aus.
 Der erste Admin wird beim ersten Start aus `ADMIN_EMAIL` + `ADMIN_PASSWORD` angelegt.
 
 ---

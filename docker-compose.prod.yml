@@ -1,4 +1,18 @@
 services:
+  migrate:
+    image: treffsicher-migrator:latest
+    build:
+      context: .
+      target: migrator
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - PRISMA_AUTO_RESOLVE_FAILED_MIGRATIONS=${PRISMA_AUTO_RESOLVE_FAILED_MIGRATIONS:-true}
+      - PRISMA_AUTO_RESOLVE_UNKNOWN_FAILED_MIGRATIONS=${PRISMA_AUTO_RESOLVE_UNKNOWN_FAILED_MIGRATIONS:-false}
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+
   app:
     image: treffsicher:latest
     build:
@@ -14,13 +28,13 @@ services:
       - UPLOAD_DIR=/app/uploads
       - ADMIN_EMAIL=${ADMIN_EMAIL}
       - ADMIN_PASSWORD=${ADMIN_PASSWORD}
-      - PRISMA_AUTO_RESOLVE_FAILED_MIGRATIONS=${PRISMA_AUTO_RESOLVE_FAILED_MIGRATIONS:-true}
-      - PRISMA_AUTO_RESOLVE_UNKNOWN_FAILED_MIGRATIONS=${PRISMA_AUTO_RESOLVE_UNKNOWN_FAILED_MIGRATIONS:-false}
       - AUTH_TRUST_PROXY_HEADERS=${AUTH_TRUST_PROXY_HEADERS:-false}
       - AUTH_RATE_LIMIT_MAX_BUCKETS=${AUTH_RATE_LIMIT_MAX_BUCKETS:-10000}
     depends_on:
       db:
         condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
     restart: unless-stopped
 
   db:
