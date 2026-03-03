@@ -147,11 +147,44 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div className="min-w-0 flex-1 space-y-1.5">
+      <div className="space-y-3">
+        {/* Badge + Aktionen bewusst in einer eigenen oberen Zeile:
+            so bleibt die Icon-Leiste auf Mobil immer oben sichtbar. */}
+        <div className="flex items-start justify-between gap-2">
           <Badge variant="outline" className={typeBadgeClass[sessionRecord.type] ?? ""}>
             {sessionTypeLabels[sessionRecord.type] ?? sessionRecord.type}
           </Badge>
+          <div className="flex flex-wrap items-center justify-end gap-0.5 sm:gap-1">
+            <FavouriteButton
+              sessionId={sessionRecord.id}
+              initialFavourite={sessionRecord.isFavourite}
+            />
+            <Button variant="ghost" size="sm" className="px-2 sm:px-3" asChild>
+              <Link
+                href={`/sessions/${sessionRecord.id}/export/pdf`}
+                target="_blank"
+                aria-label="Als PDF exportieren"
+              >
+                <Download className="h-4 w-4 sm:mr-1.5" />
+                <span className="hidden sm:inline">PDF</span>
+              </Link>
+            </Button>
+            <Button variant="ghost" size="icon" asChild>
+              <Link href={`/sessions/${sessionRecord.id}/edit`} aria-label="Bearbeiten">
+                <Pencil className="h-4 w-4" />
+              </Link>
+            </Button>
+            <DeleteSessionButton sessionId={sessionRecord.id} />
+            <Button variant="ghost" size="sm" className="px-2 sm:px-3" asChild>
+              <Link href="/sessions" aria-label="Zurück zu Einheiten">
+                <ArrowLeft className="h-4 w-4 sm:mr-1.5" />
+                <span className="hidden sm:inline">Zurück</span>
+              </Link>
+            </Button>
+          </div>
+        </div>
+
+        <div className="min-w-0 space-y-1.5">
           <h1 className="text-2xl font-bold">{formatDate(sessionRecord.date)}</h1>
           <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
             {sessionRecord.discipline && (
@@ -185,34 +218,6 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
               </div>
             </div>
           )}
-        </div>
-        <div className="flex w-full flex-wrap items-center justify-end gap-0.5 sm:ml-2 sm:w-auto sm:shrink-0 sm:gap-1">
-          <FavouriteButton
-            sessionId={sessionRecord.id}
-            initialFavourite={sessionRecord.isFavourite}
-          />
-          <Button variant="ghost" size="sm" className="px-2 sm:px-3" asChild>
-            <Link
-              href={`/sessions/${sessionRecord.id}/export/pdf`}
-              target="_blank"
-              aria-label="Als PDF exportieren"
-            >
-              <Download className="h-4 w-4 sm:mr-1.5" />
-              <span className="hidden sm:inline">PDF</span>
-            </Link>
-          </Button>
-          <Button variant="ghost" size="icon" asChild>
-            <Link href={`/sessions/${sessionRecord.id}/edit`} aria-label="Bearbeiten">
-              <Pencil className="h-4 w-4" />
-            </Link>
-          </Button>
-          <DeleteSessionButton sessionId={sessionRecord.id} />
-          <Button variant="ghost" size="sm" className="px-2 sm:px-3" asChild>
-            <Link href="/sessions" aria-label="Zurück zu Einheiten">
-              <ArrowLeft className="h-4 w-4 sm:mr-1.5" />
-              <span className="hidden sm:inline">Zurück</span>
-            </Link>
-          </Button>
         </div>
       </div>
 

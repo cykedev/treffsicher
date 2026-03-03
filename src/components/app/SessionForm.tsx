@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
+import { Trash2 } from "lucide-react"
 import { createSession, previewMeytonImport, updateSession } from "@/lib/sessions/actions"
 import type { SessionDetail } from "@/lib/sessions/actions"
 import { calculateSumFromShots } from "@/lib/sessions/calculateScore"
@@ -733,14 +734,16 @@ export function SessionForm({
                           </SelectableRow>
                           <Button
                             type="button"
-                            variant="ghost"
+                            variant="outline"
                             size="icon-xs"
                             onClick={() => handleRemoveSeries(i)}
                             disabled={pending || totalSeries <= 1}
                             aria-label={`${seriesLabel} entfernen`}
-                            className="text-muted-foreground hover:text-foreground"
+                            // Kleine, aber klar als destruktiv erkennbare Aktion:
+                            // so bleibt der Header kompakt und der Zweck trotzdem eindeutig.
+                            className="border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive"
                           >
-                            ×
+                            <Trash2 className="h-3 w-3" />
                           </Button>
                         </div>
                       </div>

@@ -33,17 +33,17 @@ export default async function ShotRoutineDetailPage({
             Übersicht deines Schuss-Ablaufs in geordneter Reihenfolge.
           </p>
         </div>
-        <div className="flex w-full flex-wrap gap-2 sm:w-auto">
-          <Button variant="outline" className="w-full sm:w-auto" asChild>
-            <Link href="/shot-routines">
-              <ArrowLeft className="mr-1.5 h-4 w-4" />
-              Zurück
+        <div className="flex w-full flex-wrap items-center justify-end gap-0.5 sm:ml-2 sm:w-auto sm:shrink-0 sm:gap-1">
+          <Button variant="ghost" size="sm" className="px-2 sm:px-3" asChild>
+            <Link href="/shot-routines" aria-label="Zurück zu Abläufen">
+              <ArrowLeft className="h-4 w-4 sm:mr-1.5" />
+              <span className="hidden sm:inline">Zurück</span>
             </Link>
           </Button>
-          <Button className="w-full sm:w-auto" asChild>
-            <Link href={`/shot-routines/${id}/edit`}>
-              <Pencil className="mr-1.5 h-4 w-4" />
-              Bearbeiten
+          <Button variant="ghost" size="sm" className="px-2 sm:px-3" asChild>
+            <Link href={`/shot-routines/${id}/edit`} aria-label="Ablauf bearbeiten">
+              <Pencil className="h-4 w-4 sm:mr-1.5" />
+              <span className="hidden sm:inline">Bearbeiten</span>
             </Link>
           </Button>
           <DeleteShotRoutineButton routineId={id} />

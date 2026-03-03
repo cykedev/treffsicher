@@ -50,8 +50,10 @@ export function DeleteSessionButton({ sessionId }: Props) {
         <AlertDialogTrigger asChild>
           <Button
             variant="destructive"
-            size="sm"
-            className="px-2 sm:px-3"
+            size="icon"
+            // Mobil gleich gross wie andere Icon-Aktionen in der Kopfzeile;
+            // ab `sm` wieder kompakt mit Textlabel.
+            className="size-9 sm:h-8 sm:w-auto sm:px-3"
             disabled={isPending}
             aria-label={isPending ? "Löschen..." : "Löschen"}
           >

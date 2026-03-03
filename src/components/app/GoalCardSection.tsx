@@ -310,17 +310,30 @@ export function GoalCardSection({ goal, sessions }: Props) {
             variant="outline"
             onClick={() => setEditingGoal(true)}
             disabled={pending}
+            className="min-w-[10.75rem] justify-center"
           >
             <Pencil className="mr-1.5 h-4 w-4" />
             Bearbeiten
           </Button>
-          <Button size="sm" variant="outline" onClick={openAssignmentsEditor} disabled={pending}>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={openAssignmentsEditor}
+            disabled={pending}
+            className="min-w-[10.75rem] justify-center"
+          >
             <Target className="mr-1.5 h-4 w-4" />
             Zahlt auf Ziel ein
           </Button>
           <AlertDialog>
             <AlertDialogTrigger asChild>
-              <Button size="sm" variant="destructive" disabled={pending}>
+              <Button
+                size="sm"
+                variant="destructive"
+                // Gleiche Mindestbreite wie Nachbaraktionen verhindert visuelle Brüche.
+                className="min-w-[10.75rem] justify-center"
+                disabled={pending}
+              >
                 <Trash2 className="mr-1.5 h-4 w-4" />
                 Löschen
               </Button>
