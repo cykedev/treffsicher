@@ -37,6 +37,10 @@ export type StatsSession = {
   type: string
   disciplineId: string | null
   discipline: DisciplineForStats | null
+  hitLocationHorizontalMm: number | null
+  hitLocationHorizontalDirection: "LEFT" | "RIGHT" | null
+  hitLocationVerticalMm: number | null
+  hitLocationVerticalDirection: "HIGH" | "LOW" | null
   // Absolute Summe aller Wertungsserien (ohne Probeschüsse)
   totalScore: number | null
   // Normalisierter Durchschnitt pro Schuss — vergleichbar über Einheiten mit unterschiedlicher Schussanzahl
@@ -144,6 +148,10 @@ export async function getStatsData(filters: StatsFilters): Promise<StatsSession[
       type: s.type,
       disciplineId: s.disciplineId,
       discipline: s.discipline ?? null,
+      hitLocationHorizontalMm: s.hitLocationHorizontalMm,
+      hitLocationHorizontalDirection: s.hitLocationHorizontalDirection,
+      hitLocationVerticalMm: s.hitLocationVerticalMm,
+      hitLocationVerticalDirection: s.hitLocationVerticalDirection,
       totalScore: scoredNonPractice.length > 0 ? totalScore : null,
       // avgPerShot ist null wenn keine Wertungsserien vorhanden (z.B. Trockentraining ohne Ergebnis)
       avgPerShot: totalNonPracticeShots > 0 ? totalScore / totalNonPracticeShots : null,
