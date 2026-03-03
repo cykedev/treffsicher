@@ -1,7 +1,7 @@
 import { getAuthSession } from "@/lib/auth-helpers"
 import { redirect } from "next/navigation"
 import Link from "next/link"
-import { Heart } from "lucide-react"
+import { Heart, Target } from "lucide-react"
 import { getSessions } from "@/lib/sessions/actions"
 import { calculateTotalScore } from "@/lib/sessions/calculateScore"
 import { getSeriesMax, type ScoringType } from "@/lib/sessions/validation"
@@ -124,9 +124,14 @@ export default async function SessionsPage({
       ) : (
         <div className="space-y-2">
           {filteredSessions.map((s) => {
+            const normalizedSeries = s.series.map((series: { scoreTotal: unknown; isPractice: boolean; shots: unknown }) => ({
+              scoreTotal: series.scoreTotal !== null ? Number(series.scoreTotal) : null,
+              isPractice: series.isPractice,
+              shots: series.shots,
+            }))
             const totalScore = calculateTotalScore(
-              s.series.map((series: { scoreTotal: unknown; isPractice: boolean }) => ({
-                scoreTotal: series.scoreTotal !== null ? Number(series.scoreTotal) : null,
+              normalizedSeries.map((series) => ({
+                scoreTotal: series.scoreTotal,
                 isPractice: series.isPractice,
               }))
             )
@@ -142,7 +147,7 @@ export default async function SessionsPage({
             }
 
             // Schussanzahl dynamisch: echte Einzelschüsse wenn vorhanden, sonst Disziplin-Standard
-            const scoringSeries = s.series.filter(
+            const scoringSeries = normalizedSeries.filter(
               (serie) => !serie.isPractice && serie.scoreTotal !== null
             )
             const totalScoringShots = scoringSeries.reduce(
@@ -150,22 +155,45 @@ export default async function SessionsPage({
               0
             )
 
-            const practiceSeries = s.series.filter(
+            const practiceSeries = normalizedSeries.filter(
               (serie) => serie.isPractice && serie.scoreTotal !== null
             )
             const totalPracticeShots = practiceSeries.reduce(
               (sum, serie) => sum + getSeriesShotCount(serie),
               0
             )
+            const totalPracticeScore = practiceSeries.reduce(
+              (sum, serie) => sum + (serie.scoreTotal ?? 0),
+              0
+            )
 
-            const maxScore =
-              scoringType && totalScoringShots > 0
-                ? getSeriesMax(scoringType, totalScoringShots)
+            const hasScoringResult = totalScore > 0
+            const hasPracticeOnlyResult = scoringSeries.length === 0 && practiceSeries.length > 0
+            const shouldShowResult = hasSeries && (hasScoringResult || hasPracticeOnlyResult)
+
+            const displayScore = hasPracticeOnlyResult ? totalPracticeScore : totalScore
+            const displayShots = hasPracticeOnlyResult ? totalPracticeShots : totalScoringShots
+            const displayMaxScore =
+              scoringType && displayShots > 0
+                ? getSeriesMax(scoringType, displayShots)
                 : 0
-            const formattedTotalScore =
-              scoringType === "TENTH" ? totalScore.toFixed(1) : String(totalScore)
-            const formattedMaxScore =
-              scoringType === "TENTH" ? maxScore.toFixed(1) : String(maxScore)
+            const formattedDisplayScore =
+              scoringType === "TENTH" ? displayScore.toFixed(1) : String(displayScore)
+            const formattedDisplayMaxScore =
+              scoringType === "TENTH" ? displayMaxScore.toFixed(1) : String(displayMaxScore)
+            const displayShotsLabel = hasPracticeOnlyResult
+              ? `${totalPracticeShots} Sch.`
+              : totalScoringShots > 0
+                ? `${totalScoringShots} Sch.${totalPracticeShots > 0 ? ` + ${totalPracticeShots} Probe` : ""}`
+                : ""
+            const scoreBlockClass = hasPracticeOnlyResult ? "text-muted-foreground/70" : ""
+            const scoreValueClass = hasPracticeOnlyResult ? "text-muted-foreground" : ""
+            const scoreMetaClass = hasPracticeOnlyResult
+              ? "text-[11px] leading-tight text-muted-foreground/70"
+              : "text-[11px] leading-tight text-muted-foreground/80"
+            const shotCountClass = hasPracticeOnlyResult
+              ? "text-xs text-muted-foreground/80"
+              : "text-xs text-muted-foreground"
 
             // Einzelschüsse erfasst wenn mindestens eine Serie ein nicht-leeres shots-Array hat
             const hasIndividualShots = s.series.some(
@@ -205,21 +233,20 @@ export default async function SessionsPage({
                         </div>
 
                         {/* Gesamtergebnis rechts (mobile oben) */}
-                        {hasSeries && totalScore > 0 && (
-                          <div className="shrink-0 text-right sm:hidden">
-                            <span className="text-xl font-bold tabular-nums">
-                              {formattedTotalScore}
+                        {shouldShowResult && (
+                          <div className={`shrink-0 text-right sm:hidden ${scoreBlockClass}`}>
+                            <span className={`text-xl font-bold tabular-nums ${scoreValueClass}`}>
+                              {formattedDisplayScore}
+                              {hasPracticeOnlyResult && (
+                                <span className="ml-1 text-sm font-semibold">(P)</span>
+                              )}
                             </span>
-                            {maxScore > 0 && (
-                              <p className="text-[11px] leading-tight text-muted-foreground/80">
-                                von {formattedMaxScore}
+                            {displayMaxScore > 0 && (
+                              <p className={scoreMetaClass}>
+                                von {formattedDisplayMaxScore}
                               </p>
                             )}
-                            <p className="text-xs text-muted-foreground">
-                              {totalScoringShots > 0
-                                ? `${totalScoringShots} Sch.${totalPracticeShots > 0 ? ` + ${totalPracticeShots} Probe` : ""}`
-                                : ""}
-                            </p>
+                            <p className={shotCountClass}>{displayShotsLabel}</p>
                           </div>
                         )}
                       </div>
@@ -230,6 +257,12 @@ export default async function SessionsPage({
                           <span className="text-muted-foreground/60"> · {s.location}</span>
                         )}
                       </p>
+                      {s.trainingGoal && (
+                        <div className="flex items-start gap-1.5 text-sm text-muted-foreground">
+                          <Target className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                          <span className="break-words">{s.trainingGoal}</span>
+                        </div>
+                      )}
 
                       {/* Mentale Indikatoren als kleine Badges */}
                       {filledMental.length > 0 && (
@@ -248,21 +281,20 @@ export default async function SessionsPage({
                     </div>
 
                     {/* Gesamtergebnis rechts (desktop) */}
-                    {hasSeries && totalScore > 0 && (
-                      <div className="hidden text-right sm:ml-4 sm:block sm:shrink-0">
-                        <span className="text-xl font-bold tabular-nums">
-                          {formattedTotalScore}
+                    {shouldShowResult && (
+                      <div className={`hidden text-right sm:ml-4 sm:block sm:shrink-0 ${scoreBlockClass}`}>
+                        <span className={`text-xl font-bold tabular-nums ${scoreValueClass}`}>
+                          {formattedDisplayScore}
+                          {hasPracticeOnlyResult && (
+                            <span className="ml-1 text-sm font-semibold">(P)</span>
+                          )}
                         </span>
-                        {maxScore > 0 && (
-                          <p className="text-[11px] leading-tight text-muted-foreground/80">
-                            von {formattedMaxScore}
+                        {displayMaxScore > 0 && (
+                          <p className={scoreMetaClass}>
+                            von {formattedDisplayMaxScore}
                           </p>
                         )}
-                        <p className="text-xs text-muted-foreground">
-                          {totalScoringShots > 0
-                            ? `${totalScoringShots} Sch.${totalPracticeShots > 0 ? ` + ${totalPracticeShots} Probe` : ""}`
-                            : ""}
-                        </p>
+                        <p className={shotCountClass}>{displayShotsLabel}</p>
                       </div>
                     )}
                   </CardContent>
