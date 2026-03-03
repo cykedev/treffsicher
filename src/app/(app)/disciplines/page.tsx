@@ -66,7 +66,7 @@ export default async function DisciplinesPage() {
                   <p className="break-words text-sm text-muted-foreground">
                     {d.seriesCount} × {d.shotsPerSeries} Schuss —{" "}
                     {scoringTypeLabel[d.scoringType] ?? d.scoringType}
-                    {d.practiceSeries > 0 && ` — ${d.practiceSeries} Probeschuss-Serie(n)`}
+                    {d.practiceSeries > 0 && ` — ${d.practiceSeries} Probe-Serie(n)`}
                   </p>
                 </div>
                 <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:justify-end">

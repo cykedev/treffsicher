@@ -21,7 +21,7 @@ const CreateDisciplineSchema = z.object({
     .min(1, "Mindestens 1 Schuss")
     .max(60, "Maximal 60 Schuss"),
   practiceSeries: z
-    .number({ message: "Probeschuss-Serien muss eine Zahl sein" })
+    .number({ message: "Probe-Serien muss eine Zahl sein" })
     .int()
     .min(0)
     .max(5)

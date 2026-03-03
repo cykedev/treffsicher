@@ -661,7 +661,7 @@ export function SessionForm({
               const practicesBefore = seriesIsPractice.slice(0, i).filter(Boolean).length
               const regularsBefore = i - practicesBefore
               const seriesLabel = isPractice
-                ? `Probeschuss-Serie ${practicesBefore + 1}`
+                ? `Probe-Serie ${practicesBefore + 1}`
                 : `Serie ${regularsBefore + 1}`
 
               const currentShotCount = shotCounts[i] ?? selectedDiscipline.shotsPerSeries
@@ -730,18 +730,18 @@ export function SessionForm({
                             className="w-auto rounded-md px-2 py-1 text-xs"
                             indicatorClassName="h-4 w-4"
                           >
-                            Probeschuss
+                            Probe
                           </SelectableRow>
                           <Button
                             type="button"
-                            variant="outline"
+                            variant="ghost"
                             size="icon-xs"
                             onClick={() => handleRemoveSeries(i)}
                             disabled={pending || totalSeries <= 1}
                             aria-label={`${seriesLabel} entfernen`}
                             // Kleine, aber klar als destruktiv erkennbare Aktion:
                             // so bleibt der Header kompakt und der Zweck trotzdem eindeutig.
-                            className="border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                            className="text-destructive hover:bg-destructive/10 hover:text-destructive"
                           >
                             <Trash2 className="h-3 w-3" />
                           </Button>
@@ -901,7 +901,7 @@ export function SessionForm({
               onClick={handleAddPracticeSeries}
               disabled={pending}
             >
-              + Probeschuss-Serie
+              + Probe-Serie
             </Button>
           </div>
         </div>
