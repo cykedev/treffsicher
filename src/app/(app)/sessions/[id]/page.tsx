@@ -15,6 +15,7 @@ import {
 import { getAuthSession } from "@/lib/auth-helpers"
 import { getSessionById } from "@/lib/sessions/actions"
 import { calculateTotalScore } from "@/lib/sessions/calculateScore"
+import { getDisplayTimeZone } from "@/lib/dateTime"
 import { AttachmentSection } from "@/components/app/AttachmentSection"
 import { DeleteSessionButton } from "@/components/app/DeleteSessionButton"
 import { FavouriteButton } from "@/components/app/FavouriteButton"
@@ -68,7 +69,7 @@ function QualityDots({ quality }: { quality: number | null }) {
   )
 }
 
-function formatDate(date: Date): string {
+function formatDate(date: Date, displayTimeZone: string): string {
   return new Intl.DateTimeFormat("de-CH", {
     weekday: "long",
     day: "numeric",
@@ -76,6 +77,7 @@ function formatDate(date: Date): string {
     year: "numeric",
     hour: "2-digit",
     minute: "2-digit",
+    timeZone: displayTimeZone,
   }).format(date)
 }
 
@@ -97,6 +99,7 @@ const comparisonDimensions = [
 ] as const
 
 export default async function SessionDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const displayTimeZone = getDisplayTimeZone()
   const session = await getAuthSession()
   if (!session) redirect("/login")
 
@@ -193,7 +196,7 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
         </div>
 
         <div className="min-w-0 space-y-1.5">
-          <h1 className="text-2xl font-bold">{formatDate(sessionRecord.date)}</h1>
+          <h1 className="text-2xl font-bold">{formatDate(sessionRecord.date, displayTimeZone)}</h1>
           <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
             {sessionRecord.discipline && (
               <span className="break-words">{sessionRecord.discipline.name}</span>

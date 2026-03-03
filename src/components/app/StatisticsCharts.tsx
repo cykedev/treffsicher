@@ -58,6 +58,7 @@ interface Props {
   qualityData: QualityVsScorePoint[]
   shotDistributionData: ShotDistributionPoint[]
   radarData: RadarComparisonSession[]
+  displayTimeZone: string
 }
 
 type TypeFilter = "all" | "TRAINING" | "WETTKAMPF"
@@ -68,8 +69,6 @@ type RadarLegendItem = {
   label: string
   color: string
 }
-
-const DISPLAY_TIME_ZONE = "Europe/Berlin"
 
 const radarDimensions = [
   { label: "Kondition", prognosisKey: "fitnessPrognosis", feedbackKey: "fitnessFeedback" },
@@ -176,7 +175,10 @@ function computeStableAxis(
   }
 }
 
-function computeCenteredAxis(values: number[], minAbsMax = 1): { domain: [number, number]; ticks: number[] } {
+function computeCenteredAxis(
+  values: number[],
+  minAbsMax = 1
+): { domain: [number, number]; ticks: number[] } {
   if (values.length === 0) {
     return { domain: [-minAbsMax, minAbsMax], ticks: [-minAbsMax, 0, minAbsMax] }
   }
@@ -271,7 +273,9 @@ export function StatisticsCharts({
   qualityData,
   shotDistributionData,
   radarData,
+  displayTimeZone,
 }: Props) {
+  const DISPLAY_TIME_ZONE = displayTimeZone
   const [typeFilter, setTypeFilter] = useState<TypeFilter>("all")
   const [from, setFrom] = useState("")
   const [to, setTo] = useState("")
@@ -408,7 +412,7 @@ export function StatisticsCharts({
       x: point.x,
       y: point.y,
     }))
-  }, [filteredHitLocations])
+  }, [filteredHitLocations, DISPLAY_TIME_ZONE])
 
   const hitLocationTrendAxis = useMemo<{ domain: [number, number]; ticks: number[] }>(() => {
     const values = hitLocationTrendData
@@ -590,7 +594,7 @@ export function StatisticsCharts({
       timeZone: DISPLAY_TIME_ZONE,
     })
     return `${format.format(new Date(first.date))} bis ${format.format(new Date(last.date))}`
-  }, [filteredRadarSessions])
+  }, [filteredRadarSessions, DISPLAY_TIME_ZONE])
 
   const radarLegendItems = useMemo<RadarLegendItem[]>(() => {
     return (
@@ -1049,80 +1053,82 @@ export function StatisticsCharts({
                             fontSize: 11,
                           }}
                         />
-                      <ReferenceLine
-                        x={0}
-                        stroke="var(--muted-foreground)"
-                        strokeOpacity={0.7}
-                        strokeWidth={1.8}
-                      />
-                      <ReferenceLine
-                        y={0}
-                        stroke="var(--muted-foreground)"
-                        strokeOpacity={0.7}
-                        strokeWidth={1.8}
-                      />
-                      <ChartTooltip
-                        cursor={{ stroke: "var(--muted-foreground)", strokeOpacity: 0.45 }}
-                        content={
-                          <ChartTooltipContent
-                            labelFormatter={(_label, payload) => {
-                              const dateValue = payload?.[0]?.payload?.date
-                              if (!dateValue) return ""
-                              return new Intl.DateTimeFormat("de-CH", {
-                                day: "2-digit",
-                                month: "2-digit",
-                                year: "numeric",
-                                timeZone: DISPLAY_TIME_ZONE,
-                              }).format(new Date(dateValue as Date))
-                            }}
-                            formatter={(value, name) => (
-                              <div className="flex w-full items-center justify-between gap-6">
-                                <span className="text-muted-foreground">{name === "x" ? "X" : "Y"}</span>
-                                <span className="text-foreground font-mono font-medium tabular-nums">
-                                  {formatSignedMillimeters(
-                                    typeof value === "number" ? value : Number(value)
-                                  )}
-                                </span>
-                              </div>
-                            )}
-                          />
-                        }
-                      />
-                      <Scatter
-                        data={filteredHitLocations}
-                        fill="var(--chart-1)"
-                        shape={(props: { cx?: number; cy?: number }) => (
-                          <circle
-                            cx={props.cx}
-                            cy={props.cy}
-                            r={5}
-                            fill="var(--chart-1)"
-                            opacity={0.78}
-                          />
-                        )}
-                      />
+                        <ReferenceLine
+                          x={0}
+                          stroke="var(--muted-foreground)"
+                          strokeOpacity={0.7}
+                          strokeWidth={1.8}
+                        />
+                        <ReferenceLine
+                          y={0}
+                          stroke="var(--muted-foreground)"
+                          strokeOpacity={0.7}
+                          strokeWidth={1.8}
+                        />
+                        <ChartTooltip
+                          cursor={{ stroke: "var(--muted-foreground)", strokeOpacity: 0.45 }}
+                          content={
+                            <ChartTooltipContent
+                              labelFormatter={(_label, payload) => {
+                                const dateValue = payload?.[0]?.payload?.date
+                                if (!dateValue) return ""
+                                return new Intl.DateTimeFormat("de-CH", {
+                                  day: "2-digit",
+                                  month: "2-digit",
+                                  year: "numeric",
+                                  timeZone: DISPLAY_TIME_ZONE,
+                                }).format(new Date(dateValue as Date))
+                              }}
+                              formatter={(value, name) => (
+                                <div className="flex w-full items-center justify-between gap-6">
+                                  <span className="text-muted-foreground">
+                                    {name === "x" ? "X" : "Y"}
+                                  </span>
+                                  <span className="text-foreground font-mono font-medium tabular-nums">
+                                    {formatSignedMillimeters(
+                                      typeof value === "number" ? value : Number(value)
+                                    )}
+                                  </span>
+                                </div>
+                              )}
+                            />
+                          }
+                        />
+                        <Scatter
+                          data={filteredHitLocations}
+                          fill="var(--chart-1)"
+                          shape={(props: { cx?: number; cy?: number }) => (
+                            <circle
+                              cx={props.cx}
+                              cy={props.cy}
+                              r={5}
+                              fill="var(--chart-1)"
+                              opacity={0.78}
+                            />
+                          )}
+                        />
                       </ScatterChart>
                     </ChartContainer>
                   </div>
 
-                    <div className="grid gap-2 sm:grid-cols-2">
-                      <div className="rounded-lg border border-border/60 bg-muted/10 p-3">
-                        <p className="text-xs uppercase tracking-wide text-muted-foreground">
-                          Mittelwert X (→/←)
-                        </p>
-                        <p className="text-lg font-semibold tabular-nums">
-                          {formatDirectionalMillimeters(hitLocationMetrics.meanX, "x")}
-                        </p>
-                      </div>
-                      <div className="rounded-lg border border-border/60 bg-muted/10 p-3">
-                        <p className="text-xs uppercase tracking-wide text-muted-foreground">
-                          Mittelwert Y (↑/↓)
-                        </p>
-                        <p className="text-lg font-semibold tabular-nums">
-                          {formatDirectionalMillimeters(hitLocationMetrics.meanY, "y")}
-                        </p>
-                      </div>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    <div className="rounded-lg border border-border/60 bg-muted/10 p-3">
+                      <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                        Mittelwert X (→/←)
+                      </p>
+                      <p className="text-lg font-semibold tabular-nums">
+                        {formatDirectionalMillimeters(hitLocationMetrics.meanX, "x")}
+                      </p>
                     </div>
+                    <div className="rounded-lg border border-border/60 bg-muted/10 p-3">
+                      <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                        Mittelwert Y (↑/↓)
+                      </p>
+                      <p className="text-lg font-semibold tabular-nums">
+                        {formatDirectionalMillimeters(hitLocationMetrics.meanY, "y")}
+                      </p>
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
 
@@ -1137,7 +1143,10 @@ export function StatisticsCharts({
                 </CardHeader>
                 <CardContent>
                   <ChartContainer config={hitLocationTrendChartConfig} className="h-[280px] w-full">
-                    <LineChart data={hitLocationTrendData} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
+                    <LineChart
+                      data={hitLocationTrendData}
+                      margin={{ top: 5, right: 20, bottom: 5, left: 0 }}
+                    >
                       <CartesianGrid stroke="var(--border)" strokeOpacity={0.4} vertical={false} />
                       <XAxis
                         dataKey="i"

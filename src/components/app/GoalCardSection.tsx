@@ -41,9 +41,8 @@ interface Props {
   goal: GoalWithAssignments
   sessions: GoalSessionOption[]
   backHref?: string
+  displayTimeZone: string
 }
-
-const DISPLAY_TIME_ZONE = "Europe/Berlin"
 
 const sessionTypeLabels: Record<string, string> = {
   TRAINING: "Training",
@@ -57,23 +56,23 @@ const goalTypeLabels: Record<string, string> = {
   PROCESS: "Prozessziel",
 }
 
-function formatDateOnly(date: Date): string {
+function formatDateOnly(date: Date, displayTimeZone: string): string {
   return new Intl.DateTimeFormat("de-CH", {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
-    timeZone: DISPLAY_TIME_ZONE,
+    timeZone: displayTimeZone,
   }).format(new Date(date))
 }
 
-function formatDateTime(date: Date): string {
+function formatDateTime(date: Date, displayTimeZone: string): string {
   return new Intl.DateTimeFormat("de-CH", {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
     hour: "2-digit",
     minute: "2-digit",
-    timeZone: DISPLAY_TIME_ZONE,
+    timeZone: displayTimeZone,
   }).format(new Date(date))
 }
 
@@ -81,7 +80,7 @@ function toDateInputValue(date: Date): string {
   return new Date(date).toISOString().slice(0, 10)
 }
 
-export function GoalCardSection({ goal, sessions, backHref }: Props) {
+export function GoalCardSection({ goal, sessions, backHref, displayTimeZone }: Props) {
   const router = useRouter()
   const [editingGoal, setEditingGoal] = useState(false)
   const [editingAssignments, setEditingAssignments] = useState(false)
@@ -251,7 +250,10 @@ export function GoalCardSection({ goal, sessions, backHref }: Props) {
                   }
                 >
                   <span className="font-medium">{sessionTypeLabels[entry.type] ?? entry.type}</span>
-                  <span className="text-muted-foreground"> · {formatDateTime(entry.date)}</span>
+                  <span className="text-muted-foreground">
+                    {" "}
+                    · {formatDateTime(entry.date, displayTimeZone)}
+                  </span>
                   {entry.disciplineName && (
                     <span className="text-muted-foreground"> · {entry.disciplineName}</span>
                   )}
@@ -367,7 +369,8 @@ export function GoalCardSection({ goal, sessions, backHref }: Props) {
             <Badge variant="outline">{goalTypeLabels[goal.type] ?? goal.type}</Badge>
           </div>
           <div className="text-sm text-muted-foreground">
-            Zeitraum: {formatDateOnly(goal.dateFrom)} bis {formatDateOnly(goal.dateTo)}
+            Zeitraum: {formatDateOnly(goal.dateFrom, displayTimeZone)} bis{" "}
+            {formatDateOnly(goal.dateTo, displayTimeZone)}
           </div>
           <div className="text-sm text-muted-foreground">
             Einheiten, die auf das Ziel einzahlen: {goal.sessionCount}

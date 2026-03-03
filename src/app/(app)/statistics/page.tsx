@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation"
 import { getAuthSession } from "@/lib/auth-helpers"
+import { getDisplayTimeZone } from "@/lib/dateTime"
 import {
   getStatsData,
   getWellbeingCorrelationData,
@@ -10,6 +11,7 @@ import {
 import { StatisticsChartsWrapper } from "@/components/app/StatisticsChartsWrapper"
 
 export default async function StatisticsPage() {
+  const displayTimeZone = getDisplayTimeZone()
   const session = await getAuthSession()
   if (!session) redirect("/login")
 
@@ -40,6 +42,7 @@ export default async function StatisticsPage() {
         qualityData={qualityData}
         shotDistributionData={shotDistributionData}
         radarData={radarData}
+        displayTimeZone={displayTimeZone}
       />
     </div>
   )
