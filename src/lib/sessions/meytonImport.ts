@@ -309,7 +309,7 @@ export function parseMeytonSeriesFromText(rawText: string): MeytonSeriesResult {
 
 /**
  * Liest Datum/Uhrzeit aus dem Meyton-Header (Wertung dd.mm.yyyy hh:mm).
- * Rückgabe als ISO-String oder null wenn nicht vorhanden.
+ * Rückgabe als datetime-local-String (yyyy-mm-ddThh:mm) oder null wenn nicht vorhanden.
  */
 export function extractMeytonDateTime(rawText: string): string | null {
   function parseDateMatch(match: RegExpMatchArray): string | null {
@@ -331,8 +331,18 @@ export function extractMeytonDateTime(rawText: string): string | null {
 
     const date = new Date(year, month - 1, day, hour, minute, 0, 0)
     if (Number.isNaN(date.getTime())) return null
+    if (
+      date.getFullYear() !== year ||
+      date.getMonth() !== month - 1 ||
+      date.getDate() !== day ||
+      date.getHours() !== hour ||
+      date.getMinutes() !== minute
+    ) {
+      return null
+    }
 
-    return date.toISOString()
+    const pad = (value: number) => String(value).padStart(2, "0")
+    return `${year}-${pad(month)}-${pad(day)}T${pad(hour)}:${pad(minute)}`
   }
 
   const wertungMatch = rawText.match(WERTUNG_DATETIME_REGEX)

@@ -77,6 +77,12 @@ function toDateTimeLocalValue(value: Date | string): string {
   return base.toISOString().slice(0, 16)
 }
 
+function toIsoFromDateTimeLocalValue(value: string): string | null {
+  const parsed = new Date(value)
+  if (Number.isNaN(parsed.getTime())) return null
+  return parsed.toISOString()
+}
+
 function formatMillimeters(value: number): string {
   return value.toFixed(2)
 }
@@ -507,8 +513,8 @@ export function SessionForm({
         : null
     )
 
-    // Nur bei neuen, noch nicht gespeicherten Einheiten wird Datum/Uhrzeit aus dem PDF übernommen.
-    if (!sessionId && result.data.date) {
+    // Datum/Uhrzeit aus Meyton immer übernehmen, sofern im Import vorhanden.
+    if (result.data.date) {
       setDateValue(toDateTimeLocalValue(result.data.date))
     }
 
@@ -532,9 +538,16 @@ export function SessionForm({
       return
     }
 
+    const normalizedDateIso = toIsoFromDateTimeLocalValue(dateValue)
+    if (!normalizedDateIso) {
+      setFormError("Datum/Uhrzeit ist ungültig.")
+      return
+    }
+
     setPending(true)
 
     const formData = new FormData(e.currentTarget)
+    formData.set("date", normalizedDateIso)
 
     // Shots als JSON-String in die FormData schreiben — FormData unterstützt keine verschachtelten
     // Arrays nativ, daher serialisieren wir die Werte explizit bevor sie zum Server geschickt werden
@@ -689,7 +702,8 @@ export function SessionForm({
                         }
                         disabled={pending}
                         className={
-                          hasHitLocationValidationError && !isValidHitLocationMillimeter(hitLocation.horizontalMm)
+                          hasHitLocationValidationError &&
+                          !isValidHitLocationMillimeter(hitLocation.horizontalMm)
                             ? "border-destructive focus-visible:ring-destructive"
                             : ""
                         }
@@ -729,7 +743,8 @@ export function SessionForm({
                         }
                         disabled={pending}
                         className={
-                          hasHitLocationValidationError && !isValidHitLocationMillimeter(hitLocation.verticalMm)
+                          hasHitLocationValidationError &&
+                          !isValidHitLocationMillimeter(hitLocation.verticalMm)
                             ? "border-destructive focus-visible:ring-destructive"
                             : ""
                         }
@@ -767,7 +782,11 @@ export function SessionForm({
             </div>
           )}
 
-          <input type="hidden" name="hitLocationHorizontalMm" value={hitLocation?.horizontalMm ?? ""} />
+          <input
+            type="hidden"
+            name="hitLocationHorizontalMm"
+            value={hitLocation?.horizontalMm ?? ""}
+          />
           <input
             type="hidden"
             name="hitLocationHorizontalDirection"

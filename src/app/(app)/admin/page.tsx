@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation"
 import { getAuthSession } from "@/lib/auth-helpers"
 import { getAdminLoginRateLimitInsights, getAdminUsers } from "@/lib/admin/actions"
+import { getDisplayTimeZone } from "@/lib/dateTime"
 import { AdminLoginRateLimitInsightsPanel } from "@/components/app/AdminLoginRateLimitInsights"
 import { AdminLoginRateLimitTable } from "@/components/app/AdminLoginRateLimitTable"
 import { AdminUsersTable } from "@/components/app/AdminUsersTable"
@@ -8,6 +9,7 @@ import { CreateItemLinkButton } from "@/components/app/CreateItemLinkButton"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
 export default async function AdminPage() {
+  const displayTimeZone = getDisplayTimeZone()
   const session = await getAuthSession()
   if (!session) redirect("/login")
   if (session.user.role !== "ADMIN") redirect("/dashboard")
@@ -37,7 +39,11 @@ export default async function AdminPage() {
           <CardTitle>Nutzerliste</CardTitle>
         </CardHeader>
         <CardContent>
-          <AdminUsersTable users={users} currentAdminId={session.user.id} />
+          <AdminUsersTable
+            users={users}
+            currentAdminId={session.user.id}
+            displayTimeZone={displayTimeZone}
+          />
         </CardContent>
       </Card>
 
@@ -48,7 +54,10 @@ export default async function AdminPage() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <AdminLoginRateLimitTable buckets={rateLimitInsights.activeBlockedBuckets} />
+          <AdminLoginRateLimitTable
+            buckets={rateLimitInsights.activeBlockedBuckets}
+            displayTimeZone={displayTimeZone}
+          />
         </CardContent>
       </Card>
 

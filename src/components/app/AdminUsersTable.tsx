@@ -22,9 +22,8 @@ import { Card, CardContent } from "@/components/ui/card"
 interface Props {
   users: AdminUserListItem[]
   currentAdminId: string
+  displayTimeZone: string
 }
-
-const DISPLAY_TIME_ZONE = "Europe/Berlin"
 
 function getRoleBadgeClass(role: AdminUserListItem["role"]): string {
   if (role === "ADMIN") {
@@ -40,27 +39,27 @@ function getStatusBadgeClass(isActive: boolean): string {
   return "border-zinc-700 bg-zinc-900 text-zinc-300"
 }
 
-function formatDate(date: Date): string {
+function formatDate(date: Date, displayTimeZone: string): string {
   return new Intl.DateTimeFormat("de-CH", {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
     hour: "2-digit",
     minute: "2-digit",
-    timeZone: DISPLAY_TIME_ZONE,
+    timeZone: displayTimeZone,
   }).format(new Date(date))
 }
 
-function formatOptionalDate(date: Date | null): string {
+function formatOptionalDate(date: Date | null, displayTimeZone: string): string {
   if (!date) return "—"
-  return formatDate(date)
+  return formatDate(date, displayTimeZone)
 }
 
 function formatCount(value: number): string {
   return new Intl.NumberFormat("de-CH").format(value)
 }
 
-export function AdminUsersTable({ users, currentAdminId }: Props) {
+export function AdminUsersTable({ users, currentAdminId, displayTimeZone }: Props) {
   const router = useRouter()
   const [pending, startTransition] = useTransition()
   const [message, setMessage] = useState<string | null>(null)
@@ -112,7 +111,7 @@ export function AdminUsersTable({ users, currentAdminId }: Props) {
                 </div>
 
                 <p className="text-xs text-muted-foreground">
-                  Angelegt: {formatDate(user.createdAt)}
+                  Angelegt: {formatDate(user.createdAt, displayTimeZone)}
                 </p>
                 <p className="text-xs text-muted-foreground">
                   Aktivität: {formatCount(user.sessionsCount)} Einheiten,{" "}
@@ -120,7 +119,8 @@ export function AdminUsersTable({ users, currentAdminId }: Props) {
                   Abläufe
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  Letzte Session-Änderung: {formatOptionalDate(user.lastSessionEditAt)}
+                  Letzte Session-Änderung:{" "}
+                  {formatOptionalDate(user.lastSessionEditAt, displayTimeZone)}
                 </p>
 
                 <div className="flex flex-wrap gap-2">
@@ -168,7 +168,7 @@ export function AdminUsersTable({ users, currentAdminId }: Props) {
                       <p className="break-words font-medium leading-tight">{user.name ?? "—"}</p>
                       <p className="break-all text-xs text-muted-foreground">{user.email}</p>
                       <p className="text-xs text-muted-foreground">
-                        Angelegt: {formatDate(user.createdAt)}
+                        Angelegt: {formatDate(user.createdAt, displayTimeZone)}
                       </p>
                     </div>
                   </td>
@@ -205,7 +205,7 @@ export function AdminUsersTable({ users, currentAdminId }: Props) {
                     </div>
                   </td>
                   <td className="py-2 pr-4 text-muted-foreground">
-                    {formatOptionalDate(user.lastSessionEditAt)}
+                    {formatOptionalDate(user.lastSessionEditAt, displayTimeZone)}
                   </td>
                   <td className="py-2">
                     <div className="flex min-w-[160px] flex-col gap-2">

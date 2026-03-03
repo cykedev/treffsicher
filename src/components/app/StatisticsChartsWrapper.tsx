@@ -23,6 +23,7 @@ interface Props {
   qualityData: QualityVsScorePoint[]
   shotDistributionData: ShotDistributionPoint[]
   radarData: RadarComparisonSession[]
+  displayTimeZone: string
 }
 
 export function StatisticsChartsWrapper({
@@ -31,6 +32,7 @@ export function StatisticsChartsWrapper({
   qualityData,
   shotDistributionData,
   radarData,
+  displayTimeZone,
 }: Props) {
   return (
     <StatisticsChartsInner
@@ -39,6 +41,7 @@ export function StatisticsChartsWrapper({
       qualityData={qualityData}
       shotDistributionData={shotDistributionData}
       radarData={radarData}
+      displayTimeZone={displayTimeZone}
     />
   )
 }

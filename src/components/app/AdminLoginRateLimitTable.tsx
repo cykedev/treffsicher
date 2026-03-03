@@ -20,11 +20,10 @@ import { Card, CardContent } from "@/components/ui/card"
 
 interface Props {
   buckets: AdminLoginRateLimitBucket[]
+  displayTimeZone: string
 }
 
-const DISPLAY_TIME_ZONE = "Europe/Berlin"
-
-function formatDate(date: Date | null): string {
+function formatDate(date: Date | null, displayTimeZone: string): string {
   if (!date) return "—"
   return new Intl.DateTimeFormat("de-CH", {
     day: "2-digit",
@@ -33,7 +32,7 @@ function formatDate(date: Date | null): string {
     hour: "2-digit",
     minute: "2-digit",
     second: "2-digit",
-    timeZone: DISPLAY_TIME_ZONE,
+    timeZone: displayTimeZone,
   }).format(new Date(date))
 }
 
@@ -48,7 +47,7 @@ function formatCount(value: number): string {
   return new Intl.NumberFormat("de-CH").format(value)
 }
 
-export function AdminLoginRateLimitTable({ buckets }: Props) {
+export function AdminLoginRateLimitTable({ buckets, displayTimeZone }: Props) {
   const router = useRouter()
   const [pending, startTransition] = useTransition()
   const [message, setMessage] = useState<string | null>(null)
@@ -89,9 +88,9 @@ export function AdminLoginRateLimitTable({ buckets }: Props) {
               </div>
 
               <div className="space-y-1 text-xs text-muted-foreground">
-                <p>Fenster seit: {formatDate(bucket.windowStartedAt)}</p>
-                <p>Letzter Versuch: {formatDate(bucket.lastAttemptAt)}</p>
-                <p>Blockiert bis: {formatDate(bucket.blockedUntil)}</p>
+                <p>Fenster seit: {formatDate(bucket.windowStartedAt, displayTimeZone)}</p>
+                <p>Letzter Versuch: {formatDate(bucket.lastAttemptAt, displayTimeZone)}</p>
+                <p>Blockiert bis: {formatDate(bucket.blockedUntil, displayTimeZone)}</p>
               </div>
 
               <Button
@@ -135,9 +134,15 @@ export function AdminLoginRateLimitTable({ buckets }: Props) {
                 <td className="py-2 pr-4">
                   <span className="tabular-nums">{formatCount(bucket.attempts)}</span>
                 </td>
-                <td className="py-2 pr-4 text-muted-foreground">{formatDate(bucket.windowStartedAt)}</td>
-                <td className="py-2 pr-4 text-muted-foreground">{formatDate(bucket.lastAttemptAt)}</td>
-                <td className="py-2 pr-4 text-muted-foreground">{formatDate(bucket.blockedUntil)}</td>
+                <td className="py-2 pr-4 text-muted-foreground">
+                  {formatDate(bucket.windowStartedAt, displayTimeZone)}
+                </td>
+                <td className="py-2 pr-4 text-muted-foreground">
+                  {formatDate(bucket.lastAttemptAt, displayTimeZone)}
+                </td>
+                <td className="py-2 pr-4 text-muted-foreground">
+                  {formatDate(bucket.blockedUntil, displayTimeZone)}
+                </td>
                 <td className="py-2">
                   <Button
                     type="button"
@@ -155,7 +160,10 @@ export function AdminLoginRateLimitTable({ buckets }: Props) {
         </table>
       </div>
 
-      <AlertDialog open={clearCandidate !== null} onOpenChange={(open) => !open && setClearCandidate(null)}>
+      <AlertDialog
+        open={clearCandidate !== null}
+        onOpenChange={(open) => !open && setClearCandidate(null)}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Login-Sperre entfernen?</AlertDialogTitle>

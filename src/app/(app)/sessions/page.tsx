@@ -5,6 +5,7 @@ import { Heart, Target } from "lucide-react"
 import { getSessions } from "@/lib/sessions/actions"
 import { calculateTotalScore } from "@/lib/sessions/calculateScore"
 import { getSeriesMax, type ScoringType } from "@/lib/sessions/validation"
+import { getDisplayTimeZone } from "@/lib/dateTime"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import { SessionsFilters } from "@/components/app/SessionsFilters"
@@ -31,13 +32,14 @@ type SessionsSearchParams = Promise<{
 }>
 
 // Formatiert ein Datum als lokale deutsche Datumsdarstellung
-function formatDate(date: Date): string {
+function formatDate(date: Date, displayTimeZone: string): string {
   return new Intl.DateTimeFormat("de-CH", {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
     hour: "2-digit",
     minute: "2-digit",
+    timeZone: displayTimeZone,
   }).format(new Date(date))
 }
 
@@ -56,6 +58,7 @@ export default async function SessionsPage({
 }: {
   searchParams: SessionsSearchParams
 }) {
+  const displayTimeZone = getDisplayTimeZone()
   const session = await getAuthSession()
   if (!session) redirect("/login")
 
@@ -124,11 +127,13 @@ export default async function SessionsPage({
       ) : (
         <div className="space-y-2">
           {filteredSessions.map((s) => {
-            const normalizedSeries = s.series.map((series: { scoreTotal: unknown; isPractice: boolean; shots: unknown }) => ({
-              scoreTotal: series.scoreTotal !== null ? Number(series.scoreTotal) : null,
-              isPractice: series.isPractice,
-              shots: series.shots,
-            }))
+            const normalizedSeries = s.series.map(
+              (series: { scoreTotal: unknown; isPractice: boolean; shots: unknown }) => ({
+                scoreTotal: series.scoreTotal !== null ? Number(series.scoreTotal) : null,
+                isPractice: series.isPractice,
+                shots: series.shots,
+              })
+            )
             const totalScore = calculateTotalScore(
               normalizedSeries.map((series) => ({
                 scoreTotal: series.scoreTotal,
@@ -174,9 +179,7 @@ export default async function SessionsPage({
             const displayScore = hasPracticeOnlyResult ? totalPracticeScore : totalScore
             const displayShots = hasPracticeOnlyResult ? totalPracticeShots : totalScoringShots
             const displayMaxScore =
-              scoringType && displayShots > 0
-                ? getSeriesMax(scoringType, displayShots)
-                : 0
+              scoringType && displayShots > 0 ? getSeriesMax(scoringType, displayShots) : 0
             const formattedDisplayScore =
               scoringType === "TENTH" ? displayScore.toFixed(1) : String(displayScore)
             const formattedDisplayMaxScore =
@@ -248,9 +251,7 @@ export default async function SessionsPage({
                               )}
                             </span>
                             {displayMaxScore > 0 && (
-                              <p className={scoreMetaClass}>
-                                von {formattedDisplayMaxScore}
-                              </p>
+                              <p className={scoreMetaClass}>von {formattedDisplayMaxScore}</p>
                             )}
                             <p className={shotCountClass}>{displayShotsLabel}</p>
                           </div>
@@ -258,7 +259,7 @@ export default async function SessionsPage({
                       </div>
 
                       <p className="break-words text-sm text-muted-foreground">
-                        {formatDate(s.date)}
+                        {formatDate(s.date, displayTimeZone)}
                         {s.location && (
                           <span className="text-muted-foreground/60"> · {s.location}</span>
                         )}
@@ -288,7 +289,9 @@ export default async function SessionsPage({
 
                     {/* Gesamtergebnis rechts (desktop) */}
                     {shouldShowResult && (
-                      <div className={`hidden text-right sm:ml-4 sm:block sm:shrink-0 ${scoreBlockClass}`}>
+                      <div
+                        className={`hidden text-right sm:ml-4 sm:block sm:shrink-0 ${scoreBlockClass}`}
+                      >
                         <span className={`text-xl font-bold tabular-nums ${scoreValueClass}`}>
                           {formattedDisplayScore}
                           {hasPracticeOnlyResult && (
@@ -296,9 +299,7 @@ export default async function SessionsPage({
                           )}
                         </span>
                         {displayMaxScore > 0 && (
-                          <p className={scoreMetaClass}>
-                            von {formattedDisplayMaxScore}
-                          </p>
+                          <p className={scoreMetaClass}>von {formattedDisplayMaxScore}</p>
                         )}
                         <p className={shotCountClass}>{displayShotsLabel}</p>
                       </div>

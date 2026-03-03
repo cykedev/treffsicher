@@ -201,6 +201,12 @@ function parseHitLocationFromFormData(formData: FormData): ParsedHitLocationInpu
   }
 }
 
+function parseSessionDateInput(rawValue: string): Date | null {
+  const parsed = new Date(rawValue)
+  if (Number.isNaN(parsed.getTime())) return null
+  return parsed
+}
+
 async function resolveAccessibleDisciplineId(
   disciplineId: string | undefined,
   userId: string
@@ -469,6 +475,11 @@ export async function createSession(formData: FormData): Promise<ActionResult> {
     return { error: "Bitte die Pflichtfelder prüfen." }
   }
 
+  const sessionDate = parseSessionDateInput(parsed.data.date)
+  if (!sessionDate) {
+    return { error: "Datum/Uhrzeit ist ungültig." }
+  }
+
   const disciplineId = await resolveAccessibleDisciplineId(
     parsed.data.disciplineId,
     session.user.id
@@ -507,8 +518,7 @@ export async function createSession(formData: FormData): Promise<ActionResult> {
         data: {
           userId: session.user.id,
           type: parsed.data.type,
-          // Datum aus dem Formular (ISO-String) in ein Date-Objekt umwandeln
-          date: new Date(parsed.data.date),
+          date: sessionDate,
           location: parsed.data.location,
           disciplineId,
           trainingGoal: parsed.data.trainingGoal || null,
@@ -861,6 +871,11 @@ export async function updateSession(id: string, formData: FormData): Promise<Act
     return { error: "Bitte die Pflichtfelder prüfen." }
   }
 
+  const sessionDate = parseSessionDateInput(parsed.data.date)
+  if (!sessionDate) {
+    return { error: "Datum/Uhrzeit ist ungültig." }
+  }
+
   const disciplineId = await resolveAccessibleDisciplineId(
     parsed.data.disciplineId,
     session.user.id
@@ -897,7 +912,7 @@ export async function updateSession(id: string, formData: FormData): Promise<Act
         where: { id },
         data: {
           type: parsed.data.type,
-          date: new Date(parsed.data.date),
+          date: sessionDate,
           location: parsed.data.location ?? null,
           disciplineId,
           trainingGoal: parsed.data.trainingGoal || null,
