@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest"
 import { deflateSync } from "node:zlib"
 import {
   extractMeytonDateTime,
+  extractMeytonHitLocation,
   extractTextFromPdfBuffer,
   parseMeytonSeriesFromText,
 } from "./meytonImport"
@@ -166,6 +167,58 @@ gedruckt am: 30.01.2026 20:09
 
     const result = extractMeytonDateTime(text)
 
+    expect(result).toBeNull()
+  })
+})
+
+describe("extractMeytonHitLocation", () => {
+  it("extrahiert Trefferlage mit Richtung und mm-Werten", () => {
+    const text = `
+Trefferlage:
+4.84 mm rechts,  3.82 mm hoch
+`
+
+    const result = extractMeytonHitLocation(text)
+
+    expect(result).toEqual({
+      horizontalMm: 4.84,
+      horizontalDirection: "RIGHT",
+      verticalMm: 3.82,
+      verticalDirection: "HIGH",
+    })
+  })
+
+  it("unterstuetzt links/tief und Komma-Dezimaltrenner", () => {
+    const text = "Trefferlage: 1,50 mm links, 0,75 mm tief"
+
+    const result = extractMeytonHitLocation(text)
+
+    expect(result).toEqual({
+      horizontalMm: 1.5,
+      horizontalDirection: "LEFT",
+      verticalMm: 0.75,
+      verticalDirection: "LOW",
+    })
+  })
+
+  it("nimmt die erste Trefferlage falls mehrere vorhanden sind", () => {
+    const text = `
+Trefferlage: 4.84 mm rechts, 3.82 mm hoch
+Trefferlage: 6.14 mm rechts, 3.66 mm hoch
+`
+
+    const result = extractMeytonHitLocation(text)
+
+    expect(result).toEqual({
+      horizontalMm: 4.84,
+      horizontalDirection: "RIGHT",
+      verticalMm: 3.82,
+      verticalDirection: "HIGH",
+    })
+  })
+
+  it("liefert null wenn keine Trefferlage vorhanden ist", () => {
+    const result = extractMeytonHitLocation("Serie 1: 81 (85.3)")
     expect(result).toBeNull()
   })
 })

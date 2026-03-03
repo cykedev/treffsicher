@@ -9,9 +9,21 @@ export interface MeytonSeriesResult {
   serien: MeytonSerie[]
 }
 
+export type MeytonHorizontalDirection = "LEFT" | "RIGHT"
+export type MeytonVerticalDirection = "HIGH" | "LOW"
+
+export interface MeytonHitLocation {
+  horizontalMm: number
+  horizontalDirection: MeytonHorizontalDirection
+  verticalMm: number
+  verticalDirection: MeytonVerticalDirection
+}
+
 const WERTUNG_DATETIME_REGEX = /Wertung\s+(\d{2})\.(\d{2})\.(\d{4})\s+(\d{2}):(\d{2})/i
 const PROBE_DATETIME_REGEX = /Probe\s+(\d{2})\.(\d{2})\.(\d{4})\s+(\d{2}):(\d{2})/i
 const GENERIC_DATETIME_GLOBAL_REGEX = /(\d{2})\.(\d{2})\.(\d{4})\s+(\d{2}):(\d{2})/g
+const HIT_LOCATION_REGEX =
+  /Trefferlage\s*:?\s*([0-9]+(?:[.,][0-9]+)?)\s*mm\s*(rechts|links)\s*,\s*([0-9]+(?:[.,][0-9]+)?)\s*mm\s*(hoch|tief)/i
 
 const SERIES_HEADER_REGEX = /Serie\s+(\d+)\s*:/i
 const SERIES_HEADER_GLOBAL_REGEX = /Serie\s+(\d+)\s*:/gi
@@ -41,6 +53,16 @@ function hasStopKeyword(line: string): boolean {
 
 function isOctalDigit(char: string): boolean {
   return char >= "0" && char <= "7"
+}
+
+function parseMeytonMillimeterValue(value: string): number | null {
+  const normalized = value.replace(",", ".").trim()
+  if (!/^\d+(?:\.\d+)?$/.test(normalized)) return null
+
+  const parsed = Number(normalized)
+  if (!Number.isFinite(parsed) || parsed < 0) return null
+
+  return Math.round(parsed * 100) / 100
 }
 
 /**
@@ -335,4 +357,45 @@ export function extractMeytonDateTime(rawText: string): string | null {
   }
 
   return null
+}
+
+/**
+ * Extrahiert die Trefferlage aus dem Meyton-Text.
+ * Liefert die erste gefundene Trefferlage im Dokument.
+ */
+export function extractMeytonHitLocation(rawText: string): MeytonHitLocation | null {
+  const match = rawText.match(HIT_LOCATION_REGEX)
+  if (!match) return null
+
+  const horizontalMm = parseMeytonMillimeterValue(match[1] ?? "")
+  const verticalMm = parseMeytonMillimeterValue(match[3] ?? "")
+  if (horizontalMm === null || verticalMm === null) return null
+
+  const horizontalLabel = (match[2] ?? "").toLowerCase()
+  const verticalLabel = (match[4] ?? "").toLowerCase()
+
+  let horizontalDirection: MeytonHorizontalDirection
+  if (horizontalLabel === "links") {
+    horizontalDirection = "LEFT"
+  } else if (horizontalLabel === "rechts") {
+    horizontalDirection = "RIGHT"
+  } else {
+    return null
+  }
+
+  let verticalDirection: MeytonVerticalDirection
+  if (verticalLabel === "hoch") {
+    verticalDirection = "HIGH"
+  } else if (verticalLabel === "tief") {
+    verticalDirection = "LOW"
+  } else {
+    return null
+  }
+
+  return {
+    horizontalMm,
+    horizontalDirection,
+    verticalMm,
+    verticalDirection,
+  }
 }

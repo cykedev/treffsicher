@@ -199,6 +199,11 @@ export default async function SessionsPage({
             const hasIndividualShots = s.series.some(
               (serie) => Array.isArray(serie.shots) && (serie.shots as unknown[]).length > 0
             )
+            const hasHitLocation =
+              s.hitLocationHorizontalMm !== null &&
+              s.hitLocationHorizontalDirection !== null &&
+              s.hitLocationVerticalMm !== null &&
+              s.hitLocationVerticalDirection !== null
 
             // Mentale Felder die gepflegt wurden
             const filledMental = [
@@ -207,6 +212,7 @@ export default async function SessionsPage({
               s.feedback && "Feedback",
               s.reflection && "Reflexion",
               hasIndividualShots && "Einzelschüsse",
+              hasHitLocation && "Trefferlage",
             ].filter((x): x is string => Boolean(x))
 
             return (
