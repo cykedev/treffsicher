@@ -83,6 +83,35 @@ export async function getDisciplinesForManagement(): Promise<Discipline[]> {
 }
 
 /**
+ * Gibt eine einzelne Disziplin für die Detailansicht zurück.
+ * Normale Nutzer sehen aktive System- und eigene Disziplinen, Admins zusätzlich
+ * archivierte System-Disziplinen.
+ */
+export async function getDisciplineForDetail(id: string): Promise<Discipline | null> {
+  const session = await getAuthSession()
+  if (!session) return null
+
+  const isAdmin = session.user.role === "ADMIN"
+
+  if (isAdmin) {
+    return db.discipline.findFirst({
+      where: {
+        id,
+        OR: [{ isSystem: true }, { ownerId: session.user.id }],
+      },
+    })
+  }
+
+  return db.discipline.findFirst({
+    where: {
+      id,
+      isArchived: false,
+      OR: [{ isSystem: true }, { ownerId: session.user.id }],
+    },
+  })
+}
+
+/**
  * Gibt die Favorit-Disziplin des Nutzers zurück.
  * Falls die gespeicherte Disziplin nicht mehr verfügbar ist, wird der Favorit entfernt.
  */

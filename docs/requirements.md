@@ -322,11 +322,14 @@ Analog zu Meyton-Schiessständen — einheitlich in Detailansicht und Statistik:
   - Komponenten sowie Routen/URLs werden intern in Englisch benannt.
 - **Verbindlichkeit der Umsetzung**:
   - Verbindliche technische Konsistenzregeln (UI-Muster, Fehlerpfade, Benennung, Betrieb/Fehlerfälle) sind in `docs/technical-constraints.md` festgelegt und für Implementierungen massgeblich.
+  - Für Navigation und Bedienfluss gilt die Einheiten-Detailansicht als Referenzmuster (Action-Leiste oben, einheitliche Reihenfolge, Listen als klickbare Karten).
+  - UI-Terminologie verwendet "Probe" statt "Probeschuss".
 
 ---
 
 ## Änderungsnotizen
 
+- **03.03.2026**: Bedienfluss präzisiert: Einheiten-Muster als Referenz für Detailnavigation (auch Ziele/Abläufe/Disziplinen), Listen als klickbare Karten und Terminologie "Probe" in der UI.
 - **03.03.2026**: Verbindlichkeit präzisiert: technische Konsistenzregeln werden zentral in `docs/technical-constraints.md` geführt und sind für die Umsetzung massgeblich.
 - **02.03.2026**: Lastschutz-Anforderungen ergänzt (DoS-Schutzgrenzen für Import/Statistik/Login) und fachliche Freiheit von technischen Sicherheitsgrenzen abgegrenzt.
 - **02.03.2026**: Sprachregel präzisiert (Deutsch für UI und Kommentare, Englisch für interne Komponenten- und Routen-/URL-Benennung).

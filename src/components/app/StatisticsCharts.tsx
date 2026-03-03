@@ -556,10 +556,11 @@ export function StatisticsCharts({
                 {(["all", "TRAINING", "WETTKAMPF"] as TypeFilter[]).map((t) => (
                   <Button
                     key={t}
-                    size="sm"
                     variant={typeFilter === t ? "default" : "outline"}
                     onClick={() => setTypeFilter(t)}
-                    className="flex-1 text-xs"
+                    // Höhe bewusst auf h-9 wie Select/Input gesetzt —
+                    // so wirken Filter-Controls in einer Zeile einheitlich.
+                    className="h-9 flex-1 text-sm"
                   >
                     {t === "all" ? "Alle" : t === "TRAINING" ? "Training" : "Wettkampf"}
                   </Button>
@@ -571,7 +572,8 @@ export function StatisticsCharts({
             <div className="space-y-2">
               <Label>Disziplin</Label>
               <Select value={disciplineFilter} onValueChange={setDisciplineFilter}>
-                <SelectTrigger>
+                {/* Mobil bewusst volle Breite, damit der Filterblock ruhig und ausgerichtet wirkt. */}
+                <SelectTrigger className="w-full">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -604,9 +606,8 @@ export function StatisticsCharts({
               <Label>Zeitraum</Label>
               <div className="flex flex-wrap gap-1">
                 <Button
-                  size="sm"
                   variant="outline"
-                  className="text-xs"
+                  className="h-9 text-sm"
                   onClick={() => {
                     setFrom(daysAgo(28))
                     setTo(today())
@@ -615,9 +616,8 @@ export function StatisticsCharts({
                   4 Wochen
                 </Button>
                 <Button
-                  size="sm"
                   variant="outline"
-                  className="text-xs"
+                  className="h-9 text-sm"
                   onClick={() => {
                     setFrom(daysAgo(30))
                     setTo(today())
@@ -626,9 +626,8 @@ export function StatisticsCharts({
                   Monat
                 </Button>
                 <Button
-                  size="sm"
                   variant="outline"
-                  className="text-xs"
+                  className="h-9 text-sm"
                   onClick={() => {
                     setFrom("")
                     setTo("")
@@ -645,18 +644,16 @@ export function StatisticsCharts({
                 <Label>Anzeige</Label>
                 <div className="flex flex-wrap gap-1">
                   <Button
-                    size="sm"
                     variant={effectiveDisplayMode === "per_shot" ? "default" : "outline"}
                     onClick={() => setDisplayMode("per_shot")}
-                    className="text-xs"
+                    className="h-9 text-sm"
                   >
                     Ringe/Sch.
                   </Button>
                   <Button
-                    size="sm"
                     variant={effectiveDisplayMode === "projected" ? "default" : "outline"}
                     onClick={() => setDisplayMode("projected")}
-                    className="text-xs"
+                    className="h-9 text-sm"
                   >
                     Hochrechnung ({totalDisciplineShots} Sch.)
                   </Button>

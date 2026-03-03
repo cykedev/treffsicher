@@ -1,8 +1,9 @@
 "use client"
 
 import { useState, useTransition, type FormEvent } from "react"
+import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { Pencil, Target, Trash2 } from "lucide-react"
+import { ArrowLeft, Pencil, Target, Trash2 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -39,6 +40,7 @@ import {
 interface Props {
   goal: GoalWithAssignments
   sessions: GoalSessionOption[]
+  backHref?: string
 }
 
 const sessionTypeLabels: Record<string, string> = {
@@ -75,7 +77,7 @@ function toDateInputValue(date: Date): string {
   return new Date(date).toISOString().slice(0, 10)
 }
 
-export function GoalCardSection({ goal, sessions }: Props) {
+export function GoalCardSection({ goal, sessions, backHref }: Props) {
   const router = useRouter()
   const [editingGoal, setEditingGoal] = useState(false)
   const [editingAssignments, setEditingAssignments] = useState(false)
@@ -289,7 +291,72 @@ export function GoalCardSection({ goal, sessions }: Props) {
   return (
     <div className="space-y-3">
       {message && <p className="text-sm text-destructive">{message}</p>}
-      <div className="flex flex-wrap items-start justify-between gap-3">
+      <div className="space-y-2">
+        <div className="flex items-start justify-end">
+          <div className="flex w-full flex-wrap items-center justify-end gap-0.5 sm:w-auto sm:shrink-0 sm:gap-1">
+            <Button
+              size="icon"
+              variant="ghost"
+              onClick={() => setEditingGoal(true)}
+              disabled={pending}
+              className="size-9"
+              aria-label="Ziel bearbeiten"
+            >
+              <Pencil className="h-4 w-4" />
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={openAssignmentsEditor}
+              disabled={pending}
+              className="px-2 sm:px-3"
+              aria-label="Einheiten zuweisen"
+            >
+              <Target className="h-4 w-4 sm:mr-1.5" />
+              <span className="hidden sm:inline">Zuweisen</span>
+            </Button>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  size="icon"
+                  variant="destructive"
+                  className="size-9 sm:h-8 sm:w-auto sm:px-3"
+                  disabled={pending}
+                  aria-label="Ziel löschen"
+                >
+                  <Trash2 className="h-4 w-4 sm:mr-1.5" />
+                  <span className="hidden sm:inline">Löschen</span>
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Ziel löschen?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Das Ziel und alle Verknüpfungen zu Einheiten werden entfernt.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Abbrechen</AlertDialogCancel>
+                  <AlertDialogAction
+                    className="bg-destructive text-white hover:bg-destructive/90"
+                    onClick={handleDelete}
+                  >
+                    Löschen
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+            {backHref && (
+              <Button variant="ghost" size="sm" className="px-2 sm:px-3" asChild>
+                <Link href={backHref} aria-label="Zurück zu Zielen">
+                  <ArrowLeft className="h-4 w-4 sm:mr-1.5" />
+                  <span className="hidden sm:inline">Zurück</span>
+                </Link>
+              </Button>
+            )}
+          </div>
+        </div>
+
         <div className="min-w-0 space-y-2">
           <div className="flex flex-wrap items-center gap-2">
             <p className="text-base font-semibold">{goal.title}</p>
@@ -302,60 +369,6 @@ export function GoalCardSection({ goal, sessions }: Props) {
             Einheiten, die auf das Ziel einzahlen: {goal.sessionCount}
           </div>
           {goal.description && <p className="text-sm whitespace-pre-wrap">{goal.description}</p>}
-        </div>
-
-        <div className="flex flex-wrap items-center gap-1.5">
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => setEditingGoal(true)}
-            disabled={pending}
-            className="min-w-[10.75rem] justify-center"
-          >
-            <Pencil className="mr-1.5 h-4 w-4" />
-            Bearbeiten
-          </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={openAssignmentsEditor}
-            disabled={pending}
-            className="min-w-[10.75rem] justify-center"
-          >
-            <Target className="mr-1.5 h-4 w-4" />
-            Zahlt auf Ziel ein
-          </Button>
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button
-                size="sm"
-                variant="destructive"
-                // Gleiche Mindestbreite wie Nachbaraktionen verhindert visuelle Brüche.
-                className="min-w-[10.75rem] justify-center"
-                disabled={pending}
-              >
-                <Trash2 className="mr-1.5 h-4 w-4" />
-                Löschen
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Ziel löschen?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Das Ziel und alle Verknüpfungen zu Einheiten werden entfernt.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Abbrechen</AlertDialogCancel>
-                <AlertDialogAction
-                  className="bg-destructive text-white hover:bg-destructive/90"
-                  onClick={handleDelete}
-                >
-                  Löschen
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
         </div>
       </div>
     </div>

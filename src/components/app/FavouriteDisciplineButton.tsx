@@ -40,7 +40,7 @@ export function FavouriteDisciplineButton({ disciplineId, initialFavourite }: Pr
       disabled={isPending}
       aria-label={isFavourite ? "Favorit entfernen" : "Als Favorit markieren"}
       title={isFavourite ? "Favorit" : "Als Favorit markieren"}
-      className="h-8 w-8"
+      className="size-9"
     >
       <Star
         className={`h-4 w-4 transition-colors ${

@@ -775,6 +775,18 @@ Admins koennen System-Disziplinen verwalten (anlegen, bearbeiten, archivieren/re
 4. **Mobil ist gleichwertig, nicht reduziert**:
    - Navigation und zentrale Aktionen bleiben auf Mobilgeräten textlich verständlich (keine rein icon-basierte Hauptnavigation).
    - Das Interaktionsverhalten ist auf Desktop und Mobil konsistent.
+5. **Detailnavigation folgt dem Einheiten-Muster (Referenz)**:
+   - Detailseiten nutzen eine obere Action-Leiste rechts und darunter die inhaltlichen Metadaten.
+   - Aktionsreihenfolge folgt dem Einheiten-Prinzip: zuerst fachliche/sekundäre Aktionen, danach destruktive Aktion, "Zurück" am Ende.
+   - Dieses Muster gilt durchgängig für Einheiten, Ziele, Abläufe und Disziplinen.
+6. **Listen-/Detail-Flow ist einheitlich**:
+   - Verwaltungslisten zeigen kompakte Karten; die ganze Karte öffnet die jeweilige Detailseite.
+   - Zusätzliche "Details/Anzeigen"-Buttons in Listen werden vermieden, wenn die Karte bereits als Navigation dient.
+7. **Reine Icon-Aktionen ohne Outline**:
+   - Reine Icon-Buttons verwenden `ghost` (borderlos), nicht `outline`.
+   - `outline` ist für textliche oder gemischte (Icon+Text) Aktionen vorgesehen.
+8. **Terminologie in der UI**:
+   - In nutzerseitigen Texten wird "Probe" verwendet (nicht "Probeschuss"), z.B. "Probe-Serie".
 
 ---
 
@@ -825,6 +837,7 @@ Admins koennen System-Disziplinen verwalten (anlegen, bearbeiten, archivieren/re
 
 ## Änderungsnotizen
 
+- **03.03.2026**: Navigations- und Flow-Regeln verbindlich präzisiert: Einheiten-Detailansicht als Referenzmuster für Action-Leisten und Aktionsreihenfolge; Listen als klickbare Karten ohne separaten Details-Button; reine Icon-Aktionen ohne Outline; UI-Terminologie auf "Probe" standardisiert.
 - **03.03.2026**: Verbindliche Konsistenzregeln ergänzt: serverseitige Fachregel-Erzwingung, explizite Fehlerpfade ohne silent fail, feste Upload-Whitelist, englische interne Benennung/Routen sowie verbindliche UI-Muster (shadcn/ui, einheitliche Auswahl-/Delete-/Archive-Flows, mobile Verständlichkeit) plus Betriebs-/Fehlerfall-Regeln mit Restore-Test-Pflicht.
 - **02.03.2026**: DoS-Härtung dokumentiert: Streaming-URL-Import mit Hard-Cap, begrenzte PDF-Dekompression, serverseitige FormData-Limits und Statistik-Caps.
 - **02.03.2026**: Login-Rate-Limit weiter gehärtet: begrenzte Bucket-Anzahl (Speichergrenze) und optionales Proxy-Header-Vertrauen (`AUTH_TRUST_PROXY_HEADERS`).
