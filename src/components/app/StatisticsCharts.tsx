@@ -68,6 +68,8 @@ type RadarLegendItem = {
   color: string
 }
 
+const DISPLAY_TIME_ZONE = "Europe/Berlin"
+
 const radarDimensions = [
   { label: "Kondition", prognosisKey: "fitnessPrognosis", feedbackKey: "fitnessFeedback" },
   { label: "Ernährung", prognosisKey: "nutritionPrognosis", feedbackKey: "nutritionFeedback" },
@@ -397,6 +399,7 @@ export function StatisticsCharts({
       month: "2-digit",
       hour: "2-digit",
       minute: "2-digit",
+      timeZone: DISPLAY_TIME_ZONE,
     }).format(new Date(s.date)),
     // Feste Keys statt dynamischer — Recharts braucht stabile dataKey-Referenzen
     wert: displayValues[i],
@@ -457,6 +460,7 @@ export function StatisticsCharts({
       day: "2-digit",
       month: "2-digit",
       year: "numeric",
+      timeZone: DISPLAY_TIME_ZONE,
     })
     return `${format.format(new Date(first.date))} bis ${format.format(new Date(last.date))}`
   }, [filteredRadarSessions])
@@ -1147,6 +1151,7 @@ export function StatisticsCharts({
                         new Intl.DateTimeFormat("de-CH", {
                           day: "2-digit",
                           month: "2-digit",
+                          timeZone: DISPLAY_TIME_ZONE,
                         }).format(new Date(d))
                       }
                       tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
@@ -1173,6 +1178,7 @@ export function StatisticsCharts({
                               day: "2-digit",
                               month: "2-digit",
                               year: "numeric",
+                              timeZone: DISPLAY_TIME_ZONE,
                             }).format(new Date(dateValue as Date))
                           }}
                           payloadFilter={(item) =>

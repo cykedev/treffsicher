@@ -67,6 +67,24 @@ model User {
 }
 
 // ─────────────────────────────────────────────
+// LoginRateLimitBucket (Brute-Force-Schutz)
+// ─────────────────────────────────────────────
+
+model LoginRateLimitBucket {
+  // Schlüssel im Format "email:<normalized>" oder "ip:<normalized>"
+  key             String   @id
+  attempts        Int
+  windowStartedAt DateTime
+  blockedUntil    DateTime?
+  lastAttemptAt   DateTime
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([lastAttemptAt])
+  @@index([blockedUntil])
+}
+
+// ─────────────────────────────────────────────
 // Discipline (Disziplin)
 // ─────────────────────────────────────────────
 

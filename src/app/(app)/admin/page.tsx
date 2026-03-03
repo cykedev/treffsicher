@@ -1,6 +1,8 @@
 import { redirect } from "next/navigation"
 import { getAuthSession } from "@/lib/auth-helpers"
-import { getAdminUsers } from "@/lib/admin/actions"
+import { getAdminLoginRateLimitInsights, getAdminUsers } from "@/lib/admin/actions"
+import { AdminLoginRateLimitInsightsPanel } from "@/components/app/AdminLoginRateLimitInsights"
+import { AdminLoginRateLimitTable } from "@/components/app/AdminLoginRateLimitTable"
 import { AdminUsersTable } from "@/components/app/AdminUsersTable"
 import { CreateItemLinkButton } from "@/components/app/CreateItemLinkButton"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -10,7 +12,10 @@ export default async function AdminPage() {
   if (!session) redirect("/login")
   if (session.user.role !== "ADMIN") redirect("/dashboard")
 
-  const users = await getAdminUsers()
+  const [users, rateLimitInsights] = await Promise.all([
+    getAdminUsers(),
+    getAdminLoginRateLimitInsights(),
+  ])
 
   return (
     <div className="space-y-6">
@@ -33,6 +38,26 @@ export default async function AdminPage() {
         </CardHeader>
         <CardContent>
           <AdminUsersTable users={users} currentAdminId={session.user.id} />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>
+            Aktive Login-Sperren ({rateLimitInsights.activeBlockedBuckets.length})
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <AdminLoginRateLimitTable buckets={rateLimitInsights.activeBlockedBuckets} />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Login-Rate-Limit Insights</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <AdminLoginRateLimitInsightsPanel insights={rateLimitInsights} />
         </CardContent>
       </Card>
     </div>

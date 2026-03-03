@@ -43,6 +43,8 @@ interface Props {
   backHref?: string
 }
 
+const DISPLAY_TIME_ZONE = "Europe/Berlin"
+
 const sessionTypeLabels: Record<string, string> = {
   TRAINING: "Training",
   WETTKAMPF: "Wettkampf",
@@ -60,6 +62,7 @@ function formatDateOnly(date: Date): string {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
+    timeZone: DISPLAY_TIME_ZONE,
   }).format(new Date(date))
 }
 
@@ -70,6 +73,7 @@ function formatDateTime(date: Date): string {
     year: "numeric",
     hour: "2-digit",
     minute: "2-digit",
+    timeZone: DISPLAY_TIME_ZONE,
   }).format(new Date(date))
 }
 

@@ -9,34 +9,34 @@ import {
 } from "./auth-rate-limit"
 
 describe("auth-rate-limit", () => {
-  beforeEach(() => {
-    __resetLoginRateLimitForTests()
+  beforeEach(async () => {
+    await __resetLoginRateLimitForTests()
   })
 
-  it("blockt eine E-Mail nach zu vielen Fehlversuchen", () => {
+  it("blockt eine E-Mail nach zu vielen Fehlversuchen", async () => {
     const nowMs = 1_000_000
     const header = "203.0.113.8"
 
     for (let i = 0; i < LOGIN_RATE_LIMIT_CONFIG.maxAttemptsPerEmail; i++) {
-      const state = checkLoginAllowed("User@Example.com", header, nowMs + i)
+      const state = await checkLoginAllowed("User@Example.com", header, nowMs + i)
       expect(state.allowed).toBe(true)
-      registerFailedLoginAttempt(state.normalizedEmail, state.normalizedIp, nowMs + i)
+      await registerFailedLoginAttempt(state.normalizedEmail, state.normalizedIp, nowMs + i)
     }
 
-    const blocked = checkLoginAllowed("user@example.com", header, nowMs + 100)
+    const blocked = await checkLoginAllowed("user@example.com", header, nowMs + 100)
     expect(blocked.allowed).toBe(false)
   })
 
-  it("entsperrt nach Ablauf der Blockdauer", () => {
+  it("entsperrt nach Ablauf der Blockdauer", async () => {
     const nowMs = 2_000_000
     const header = "203.0.113.9"
 
     for (let i = 0; i < LOGIN_RATE_LIMIT_CONFIG.maxAttemptsPerEmail; i++) {
-      const state = checkLoginAllowed("athlete@example.com", header, nowMs + i)
-      registerFailedLoginAttempt(state.normalizedEmail, state.normalizedIp, nowMs + i)
+      const state = await checkLoginAllowed("athlete@example.com", header, nowMs + i)
+      await registerFailedLoginAttempt(state.normalizedEmail, state.normalizedIp, nowMs + i)
     }
 
-    const unblocked = checkLoginAllowed(
+    const unblocked = await checkLoginAllowed(
       "athlete@example.com",
       header,
       nowMs + LOGIN_RATE_LIMIT_CONFIG.blockMs + LOGIN_RATE_LIMIT_CONFIG.maxAttemptsPerEmail + 1
@@ -44,54 +44,58 @@ describe("auth-rate-limit", () => {
     expect(unblocked.allowed).toBe(true)
   })
 
-  it("normalisiert x-forwarded-for auf die erste IP", () => {
-    const state = checkLoginAllowed("coach@example.com", "203.0.113.10, 10.0.0.5", 3_000_000)
+  it("normalisiert x-forwarded-for auf die erste IP", async () => {
+    const state = await checkLoginAllowed("coach@example.com", "203.0.113.10, 10.0.0.5", 3_000_000)
     expect(state.normalizedIp).toBe("203.0.113.10")
   })
 
-  it("ignoriert ungueltige IP-Header-Werte", () => {
-    const state = checkLoginAllowed("coach@example.com", "not-an-ip, still-not-an-ip", 3_000_500)
+  it("ignoriert ungueltige IP-Header-Werte", async () => {
+    const state = await checkLoginAllowed(
+      "coach@example.com",
+      "not-an-ip, still-not-an-ip",
+      3_000_500
+    )
     expect(state.normalizedIp).toBeNull()
   })
 
-  it("loescht den E-Mail-Bucket bei erfolgreichem Login", () => {
+  it("loescht den E-Mail-Bucket bei erfolgreichem Login", async () => {
     const nowMs = 4_000_000
     const header = "203.0.113.11"
 
     for (let i = 0; i < LOGIN_RATE_LIMIT_CONFIG.maxAttemptsPerEmail; i++) {
-      const state = checkLoginAllowed("shooter@example.com", header, nowMs + i)
-      registerFailedLoginAttempt(state.normalizedEmail, state.normalizedIp, nowMs + i)
+      const state = await checkLoginAllowed("shooter@example.com", header, nowMs + i)
+      await registerFailedLoginAttempt(state.normalizedEmail, state.normalizedIp, nowMs + i)
     }
 
-    clearSuccessfulLoginAttempts("shooter@example.com")
-    const afterSuccess = checkLoginAllowed("shooter@example.com", header, nowMs + 100)
+    await clearSuccessfulLoginAttempts("shooter@example.com")
+    const afterSuccess = await checkLoginAllowed("shooter@example.com", header, nowMs + 100)
     expect(afterSuccess.allowed).toBe(true)
   })
 
-  it("blockt ueber die IP-Grenze auch bei wechselnden E-Mails", () => {
+  it("blockt ueber die IP-Grenze auch bei wechselnden E-Mails", async () => {
     const nowMs = 5_000_000
     const header = "198.51.100.77"
 
     for (let i = 0; i < LOGIN_RATE_LIMIT_CONFIG.maxAttemptsPerIp; i++) {
-      const state = checkLoginAllowed(`user${i}@example.com`, header, nowMs + i)
+      const state = await checkLoginAllowed(`user${i}@example.com`, header, nowMs + i)
       expect(state.allowed).toBe(true)
-      registerFailedLoginAttempt(state.normalizedEmail, state.normalizedIp, nowMs + i)
+      await registerFailedLoginAttempt(state.normalizedEmail, state.normalizedIp, nowMs + i)
     }
 
-    const blocked = checkLoginAllowed("fresh@example.com", header, nowMs + 100)
+    const blocked = await checkLoginAllowed("fresh@example.com", header, nowMs + 100)
     expect(blocked.allowed).toBe(false)
   })
 
-  it("begrenzt die Anzahl gespeicherter Buckets", () => {
+  it("begrenzt die Anzahl gespeicherter Buckets", async () => {
     const nowMs = 6_000_000
     const attempts = LOGIN_RATE_LIMIT_CONFIG.maxBuckets + 200
 
     for (let i = 0; i < attempts; i++) {
-      const state = checkLoginAllowed(`user-cap-${i}@example.com`, null, nowMs + i)
-      registerFailedLoginAttempt(state.normalizedEmail, state.normalizedIp, nowMs + i)
+      const state = await checkLoginAllowed(`user-cap-${i}@example.com`, null, nowMs + i)
+      await registerFailedLoginAttempt(state.normalizedEmail, state.normalizedIp, nowMs + i)
     }
 
-    expect(__getLoginRateLimitBucketCountForTests()).toBeLessThanOrEqual(
+    expect(await __getLoginRateLimitBucketCountForTests()).toBeLessThanOrEqual(
       LOGIN_RATE_LIMIT_CONFIG.maxBuckets
     )
   })

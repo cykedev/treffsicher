@@ -1,4 +1,5 @@
 import { isIP } from "node:net"
+import { db } from "@/lib/db"
 
 type LoginBucket = {
   attempts: number
@@ -7,11 +8,32 @@ type LoginBucket = {
   lastAttemptAt: number
 }
 
-const loginBuckets = new Map<string, LoginBucket>()
+type LoginRateLimitStore = {
+  get: (key: string) => Promise<LoginBucket | null>
+  getMany: (keys: string[]) => Promise<Map<string, LoginBucket>>
+  set: (key: string, bucket: LoginBucket) => Promise<void>
+  delete: (key: string) => Promise<void>
+  deleteMany: (keys: string[]) => Promise<void>
+  count: () => Promise<number>
+  getOldestKeys: (limit: number) => Promise<string[]>
+  deleteExpired: (cutoffMs: number) => Promise<void>
+  resetForTests: () => Promise<void>
+}
 
 const DEFAULT_MAX_RATE_LIMIT_BUCKETS = 10_000
 const MAX_NORMALIZED_EMAIL_LENGTH = 320
 const MAX_NORMALIZED_IP_LENGTH = 64
+const CLEANUP_INTERVAL_MS = 60_000
+
+let lastCleanupAtMs = 0
+
+function toDate(ms: number): Date {
+  return new Date(ms)
+}
+
+function fromDate(value: Date): number {
+  return value.getTime()
+}
 
 function readMaxBucketsFromEnv(): number {
   const raw = process.env.AUTH_RATE_LIMIT_MAX_BUCKETS
@@ -60,62 +82,230 @@ function normalizeIpHeaderValue(ipHeaderValue?: string | null): string | null {
   return isIP(normalized) ? normalized : null
 }
 
-function cleanupExpiredBuckets(nowMs: number): void {
-  for (const [key, bucket] of loginBuckets.entries()) {
-    const referenceTimestamp = Math.max(bucket.blockedUntil, bucket.lastAttemptAt)
-    if (nowMs - referenceTimestamp > LOGIN_RATE_LIMIT_CONFIG.staleEntryMs) {
+function createInMemoryStore(): LoginRateLimitStore {
+  const loginBuckets = new Map<string, LoginBucket>()
+
+  return {
+    async get(key: string): Promise<LoginBucket | null> {
+      return loginBuckets.get(key) ?? null
+    },
+    async set(key: string, bucket: LoginBucket): Promise<void> {
+      loginBuckets.set(key, bucket)
+    },
+    async getMany(keys: string[]): Promise<Map<string, LoginBucket>> {
+      const result = new Map<string, LoginBucket>()
+      for (const key of keys) {
+        const bucket = loginBuckets.get(key)
+        if (bucket) {
+          result.set(key, bucket)
+        }
+      }
+      return result
+    },
+    async delete(key: string): Promise<void> {
       loginBuckets.delete(key)
-    }
+    },
+    async deleteMany(keys: string[]): Promise<void> {
+      for (const key of keys) {
+        loginBuckets.delete(key)
+      }
+    },
+    async count(): Promise<number> {
+      return loginBuckets.size
+    },
+    async getOldestKeys(limit: number): Promise<string[]> {
+      if (limit <= 0) return []
+      return [...loginBuckets.entries()]
+        .sort((a, b) => {
+          const aRef = Math.max(a[1].blockedUntil, a[1].lastAttemptAt)
+          const bRef = Math.max(b[1].blockedUntil, b[1].lastAttemptAt)
+          return aRef - bRef
+        })
+        .slice(0, limit)
+        .map(([key]) => key)
+    },
+    async deleteExpired(cutoffMs: number): Promise<void> {
+      for (const [key, bucket] of loginBuckets.entries()) {
+        const referenceTimestamp = Math.max(bucket.blockedUntil, bucket.lastAttemptAt)
+        if (referenceTimestamp < cutoffMs) {
+          loginBuckets.delete(key)
+        }
+      }
+    },
+    async resetForTests(): Promise<void> {
+      loginBuckets.clear()
+    },
   }
 }
 
-function evictOldestBucket(): void {
-  let oldestKey: string | null = null
-  let oldestReference = Number.POSITIVE_INFINITY
+function createDbStore(): LoginRateLimitStore {
+  return {
+    async get(key: string): Promise<LoginBucket | null> {
+      const row = await db.loginRateLimitBucket.findUnique({
+        where: { key },
+        select: {
+          attempts: true,
+          windowStartedAt: true,
+          blockedUntil: true,
+          lastAttemptAt: true,
+        },
+      })
+      if (!row) return null
 
-  for (const [key, bucket] of loginBuckets.entries()) {
-    const referenceTimestamp = Math.max(bucket.blockedUntil, bucket.lastAttemptAt)
-    if (referenceTimestamp < oldestReference) {
-      oldestReference = referenceTimestamp
-      oldestKey = key
-    }
-  }
+      return {
+        attempts: row.attempts,
+        windowStartedAt: fromDate(row.windowStartedAt),
+        blockedUntil: row.blockedUntil ? fromDate(row.blockedUntil) : 0,
+        lastAttemptAt: fromDate(row.lastAttemptAt),
+      }
+    },
+    async set(key: string, bucket: LoginBucket): Promise<void> {
+      await db.loginRateLimitBucket.upsert({
+        where: { key },
+        create: {
+          key,
+          attempts: bucket.attempts,
+          windowStartedAt: toDate(bucket.windowStartedAt),
+          blockedUntil: bucket.blockedUntil > 0 ? toDate(bucket.blockedUntil) : null,
+          lastAttemptAt: toDate(bucket.lastAttemptAt),
+        },
+        update: {
+          attempts: bucket.attempts,
+          windowStartedAt: toDate(bucket.windowStartedAt),
+          blockedUntil: bucket.blockedUntil > 0 ? toDate(bucket.blockedUntil) : null,
+          lastAttemptAt: toDate(bucket.lastAttemptAt),
+        },
+      })
+    },
+    async getMany(keys: string[]): Promise<Map<string, LoginBucket>> {
+      if (keys.length === 0) {
+        return new Map()
+      }
 
-  if (oldestKey) {
-    loginBuckets.delete(oldestKey)
+      const rows = await db.loginRateLimitBucket.findMany({
+        where: {
+          key: {
+            in: keys,
+          },
+        },
+        select: {
+          key: true,
+          attempts: true,
+          windowStartedAt: true,
+          blockedUntil: true,
+          lastAttemptAt: true,
+        },
+      })
+
+      const result = new Map<string, LoginBucket>()
+      for (const row of rows) {
+        result.set(row.key, {
+          attempts: row.attempts,
+          windowStartedAt: fromDate(row.windowStartedAt),
+          blockedUntil: row.blockedUntil ? fromDate(row.blockedUntil) : 0,
+          lastAttemptAt: fromDate(row.lastAttemptAt),
+        })
+      }
+
+      return result
+    },
+    async delete(key: string): Promise<void> {
+      await db.loginRateLimitBucket.deleteMany({
+        where: { key },
+      })
+    },
+    async deleteMany(keys: string[]): Promise<void> {
+      if (keys.length === 0) return
+      await db.loginRateLimitBucket.deleteMany({
+        where: {
+          key: {
+            in: keys,
+          },
+        },
+      })
+    },
+    async count(): Promise<number> {
+      return db.loginRateLimitBucket.count()
+    },
+    async getOldestKeys(limit: number): Promise<string[]> {
+      if (limit <= 0) return []
+
+      const rows = await db.loginRateLimitBucket.findMany({
+        select: { key: true },
+        orderBy: [{ lastAttemptAt: "asc" }, { key: "asc" }],
+        take: limit,
+      })
+      return rows.map((row) => row.key)
+    },
+    async deleteExpired(cutoffMs: number): Promise<void> {
+      const cutoff = toDate(cutoffMs)
+      await db.loginRateLimitBucket.deleteMany({
+        where: {
+          lastAttemptAt: {
+            lt: cutoff,
+          },
+          OR: [
+            { blockedUntil: null },
+            {
+              blockedUntil: {
+                lt: cutoff,
+              },
+            },
+          ],
+        },
+      })
+    },
+    async resetForTests(): Promise<void> {
+      await db.loginRateLimitBucket.deleteMany({})
+    },
   }
 }
 
-function ensureBucketCapacity(nowMs: number): void {
-  cleanupExpiredBuckets(nowMs)
+const rateLimitStore: LoginRateLimitStore =
+  process.env.NODE_ENV === "test" ? createInMemoryStore() : createDbStore()
 
-  if (loginBuckets.size < LOGIN_RATE_LIMIT_CONFIG.maxBuckets) {
+async function cleanupExpiredBuckets(nowMs: number): Promise<void> {
+  const cutoffMs = nowMs - LOGIN_RATE_LIMIT_CONFIG.staleEntryMs
+  await rateLimitStore.deleteExpired(cutoffMs)
+}
+
+async function trimBucketsToLimit(limit: number): Promise<void> {
+  const bucketCount = await rateLimitStore.count()
+  if (bucketCount <= limit) {
     return
   }
 
-  evictOldestBucket()
+  const overflow = bucketCount - limit
+  const oldestKeys = await rateLimitStore.getOldestKeys(overflow)
+  await rateLimitStore.deleteMany(oldestKeys)
 }
 
-function isBlocked(key: string, nowMs: number): boolean {
-  const bucket = loginBuckets.get(key)
-  if (!bucket) return false
-  return bucket.blockedUntil > nowMs
+async function maybeRunCleanup(nowMs: number): Promise<void> {
+  if (nowMs - lastCleanupAtMs < CLEANUP_INTERVAL_MS) {
+    return
+  }
+
+  lastCleanupAtMs = nowMs
+  await cleanupExpiredBuckets(nowMs)
+  await trimBucketsToLimit(LOGIN_RATE_LIMIT_CONFIG.maxBuckets)
 }
 
-function registerFailedAttempt(
+async function ensureBucketCapacityForIncomingBuckets(incomingBuckets: number): Promise<void> {
+  if (incomingBuckets <= 0) return
+  const targetLimit = Math.max(0, LOGIN_RATE_LIMIT_CONFIG.maxBuckets - incomingBuckets)
+  await trimBucketsToLimit(targetLimit)
+}
+
+async function registerFailedAttempt(
   key: string,
   maxAttempts: number,
   nowMs: number,
   windowMs: number,
-  blockMs: number
-): void {
-  const existing = loginBuckets.get(key)
+  blockMs: number,
+  existing: LoginBucket | null
+): Promise<void> {
   if (!existing || nowMs - existing.windowStartedAt > windowMs) {
-    if (!existing) {
-      ensureBucketCapacity(nowMs)
-    }
-
-    loginBuckets.set(key, {
+    await rateLimitStore.set(key, {
       attempts: 1,
       windowStartedAt: nowMs,
       blockedUntil: 0,
@@ -127,7 +317,7 @@ function registerFailedAttempt(
   const nextAttempts = existing.attempts + 1
   const shouldBlock = nextAttempts >= maxAttempts
 
-  loginBuckets.set(key, {
+  await rateLimitStore.set(key, {
     attempts: nextAttempts,
     windowStartedAt: existing.windowStartedAt,
     blockedUntil: shouldBlock ? nowMs + blockMs : existing.blockedUntil,
@@ -135,18 +325,25 @@ function registerFailedAttempt(
   })
 }
 
-export function checkLoginAllowed(
+export async function checkLoginAllowed(
   email: string,
   ipHeaderValue?: string | null,
   nowMs: number = Date.now()
-): LoginRateLimitCheck {
-  cleanupExpiredBuckets(nowMs)
+): Promise<LoginRateLimitCheck> {
+  await maybeRunCleanup(nowMs)
 
   const normalizedEmail = normalizeEmail(email)
   const normalizedIp = normalizeIpHeaderValue(ipHeaderValue)
+  const keys = [emailKey(normalizedEmail)]
+  if (normalizedIp) {
+    keys.push(ipKey(normalizedIp))
+  }
+  const buckets = await rateLimitStore.getMany(keys)
 
-  const blockedByEmail = isBlocked(emailKey(normalizedEmail), nowMs)
-  const blockedByIp = normalizedIp ? isBlocked(ipKey(normalizedIp), nowMs) : false
+  const emailBucket = buckets.get(emailKey(normalizedEmail))
+  const ipBucket = normalizedIp ? buckets.get(ipKey(normalizedIp)) : null
+  const blockedByEmail = (emailBucket?.blockedUntil ?? 0) > nowMs
+  const blockedByIp = (ipBucket?.blockedUntil ?? 0) > nowMs
 
   return {
     allowed: !blockedByEmail && !blockedByIp,
@@ -155,42 +352,58 @@ export function checkLoginAllowed(
   }
 }
 
-export function registerFailedLoginAttempt(
+export async function registerFailedLoginAttempt(
   normalizedEmail: string,
   normalizedIp: string | null,
   nowMs: number = Date.now()
-): void {
-  cleanupExpiredBuckets(nowMs)
+): Promise<void> {
+  const emailBucketKey = emailKey(normalizedEmail)
+  const ipBucketKey = normalizedIp ? ipKey(normalizedIp) : null
+  const keys = ipBucketKey ? [emailBucketKey, ipBucketKey] : [emailBucketKey]
+  const existingBuckets = await rateLimitStore.getMany(keys)
 
-  registerFailedAttempt(
-    emailKey(normalizedEmail),
+  let missingBuckets = 0
+  if (!existingBuckets.has(emailBucketKey)) {
+    missingBuckets += 1
+  }
+  if (ipBucketKey && !existingBuckets.has(ipBucketKey)) {
+    missingBuckets += 1
+  }
+  await ensureBucketCapacityForIncomingBuckets(missingBuckets)
+
+  await registerFailedAttempt(
+    emailBucketKey,
     LOGIN_RATE_LIMIT_CONFIG.maxAttemptsPerEmail,
     nowMs,
     LOGIN_RATE_LIMIT_CONFIG.windowMs,
-    LOGIN_RATE_LIMIT_CONFIG.blockMs
+    LOGIN_RATE_LIMIT_CONFIG.blockMs,
+    existingBuckets.get(emailBucketKey) ?? null
   )
 
   if (normalizedIp) {
-    registerFailedAttempt(
-      ipKey(normalizedIp),
+    const key = ipKey(normalizedIp)
+    await registerFailedAttempt(
+      key,
       LOGIN_RATE_LIMIT_CONFIG.maxAttemptsPerIp,
       nowMs,
       LOGIN_RATE_LIMIT_CONFIG.windowMs,
-      LOGIN_RATE_LIMIT_CONFIG.blockMs
+      LOGIN_RATE_LIMIT_CONFIG.blockMs,
+      existingBuckets.get(key) ?? null
     )
   }
 }
 
-export function clearSuccessfulLoginAttempts(normalizedEmail: string): void {
-  loginBuckets.delete(emailKey(normalizedEmail))
+export async function clearSuccessfulLoginAttempts(normalizedEmail: string): Promise<void> {
+  await rateLimitStore.delete(emailKey(normalizedEmail))
 }
 
 // Test-Helfer: nur in Unit-Tests verwenden.
-export function __resetLoginRateLimitForTests(): void {
-  loginBuckets.clear()
+export async function __resetLoginRateLimitForTests(): Promise<void> {
+  lastCleanupAtMs = 0
+  await rateLimitStore.resetForTests()
 }
 
 // Test-Helfer: nur in Unit-Tests verwenden.
-export function __getLoginRateLimitBucketCountForTests(): number {
-  return loginBuckets.size
+export async function __getLoginRateLimitBucketCountForTests(): Promise<number> {
+  return rateLimitStore.count()
 }
