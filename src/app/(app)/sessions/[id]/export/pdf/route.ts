@@ -21,6 +21,20 @@ const comparisonDimensions = [
   { key: "equipment", label: "Material" },
 ] as const
 
+const shotBucketColors = [
+  "#ef4444",
+  "#eab308",
+  "#374151",
+  "#52606d",
+  "#6b7280",
+  "#8896a0",
+  "#9ca3af",
+  "#b5bec8",
+  "#c8d1da",
+  "#dae1e8",
+  "#edf1f5",
+]
+
 function formatDateTime(date: Date): string {
   return new Intl.DateTimeFormat("de-CH", {
     day: "2-digit",
@@ -44,10 +58,49 @@ function parseShotsJson(shots: unknown): string[] {
   return shots.filter((entry): entry is string => typeof entry === "string")
 }
 
+function parseShotValue(shot: string): number | null {
+  const normalized = shot.trim().replace(",", ".")
+  const value = Number.parseFloat(normalized)
+  if (!Number.isFinite(value)) return null
+  return value
+}
+
+function formatShotsForLine(shots: string[]): string {
+  return shots
+    .map((shot) => shot.trim())
+    .filter((shot) => shot.length > 0)
+    .join(" · ")
+}
+
+function buildShotHistogramBuckets(shots: string[], isDecimal: boolean) {
+  const counts = new Array<number>(11).fill(0)
+
+  for (const shot of shots) {
+    const value = parseShotValue(shot)
+    if (value === null) continue
+    const bucket = isDecimal ? Math.floor(value) : Math.round(value)
+    const ring = Math.max(0, Math.min(10, bucket))
+    counts[ring] += 1
+  }
+
+  return Array.from({ length: 11 }, (_, index) => {
+    const ring = 10 - index
+    return {
+      label: String(ring),
+      value: counts[ring],
+      colorHex: shotBucketColors[index],
+    }
+  })
+}
+
 function formatScore(score: number | null, isDecimal: boolean): string {
   if (score === null) return "-"
   if (isDecimal) return score.toFixed(1)
   return String(Math.round(score))
+}
+
+function hasValue(value: string | null | undefined): boolean {
+  return value != null && value.trim().length > 0
 }
 
 export async function GET(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -94,6 +147,13 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
 
   const isDecimal = trainingSession.discipline?.scoringType === "TENTH"
   const hasScoring = trainingSession.type === "TRAINING" || trainingSession.type === "WETTKAMPF"
+  const hasHitLocation =
+    hasScoring &&
+    trainingSession.hitLocationHorizontalMm !== null &&
+    trainingSession.hitLocationHorizontalDirection !== null &&
+    trainingSession.hitLocationVerticalMm !== null &&
+    trainingSession.hitLocationVerticalDirection !== null
+  const displayName = session.user.name ?? session.user.email ?? "-"
 
   const totalScore = calculateTotalScore(
     trainingSession.series.map((serie) => ({
@@ -101,8 +161,13 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
       isPractice: serie.isPractice,
     }))
   )
+  const scoringShots = trainingSession.series
+    .filter((serie) => !serie.isPractice)
+    .flatMap((serie) => parseShotsJson(serie.shots))
+  const shotHistogramBuckets = buildShotHistogramBuckets(scoringShots, isDecimal)
 
   const metaLines = [
+    `Name: ${displayName}`,
     `Typ: ${sessionTypeLabels[trainingSession.type] ?? trainingSession.type}`,
     `Disziplin: ${trainingSession.discipline?.name ?? "-"}`,
     `Ort: ${trainingSession.location ?? "-"}`,
@@ -118,7 +183,19 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
 
   if (hasScoring) {
     const resultLines: string[] = []
+    const executionChartItems: {
+      label: string
+      value: number
+      displayValue: string
+    }[] = []
+    const seriesSummaryRows: {
+      label: string
+      score: string
+      shots: string
+    }[] = []
     resultLines.push(`Gesamtergebnis: ${formatScore(totalScore, isDecimal)} Ringe`)
+    resultLines.push(`Wertungsschüsse: ${scoringShots.length}`)
+    resultLines.push(`Serien gesamt: ${trainingSession.series.length}`)
 
     if (trainingSession.series.length === 0) {
       resultLines.push("Serien: -")
@@ -126,119 +203,230 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
       let practiceCounter = 0
       let scoreCounter = 0
       trainingSession.series.forEach((serie) => {
-        const label = serie.isPractice ? `Probe ${++practiceCounter}` : `Serie ${++scoreCounter}`
+        const label = serie.isPractice
+          ? `Probe-Serie ${++practiceCounter}`
+          : `Serie ${++scoreCounter}`
         const score = formatScore(
           serie.scoreTotal !== null ? parseFloat(String(serie.scoreTotal)) : null,
           isDecimal
         )
         const shots = parseShotsJson(serie.shots)
-        resultLines.push(`${label}: ${score} Ringe`)
-        if (shots.length > 0) {
-          resultLines.push(`  Schüsse: ${shots.join(" · ")}`)
+        seriesSummaryRows.push({
+          label,
+          score: `${score} Ringe`,
+          shots: shots.length > 0 ? formatShotsForLine(shots) : "-",
+        })
+        if (serie.executionQuality !== null) {
+          executionChartItems.push({
+            label,
+            value: serie.executionQuality,
+            displayValue: `${serie.executionQuality}/5`,
+          })
         }
       })
     }
 
     sections.push({
       title: "Ergebnis",
+      icon: "ER",
       lines: resultLines,
+      charts: [
+        ...(seriesSummaryRows.length > 0
+          ? [
+              {
+                type: "seriesGrid" as const,
+                title: "Serienübersicht",
+                rows: seriesSummaryRows,
+              },
+            ]
+          : []),
+        ...(executionChartItems.length > 0
+          ? [
+              {
+                type: "bars" as const,
+                title: "Ausführung pro Serie (0-5)",
+                maxValue: 5,
+                items: executionChartItems,
+              },
+            ]
+          : []),
+        ...(scoringShots.length > 0
+          ? [
+              {
+                type: "histogram" as const,
+                title: `Schussverteilung (${scoringShots.length} Schüsse)`,
+                buckets: shotHistogramBuckets,
+              },
+            ]
+          : []),
+      ],
+    })
+  }
+
+  if (
+    hasHitLocation &&
+    trainingSession.hitLocationHorizontalMm !== null &&
+    trainingSession.hitLocationHorizontalDirection !== null &&
+    trainingSession.hitLocationVerticalMm !== null &&
+    trainingSession.hitLocationVerticalDirection !== null
+  ) {
+    sections.push({
+      title: "Trefferlage",
+      icon: "TL",
+      lines: [],
+      charts: [
+        {
+          type: "hitLocation",
+          horizontalMm: trainingSession.hitLocationHorizontalMm,
+          horizontalDirection: trainingSession.hitLocationHorizontalDirection,
+          verticalMm: trainingSession.hitLocationVerticalMm,
+          verticalDirection: trainingSession.hitLocationVerticalDirection,
+          maxMm: 8,
+        },
+      ],
     })
   }
 
   if (trainingSession.wellbeing) {
     sections.push({
       title: "Befinden",
-      lines: [
-        `Schlaf: ${trainingSession.wellbeing.sleep}`,
-        `Energie: ${trainingSession.wellbeing.energy}`,
-        `Stress: ${trainingSession.wellbeing.stress}`,
-        `Motivation: ${trainingSession.wellbeing.motivation}`,
+      icon: "BE",
+      lines: [],
+      charts: [
+        {
+          type: "bars",
+          title: "Befinden (0-100)",
+          maxValue: 100,
+          items: [
+            { label: "Schlaf", value: trainingSession.wellbeing.sleep },
+            { label: "Energie", value: trainingSession.wellbeing.energy },
+            { label: "Stress", value: trainingSession.wellbeing.stress },
+            { label: "Motivation", value: trainingSession.wellbeing.motivation },
+          ],
+        },
       ],
     })
   }
 
   if (trainingSession.prognosis) {
+    const prognosisData = trainingSession.prognosis
     const prognosisLines: string[] = []
-    prognosisLines.push(`Leistungsziel: ${trainingSession.prognosis.performanceGoal ?? "-"}`)
-    prognosisLines.push(
-      `Erwartete Ringe: ${
-        trainingSession.prognosis.expectedScore !== null
-          ? String(trainingSession.prognosis.expectedScore)
-          : "-"
-      }`
-    )
-    prognosisLines.push(
-      `Erwartete saubere Schüsse: ${trainingSession.prognosis.expectedCleanShots ?? "-"}`
-    )
-
-    for (const dimension of comparisonDimensions) {
-      prognosisLines.push(
-        `${dimension.label}: ${
-          trainingSession.prognosis[dimension.key as keyof typeof trainingSession.prognosis]
-        }`
-      )
+    if (hasValue(prognosisData.performanceGoal)) {
+      prognosisLines.push(`Leistungsziel: ${prognosisData.performanceGoal}`)
+    }
+    if (prognosisData.expectedScore !== null) {
+      prognosisLines.push(`Erwartetes Ergebnis (Ringe): ${String(prognosisData.expectedScore)}`)
+    }
+    if (prognosisData.expectedCleanShots !== null) {
+      prognosisLines.push(`Erwartete saubere Schüsse: ${prognosisData.expectedCleanShots}`)
     }
 
     sections.push({
       title: "Prognose",
+      icon: "PR",
       lines: prognosisLines,
+      charts: [
+        {
+          type: "bars",
+          title: "Selbsteinschätzung (0-100)",
+          maxValue: 100,
+          items: comparisonDimensions.map((dimension) => ({
+            label: dimension.label,
+            value: Number(prognosisData[dimension.key as keyof typeof prognosisData]),
+          })),
+        },
+      ],
     })
   }
 
   if (trainingSession.feedback) {
+    const feedbackData = trainingSession.feedback
     const feedbackLines: string[] = []
     feedbackLines.push(
-      `Leistungsziel erreicht: ${trainingSession.feedback.goalAchieved === true ? "Ja" : trainingSession.feedback.goalAchieved === false ? "Nein" : "-"}`
+      `Leistungsziel erreicht: ${feedbackData.goalAchieved === true ? "Ja" : feedbackData.goalAchieved === false ? "Nein" : "-"}`
     )
-    feedbackLines.push(`Notiz Zielerreichung: ${trainingSession.feedback.goalAchievedNote ?? "-"}`)
-    feedbackLines.push(`Erklärung: ${trainingSession.feedback.explanation ?? "-"}`)
-    feedbackLines.push(`Fortschritt: ${trainingSession.feedback.progress ?? "-"}`)
-    feedbackLines.push(`Five Best Shots: ${trainingSession.feedback.fiveBestShots ?? "-"}`)
-    feedbackLines.push(`Was lief gut: ${trainingSession.feedback.wentWell ?? "-"}`)
-    feedbackLines.push(`Aha-Erlebnisse: ${trainingSession.feedback.insights ?? "-"}`)
-
-    for (const dimension of comparisonDimensions) {
-      feedbackLines.push(
-        `${dimension.label}: ${
-          trainingSession.feedback[dimension.key as keyof typeof trainingSession.feedback]
-        }`
-      )
+    if (hasValue(feedbackData.goalAchievedNote)) {
+      feedbackLines.push(`Anmerkung zum Ziel: ${feedbackData.goalAchievedNote}`)
+    }
+    if (hasValue(feedbackData.explanation)) {
+      feedbackLines.push(`Erklärung / Abweichungen zur Prognose: ${feedbackData.explanation}`)
+    }
+    if (hasValue(feedbackData.progress)) {
+      feedbackLines.push(`Fortschritte durch diese Einheit: ${feedbackData.progress}`)
+    }
+    if (hasValue(feedbackData.fiveBestShots)) {
+      feedbackLines.push(`Five Best Shots: ${feedbackData.fiveBestShots}`)
+    }
+    if (hasValue(feedbackData.wentWell)) {
+      feedbackLines.push(`Was lief besonders gut?: ${feedbackData.wentWell}`)
+    }
+    if (hasValue(feedbackData.insights)) {
+      feedbackLines.push(`Aha-Erlebnisse: ${feedbackData.insights}`)
     }
 
     sections.push({
       title: "Feedback",
+      icon: "FB",
       lines: feedbackLines,
+      charts: [
+        {
+          type: "bars",
+          title: "Tatsächlicher Stand (0-100)",
+          maxValue: 100,
+          items: comparisonDimensions.map((dimension) => ({
+            label: dimension.label,
+            value: Number(feedbackData[dimension.key as keyof typeof feedbackData]),
+          })),
+        },
+      ],
     })
   }
 
   if (trainingSession.reflection) {
+    const reflectionLines: string[] = []
+    if (hasValue(trainingSession.reflection.observations)) {
+      reflectionLines.push(`Beobachtungen: ${trainingSession.reflection.observations}`)
+    }
+    if (hasValue(trainingSession.reflection.insight)) {
+      reflectionLines.push(
+        `Heute ist mir klargeworden, dass ...: ${trainingSession.reflection.insight}`
+      )
+    }
+    if (hasValue(trainingSession.reflection.learningQuestion)) {
+      reflectionLines.push(
+        `Was kann ich tun, um ...?: ${trainingSession.reflection.learningQuestion}`
+      )
+    }
+    reflectionLines.push(
+      `Schuss-Ablauf eingehalten: ${
+        trainingSession.reflection.routineFollowed === true
+          ? "Ja"
+          : trainingSession.reflection.routineFollowed === false
+            ? "Nein"
+            : "-"
+      }`
+    )
+    if (hasValue(trainingSession.reflection.routineDeviation)) {
+      reflectionLines.push(`Abweichung: ${trainingSession.reflection.routineDeviation}`)
+    }
+
     sections.push({
       title: "Reflexion",
-      lines: [
-        `Beobachtungen: ${trainingSession.reflection.observations ?? "-"}`,
-        `Heute ist mir klargeworden: ${trainingSession.reflection.insight ?? "-"}`,
-        `Was kann ich tun, um ...: ${trainingSession.reflection.learningQuestion ?? "-"}`,
-        `Ablauf eingehalten: ${
-          trainingSession.reflection.routineFollowed === true
-            ? "Ja"
-            : trainingSession.reflection.routineFollowed === false
-              ? "Nein"
-              : "-"
-        }`,
-        `Notiz zum Ablauf: ${trainingSession.reflection.routineDeviation ?? "-"}`,
-      ],
+      icon: "RF",
+      lines: reflectionLines,
     })
   }
 
   if (sections.length === 0) {
     sections.push({
       title: "Hinweis",
+      icon: "IN",
       lines: ["Für diese Einheit sind noch keine Detaildaten erfasst."],
     })
   }
 
   const pdf = buildStyledPdf({
-    title: "Treffsicher - Einheit Export",
+    title: "Treffsicher - Einheitenexport",
     subtitle: formatDateTime(trainingSession.date),
     metaLines,
     sections,
