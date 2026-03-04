@@ -105,6 +105,21 @@ const shotDistributionColors: Record<string, string> = {
 
 const HIT_LOCATION_CLOUD_MARGIN = { top: 12, right: 12, bottom: 12, left: 12 } as const
 const HIT_LOCATION_CLOUD_AXIS_SIZE = 44
+const TREND_WINDOW_SIZE = 5
+const CHART_POINT_RADIUS = 6
+const CHART_POINT_ACTIVE_RADIUS = 7
+const CHART_POINT_OPACITY = 0.7
+const CHART_POINT_ACTIVE_OPACITY = 0.92
+const CHART_POINT_STROKE_WIDTH = 1
+const CHART_POINT_LINK_STROKE_WIDTH = 1.2
+const CHART_POINT_LINK_STROKE_OPACITY = 0.4
+const CHART_POINT_LINK_DASHARRAY = "3 4"
+const CHART_TREND_STROKE_WIDTH = 2.5
+const CHART_TREND_STROKE_OPACITY = 0.9
+const HIT_LOCATION_ZERO_LINE_STROKE_WIDTH = 0.8
+const HIT_LOCATION_ZERO_LINE_STROKE_OPACITY = 0.55
+const HIT_LOCATION_ZERO_LINE_STROKE =
+  "color-mix(in oklch, var(--muted-foreground) 42%, oklch(1 0 0) 58%)"
 
 type HitLocationPoint = {
   sessionId: string
@@ -243,6 +258,77 @@ function computeDisplayValue(
   return avgPerShot
 }
 
+function calculateTrend(values: (number | null)[]): (number | null)[] {
+  return calculateMovingAverage(values, TREND_WINDOW_SIZE)
+}
+
+function createDotStyle(color: string) {
+  return {
+    r: CHART_POINT_RADIUS,
+    fill: color,
+    fillOpacity: CHART_POINT_OPACITY,
+    stroke: "var(--background)",
+    strokeWidth: CHART_POINT_STROKE_WIDTH,
+  }
+}
+
+function createActiveDotStyle(color: string) {
+  return {
+    r: CHART_POINT_ACTIVE_RADIUS,
+    fill: color,
+    fillOpacity: CHART_POINT_ACTIVE_OPACITY,
+    stroke: "var(--background)",
+    strokeWidth: CHART_POINT_STROKE_WIDTH,
+  }
+}
+
+function renderScatterPoint(props: { cx?: number; cy?: number }, color: string) {
+  return (
+    <circle
+      cx={props.cx}
+      cy={props.cy}
+      r={CHART_POINT_RADIUS}
+      fill={color}
+      opacity={CHART_POINT_OPACITY}
+      stroke="var(--background)"
+      strokeWidth={CHART_POINT_STROKE_WIDTH}
+    />
+  )
+}
+
+function createTrendStroke(color: string): string {
+  // In sRGB bleibt der Original-Farbton stabiler; nur leicht mit Weiß aufhellen.
+  return `color-mix(in srgb, ${color} 85%, white 15%)`
+}
+
+function mapSessionToHitLocationPoint(session: StatsSession): HitLocationPoint | null {
+  if (
+    session.hitLocationHorizontalMm === null ||
+    session.hitLocationHorizontalDirection === null ||
+    session.hitLocationVerticalMm === null ||
+    session.hitLocationVerticalDirection === null
+  ) {
+    return null
+  }
+
+  const signedX =
+    session.hitLocationHorizontalDirection === "RIGHT"
+      ? session.hitLocationHorizontalMm
+      : -session.hitLocationHorizontalMm
+  const signedY =
+    session.hitLocationVerticalDirection === "HIGH"
+      ? session.hitLocationVerticalMm
+      : -session.hitLocationVerticalMm
+
+  return {
+    sessionId: session.id,
+    date: session.date,
+    x: Math.round(signedX * 100) / 100,
+    y: Math.round(signedY * 100) / 100,
+    disciplineId: session.disciplineId,
+  }
+}
+
 function RadarLegend({ items }: { items: RadarLegendItem[] }) {
   if (items.length === 0) return null
 
@@ -306,22 +392,27 @@ export function StatisticsCharts({
   const effectiveDisplayMode: DisplayMode =
     disciplineFilter === "all" || !selectedDiscipline ? "per_shot" : displayMode
 
-  // Gefilterte Einheiten (Typ + Disziplin + Zeitraum)
-  const filtered = useMemo(() => {
+  const fromDate = useMemo(() => (from ? parseDateInput(from, false) : null), [from])
+  const toDate = useMemo(() => (to ? parseDateInput(to, true) : null), [to])
+
+  // Trend-Basis: identische Filterlogik, aber ohne "Von"-Grenze.
+  // Dadurch können frühe sichtbare Punkte ältere passende Werte als Warm-up nutzen.
+  const filteredForTrend = useMemo(() => {
     return sessions.filter((s) => {
       if (typeFilter !== "all" && s.type !== typeFilter) return false
       if (disciplineFilter !== "all" && s.disciplineId !== disciplineFilter) return false
-      if (from) {
-        const fromDate = parseDateInput(from, false)
-        if (fromDate && new Date(s.date) < fromDate) return false
-      }
-      if (to) {
-        const toDate = parseDateInput(to, true)
-        if (toDate && new Date(s.date) > toDate) return false
-      }
+      if (toDate && new Date(s.date) > toDate) return false
       return true
     })
-  }, [sessions, typeFilter, disciplineFilter, from, to])
+  }, [sessions, typeFilter, disciplineFilter, toDate])
+
+  // Sichtbare Daten: Trend-Basis + "Von"-Grenze.
+  const filtered = useMemo(() => {
+    return filteredForTrend.filter((s) => {
+      if (fromDate && new Date(s.date) < fromDate) return false
+      return true
+    })
+  }, [filteredForTrend, fromDate])
 
   // Alle weiteren Charts anhand derselben gefilterten Einheiten einschränken,
   // damit Typ-/Disziplin-/Zeitraum-Filter überall konsistent wirken.
@@ -349,32 +440,16 @@ export function StatisticsCharts({
     return radarData.filter((p) => filteredSessionIds.has(p.sessionId))
   }, [radarData, filteredSessionIds])
 
+  const filteredHitLocationsForTrend = useMemo<HitLocationPoint[]>(() => {
+    return filteredForTrend
+      .map(mapSessionToHitLocationPoint)
+      .filter((point): point is HitLocationPoint => point !== null)
+  }, [filteredForTrend])
+
   const filteredHitLocations = useMemo<HitLocationPoint[]>(() => {
     return filtered
-      .filter(
-        (s) =>
-          s.hitLocationHorizontalMm !== null &&
-          s.hitLocationHorizontalDirection !== null &&
-          s.hitLocationVerticalMm !== null &&
-          s.hitLocationVerticalDirection !== null
-      )
-      .map((s) => {
-        const signedX =
-          s.hitLocationHorizontalDirection === "RIGHT"
-            ? s.hitLocationHorizontalMm!
-            : -s.hitLocationHorizontalMm!
-        const signedY =
-          s.hitLocationVerticalDirection === "HIGH"
-            ? s.hitLocationVerticalMm!
-            : -s.hitLocationVerticalMm!
-        return {
-          sessionId: s.id,
-          date: s.date,
-          x: Math.round(signedX * 100) / 100,
-          y: Math.round(signedY * 100) / 100,
-          disciplineId: s.disciplineId,
-        }
-      })
+      .map(mapSessionToHitLocationPoint)
+      .filter((point): point is HitLocationPoint => point !== null)
   }, [filtered])
 
   const hitLocationCloudAxes = useMemo(() => {
@@ -398,6 +473,22 @@ export function StatisticsCharts({
     }
   }, [filteredHitLocations])
 
+  const hitLocationTrendBySessionId = useMemo(() => {
+    const xValues = filteredHitLocationsForTrend.map((point) => point.x)
+    const yValues = filteredHitLocationsForTrend.map((point) => point.y)
+    const xTrendValues = calculateTrend(xValues)
+    const yTrendValues = calculateTrend(yValues)
+
+    const trendById = new Map<string, { xTrend: number | null; yTrend: number | null }>()
+    filteredHitLocationsForTrend.forEach((point, i) => {
+      trendById.set(point.sessionId, {
+        xTrend: xTrendValues[i],
+        yTrend: yTrendValues[i],
+      })
+    })
+    return trendById
+  }, [filteredHitLocationsForTrend])
+
   const hitLocationTrendData = useMemo(() => {
     if (filteredHitLocations.length === 0) return []
 
@@ -411,12 +502,14 @@ export function StatisticsCharts({
       }).format(new Date(point.date)),
       x: point.x,
       y: point.y,
+      xTrend: hitLocationTrendBySessionId.get(point.sessionId)?.xTrend ?? null,
+      yTrend: hitLocationTrendBySessionId.get(point.sessionId)?.yTrend ?? null,
     }))
-  }, [filteredHitLocations, DISPLAY_TIME_ZONE])
+  }, [filteredHitLocations, hitLocationTrendBySessionId, DISPLAY_TIME_ZONE])
 
   const hitLocationTrendAxis = useMemo<{ domain: [number, number]; ticks: number[] }>(() => {
     const values = hitLocationTrendData
-      .flatMap((point) => [point.x, point.y])
+      .flatMap((point) => [point.x, point.y, point.xTrend, point.yTrend])
       .filter((value): value is number => typeof value === "number" && Number.isFinite(value))
     return computeCenteredAxis(values, 1)
   }, [hitLocationTrendData])
@@ -460,16 +553,24 @@ export function StatisticsCharts({
     return computeStableAxis(values)
   }, [qualityDisplayData])
 
-  // Nur Einheiten mit normalisiertem Ergebnis (avgPerShot) für den Verlaufschart
+  // Nur Einheiten mit normalisiertem Ergebnis (avgPerShot) für den Verlaufschart.
+  // Trend-Basis nutzt dabei ältere passende Werte (filteredForTrend), Sichtbarkeit bleibt bei filtered.
+  const withScoreForTrend = filteredForTrend.filter((s) => s.avgPerShot !== null)
   const withScore = filtered.filter((s) => s.avgPerShot !== null)
 
   // Anzeigewerte je nach effektivem Modus berechnen
+  const displayValuesForTrend = withScoreForTrend.map((s) =>
+    computeDisplayValue(s.avgPerShot as number, effectiveDisplayMode, selectedDiscipline)
+  )
   const displayValues = withScore.map((s) =>
     computeDisplayValue(s.avgPerShot as number, effectiveDisplayMode, selectedDiscipline)
   )
 
-  // Gleitender Durchschnitt über die Anzeigewerte
-  const movingAvg = calculateMovingAverage(displayValues, 5)
+  // Gleitender Durchschnitt über die Trend-Basiswerte
+  const movingAvgForTrend = calculateTrend(displayValuesForTrend)
+  const movingAvgBySessionId = new Map<string, number | null>(
+    withScoreForTrend.map((session, i) => [session.id, movingAvgForTrend[i]])
+  )
 
   // Gesamtschusszahl der gewählten Disziplin (für Hochrechnung-Label)
   const totalDisciplineShots = selectedDiscipline
@@ -534,7 +635,7 @@ export function StatisticsCharts({
     }).format(new Date(s.date)),
     // Feste Keys statt dynamischer — Recharts braucht stabile dataKey-Referenzen
     wert: displayValues[i],
-    trend: movingAvg[i],
+    trend: movingAvgBySessionId.get(s.id) ?? null,
   }))
 
   // Serien-Statistiken für BarChart
@@ -612,8 +713,8 @@ export function StatisticsCharts({
 
   const lineChartConfig = useMemo<ChartConfig>(
     () => ({
-      wert: { label: metricLabel, color: "var(--chart-1)" },
-      trend: { label: "Trend", color: "var(--muted-foreground)" },
+      wert: { label: `${metricLabel} (Punkte)`, color: "var(--chart-1)" },
+      trend: { label: "Trend", color: createTrendStroke("var(--chart-1)") },
     }),
     [metricLabel]
   )
@@ -687,8 +788,10 @@ export function StatisticsCharts({
 
   const hitLocationTrendChartConfig = useMemo<ChartConfig>(
     () => ({
-      x: { label: "→ X", color: "var(--chart-1)" },
-      y: { label: "↑ Y", color: "var(--chart-2)" },
+      x: { label: "→ X Punkte", color: "var(--chart-1)" },
+      xTrend: { label: "→ X Trend", color: createTrendStroke("var(--chart-1)") },
+      y: { label: "↑ Y Punkte", color: "var(--chart-2)" },
+      yTrend: { label: "↑ Y Trend", color: createTrendStroke("var(--chart-2)") },
     }),
     []
   )
@@ -913,21 +1016,26 @@ export function StatisticsCharts({
                       <ChartLegend content={<ChartLegendContent />} />
                       <Line
                         type="monotone"
-                        dataKey="wert"
-                        name="wert"
-                        stroke="var(--chart-1)"
-                        strokeWidth={2}
-                        dot={{ r: 3 }}
+                        dataKey="trend"
+                        name="trend"
+                        stroke={createTrendStroke("var(--chart-1)")}
+                        strokeWidth={CHART_TREND_STROKE_WIDTH}
+                        strokeOpacity={CHART_TREND_STROKE_OPACITY}
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        dot={false}
                         connectNulls={false}
                       />
                       <Line
-                        type="monotone"
-                        dataKey="trend"
-                        name="trend"
-                        stroke="var(--muted-foreground)"
-                        strokeWidth={1.5}
-                        strokeDasharray="4 2"
-                        dot={false}
+                        type="linear"
+                        dataKey="wert"
+                        name="wert"
+                        stroke="var(--chart-1)"
+                        strokeWidth={CHART_POINT_LINK_STROKE_WIDTH}
+                        strokeOpacity={CHART_POINT_LINK_STROKE_OPACITY}
+                        strokeDasharray={CHART_POINT_LINK_DASHARRAY}
+                        dot={createDotStyle("var(--chart-1)")}
+                        activeDot={createActiveDotStyle("var(--chart-1)")}
                         connectNulls={false}
                       />
                     </LineChart>
@@ -1055,15 +1163,15 @@ export function StatisticsCharts({
                         />
                         <ReferenceLine
                           x={0}
-                          stroke="var(--muted-foreground)"
-                          strokeOpacity={0.7}
-                          strokeWidth={1.8}
+                          stroke={HIT_LOCATION_ZERO_LINE_STROKE}
+                          strokeOpacity={HIT_LOCATION_ZERO_LINE_STROKE_OPACITY}
+                          strokeWidth={HIT_LOCATION_ZERO_LINE_STROKE_WIDTH}
                         />
                         <ReferenceLine
                           y={0}
-                          stroke="var(--muted-foreground)"
-                          strokeOpacity={0.7}
-                          strokeWidth={1.8}
+                          stroke={HIT_LOCATION_ZERO_LINE_STROKE}
+                          strokeOpacity={HIT_LOCATION_ZERO_LINE_STROKE_OPACITY}
+                          strokeWidth={HIT_LOCATION_ZERO_LINE_STROKE_WIDTH}
                         />
                         <ChartTooltip
                           cursor={{ stroke: "var(--muted-foreground)", strokeOpacity: 0.45 }}
@@ -1097,15 +1205,9 @@ export function StatisticsCharts({
                         <Scatter
                           data={filteredHitLocations}
                           fill="var(--chart-1)"
-                          shape={(props: { cx?: number; cy?: number }) => (
-                            <circle
-                              cx={props.cx}
-                              cy={props.cy}
-                              r={5}
-                              fill="var(--chart-1)"
-                              opacity={0.78}
-                            />
-                          )}
+                          shape={(props: { cx?: number; cy?: number }) =>
+                            renderScatterPoint(props, "var(--chart-1)")
+                          }
                         />
                       </ScatterChart>
                     </ChartContainer>
@@ -1168,9 +1270,9 @@ export function StatisticsCharts({
                       />
                       <ReferenceLine
                         y={0}
-                        stroke="var(--muted-foreground)"
-                        strokeOpacity={0.7}
-                        strokeWidth={1.8}
+                        stroke={HIT_LOCATION_ZERO_LINE_STROKE}
+                        strokeOpacity={HIT_LOCATION_ZERO_LINE_STROKE_OPACITY}
+                        strokeWidth={HIT_LOCATION_ZERO_LINE_STROKE_WIDTH}
                       />
                       <ChartTooltip
                         content={
@@ -1189,7 +1291,13 @@ export function StatisticsCharts({
                             formatter={(value, name) => (
                               <div className="flex w-full items-center justify-between gap-6">
                                 <span className="text-muted-foreground">
-                                  {name === "x" ? "X" : "Y"}
+                                  {name === "x"
+                                    ? "X Punkt"
+                                    : name === "y"
+                                      ? "Y Punkt"
+                                      : name === "xTrend"
+                                        ? "X Trend"
+                                        : "Y Trend"}
                                 </span>
                                 <span className="text-foreground font-mono font-medium tabular-nums">
                                   {formatSignedMillimeters(
@@ -1204,20 +1312,50 @@ export function StatisticsCharts({
                       <ChartLegend content={<ChartLegendContent />} />
                       <Line
                         type="monotone"
-                        dataKey="x"
-                        name="x"
-                        stroke="var(--chart-1)"
-                        strokeWidth={2}
-                        dot={{ r: 2.8 }}
+                        dataKey="xTrend"
+                        name="xTrend"
+                        stroke={createTrendStroke("var(--chart-1)")}
+                        strokeWidth={CHART_TREND_STROKE_WIDTH}
+                        strokeOpacity={CHART_TREND_STROKE_OPACITY}
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        dot={false}
                         connectNulls={false}
                       />
                       <Line
                         type="monotone"
+                        dataKey="yTrend"
+                        name="yTrend"
+                        stroke={createTrendStroke("var(--chart-2)")}
+                        strokeWidth={CHART_TREND_STROKE_WIDTH}
+                        strokeOpacity={CHART_TREND_STROKE_OPACITY}
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        dot={false}
+                        connectNulls={false}
+                      />
+                      <Line
+                        type="linear"
+                        dataKey="x"
+                        name="x"
+                        stroke="var(--chart-1)"
+                        strokeWidth={CHART_POINT_LINK_STROKE_WIDTH}
+                        strokeOpacity={CHART_POINT_LINK_STROKE_OPACITY}
+                        strokeDasharray={CHART_POINT_LINK_DASHARRAY}
+                        dot={createDotStyle("var(--chart-1)")}
+                        activeDot={createActiveDotStyle("var(--chart-1)")}
+                        connectNulls={false}
+                      />
+                      <Line
+                        type="linear"
                         dataKey="y"
                         name="y"
                         stroke="var(--chart-2)"
-                        strokeWidth={2}
-                        dot={{ r: 2.8 }}
+                        strokeWidth={CHART_POINT_LINK_STROKE_WIDTH}
+                        strokeOpacity={CHART_POINT_LINK_STROKE_OPACITY}
+                        strokeDasharray={CHART_POINT_LINK_DASHARRAY}
+                        dot={createDotStyle("var(--chart-2)")}
+                        activeDot={createActiveDotStyle("var(--chart-2)")}
                         connectNulls={false}
                       />
                     </LineChart>
@@ -1399,15 +1537,9 @@ export function StatisticsCharts({
                         <Scatter
                           data={wellbeingDisplayData}
                           fill="var(--chart-1)"
-                          shape={(props: { cx?: number; cy?: number }) => (
-                            <circle
-                              cx={props.cx}
-                              cy={props.cy}
-                              r={5}
-                              fill="var(--chart-1)"
-                              opacity={0.7}
-                            />
-                          )}
+                          shape={(props: { cx?: number; cy?: number }) =>
+                            renderScatterPoint(props, "var(--chart-1)")
+                          }
                         />
                       </ScatterChart>
                     </ChartContainer>
@@ -1497,19 +1629,13 @@ export function StatisticsCharts({
                         />
                       }
                     />
-                    {/* Größere Punkte: X-Achse hat nur 5 diskrete Werte (Ausführung 1–5) */}
+                    {/* Einheitlicher Punktstil auch bei diskreter X-Achse (Ausführung 1–5). */}
                     <Scatter
                       data={qualityDisplayData}
                       fill="var(--chart-2)"
-                      shape={(props: { cx?: number; cy?: number }) => (
-                        <circle
-                          cx={props.cx}
-                          cy={props.cy}
-                          r={7}
-                          fill="var(--chart-2)"
-                          opacity={0.7}
-                        />
-                      )}
+                      shape={(props: { cx?: number; cy?: number }) =>
+                        renderScatterPoint(props, "var(--chart-2)")
+                      }
                     />
                   </ScatterChart>
                 </ChartContainer>
