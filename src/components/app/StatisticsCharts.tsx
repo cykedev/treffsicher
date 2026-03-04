@@ -105,6 +105,11 @@ const shotDistributionColors: Record<string, string> = {
 
 const HIT_LOCATION_CLOUD_MARGIN = { top: 12, right: 12, bottom: 12, left: 12 } as const
 const HIT_LOCATION_CLOUD_AXIS_SIZE = 44
+const HIT_LOCATION_CLOUD_TRAIL_STROKE = "color-mix(in srgb, var(--chart-1) 82%, white 18%)"
+const HIT_LOCATION_CLOUD_TRAIL_STROKE_WIDTH = 1.8
+const HIT_LOCATION_CLOUD_TRAIL_STROKE_OPACITY = 0.32
+const HIT_LOCATION_CLOUD_TRAIL_START_RADIUS = 1.8
+const HIT_LOCATION_CLOUD_TRAIL_END_RADIUS = 2.8
 const TREND_WINDOW_SIZE = 5
 const CHART_POINT_RADIUS = 6
 const CHART_POINT_ACTIVE_RADIUS = 7
@@ -127,6 +132,18 @@ type HitLocationPoint = {
   x: number
   y: number
   disciplineId: string | null
+}
+
+type HitLocationPathPoint = {
+  sessionId: string
+  date: Date
+  x: number
+  y: number
+}
+
+type HitLocationCurvePoint = {
+  x: number
+  y: number
 }
 
 function niceNumber(value: number, round: boolean): number {
@@ -329,6 +346,47 @@ function mapSessionToHitLocationPoint(session: StatsSession): HitLocationPoint |
   }
 }
 
+function buildCatmullRomCurvePoints(
+  points: HitLocationPathPoint[],
+  samplesPerSegment = 8
+): HitLocationCurvePoint[] {
+  if (points.length === 0) return []
+  if (points.length === 1) return [{ x: points[0].x, y: points[0].y }]
+  if (points.length === 2) return points.map((point) => ({ x: point.x, y: point.y }))
+
+  const curve: HitLocationCurvePoint[] = [{ x: points[0].x, y: points[0].y }]
+
+  for (let i = 0; i < points.length - 1; i++) {
+    const p0 = points[Math.max(0, i - 1)]
+    const p1 = points[i]
+    const p2 = points[i + 1]
+    const p3 = points[Math.min(points.length - 1, i + 2)]
+
+    for (let step = 1; step <= samplesPerSegment; step++) {
+      const t = step / samplesPerSegment
+      const t2 = t * t
+      const t3 = t2 * t
+
+      const x =
+        0.5 *
+        ((2 * p1.x +
+          (-p0.x + p2.x) * t +
+          (2 * p0.x - 5 * p1.x + 4 * p2.x - p3.x) * t2 +
+          (-p0.x + 3 * p1.x - 3 * p2.x + p3.x) * t3) as number)
+      const y =
+        0.5 *
+        ((2 * p1.y +
+          (-p0.y + p2.y) * t +
+          (2 * p0.y - 5 * p1.y + 4 * p2.y - p3.y) * t2 +
+          (-p0.y + 3 * p1.y - 3 * p2.y + p3.y) * t3) as number)
+
+      curve.push({ x, y })
+    }
+  }
+
+  return curve
+}
+
 function RadarLegend({ items }: { items: RadarLegendItem[] }) {
   if (items.length === 0) return null
 
@@ -472,6 +530,68 @@ export function StatisticsCharts({
       meanY: calculateMean(ys),
     }
   }, [filteredHitLocations])
+
+  // Dezente Verlaufsspur in der Cloud: gleitender Schwerpunkt (X/Y) über die Zeit.
+  const hitLocationCloudPathPoints = useMemo<HitLocationPathPoint[]>(() => {
+    if (filteredHitLocations.length === 0) return []
+
+    const xTrendValues = calculateTrend(filteredHitLocations.map((point) => point.x))
+    const yTrendValues = calculateTrend(filteredHitLocations.map((point) => point.y))
+
+    return filteredHitLocations
+      .map((point, i) => ({
+        sessionId: point.sessionId,
+        date: point.date,
+        x: xTrendValues[i],
+        y: yTrendValues[i],
+      }))
+      .filter(
+        (point): point is HitLocationPathPoint =>
+          typeof point.x === "number" &&
+          Number.isFinite(point.x) &&
+          typeof point.y === "number" &&
+          Number.isFinite(point.y)
+      )
+  }, [filteredHitLocations])
+
+  const hitLocationCloudPathVisualPoints = useMemo(() => {
+    if (hitLocationCloudPathPoints.length <= 2) return hitLocationCloudPathPoints
+
+    const MIN_VISUAL_DISTANCE_MM = 0.45
+    const result: HitLocationPathPoint[] = [hitLocationCloudPathPoints[0]]
+
+    for (let i = 1; i < hitLocationCloudPathPoints.length - 1; i++) {
+      const point = hitLocationCloudPathPoints[i]
+      const previous = result[result.length - 1]
+      const dx = point.x - previous.x
+      const dy = point.y - previous.y
+      const distance = Math.hypot(dx, dy)
+      if (distance >= MIN_VISUAL_DISTANCE_MM) result.push(point)
+    }
+
+    const last = hitLocationCloudPathPoints[hitLocationCloudPathPoints.length - 1]
+    const tail = result[result.length - 1]
+    if (last.sessionId !== tail.sessionId) result.push(last)
+
+    return result
+  }, [hitLocationCloudPathPoints])
+
+  const hitLocationCloudPathStart = hitLocationCloudPathVisualPoints[0] ?? null
+  const hitLocationCloudPathEnd =
+    hitLocationCloudPathVisualPoints.length > 0
+      ? hitLocationCloudPathVisualPoints[hitLocationCloudPathVisualPoints.length - 1]
+      : null
+  const hitLocationCloudCurvePoints = useMemo(
+    () => buildCatmullRomCurvePoints(hitLocationCloudPathVisualPoints),
+    [hitLocationCloudPathVisualPoints]
+  )
+  const hitLocationCloudCurveSegments = useMemo(() => {
+    if (hitLocationCloudCurvePoints.length < 2) return []
+    return hitLocationCloudCurvePoints.slice(1).map((point, i) => [
+      hitLocationCloudCurvePoints[i],
+      point,
+    ] as const)
+  }, [hitLocationCloudCurvePoints])
 
   const hitLocationTrendBySessionId = useMemo(() => {
     const xValues = filteredHitLocationsForTrend.map((point) => point.x)
@@ -1202,6 +1322,21 @@ export function StatisticsCharts({
                             />
                           }
                         />
+                        {hitLocationCloudCurveSegments.map(([from, to], index) => (
+                          <ReferenceLine
+                            key={`hit-location-cloud-curve-${index}`}
+                            segment={[
+                              { x: from.x, y: from.y },
+                              { x: to.x, y: to.y },
+                            ]}
+                            stroke={HIT_LOCATION_CLOUD_TRAIL_STROKE}
+                            strokeWidth={HIT_LOCATION_CLOUD_TRAIL_STROKE_WIDTH}
+                            strokeOpacity={HIT_LOCATION_CLOUD_TRAIL_STROKE_OPACITY}
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            ifOverflow="extendDomain"
+                          />
+                        ))}
                         <Scatter
                           data={filteredHitLocations}
                           fill="var(--chart-1)"
@@ -1209,6 +1344,42 @@ export function StatisticsCharts({
                             renderScatterPoint(props, "var(--chart-1)")
                           }
                         />
+                        {hitLocationCloudPathStart && (
+                          <Scatter
+                            data={[hitLocationCloudPathStart]}
+                            legendType="none"
+                            fill="transparent"
+                            shape={(props: { cx?: number; cy?: number }) => (
+                              <circle
+                                cx={props.cx}
+                                cy={props.cy}
+                                r={HIT_LOCATION_CLOUD_TRAIL_START_RADIUS}
+                                fill="none"
+                                stroke={HIT_LOCATION_CLOUD_TRAIL_STROKE}
+                                strokeOpacity={0.58}
+                                strokeWidth={1}
+                              />
+                            )}
+                          />
+                        )}
+                        {hitLocationCloudPathEnd && (
+                          <Scatter
+                            data={[hitLocationCloudPathEnd]}
+                            legendType="none"
+                            fill="transparent"
+                            shape={(props: { cx?: number; cy?: number }) => (
+                              <circle
+                                cx={props.cx}
+                                cy={props.cy}
+                                r={HIT_LOCATION_CLOUD_TRAIL_END_RADIUS}
+                                fill={HIT_LOCATION_CLOUD_TRAIL_STROKE}
+                                fillOpacity={0.68}
+                                stroke="var(--background)"
+                                strokeWidth={1}
+                              />
+                            )}
+                          />
+                        )}
                       </ScatterChart>
                     </ChartContainer>
                   </div>
