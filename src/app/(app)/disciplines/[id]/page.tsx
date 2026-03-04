@@ -2,10 +2,7 @@ import { notFound, redirect } from "next/navigation"
 import Link from "next/link"
 import { ArrowLeft, CheckCircle2, Gauge, Pencil, Target } from "lucide-react"
 import { getAuthSession } from "@/lib/auth-helpers"
-import {
-  getDisciplineForDetail,
-  getFavouriteDisciplineId,
-} from "@/lib/disciplines/actions"
+import { getDisciplineForDetail, getFavouriteDisciplineId } from "@/lib/disciplines/actions"
 import { ArchiveDisciplineButton } from "@/components/app/ArchiveDisciplineButton"
 import { FavouriteDisciplineButton } from "@/components/app/FavouriteDisciplineButton"
 import { Badge } from "@/components/ui/badge"
@@ -18,7 +15,11 @@ const scoringTypeLabel: Record<string, string> = {
   TENTH: "Zehntelringe",
 }
 
-export default async function DisciplineDetailPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function DisciplineDetailPage({
+  params,
+}: {
+  params: Promise<{ id: string }>
+}) {
   const session = await getAuthSession()
   if (!session) redirect("/login")
 
@@ -51,7 +52,11 @@ export default async function DisciplineDetailPage({ params }: { params: Promise
               </Button>
             )}
             {canManage && (
-              <ArchiveDisciplineButton disciplineId={discipline.id} isArchived={discipline.isArchived} compact />
+              <ArchiveDisciplineButton
+                disciplineId={discipline.id}
+                isArchived={discipline.isArchived}
+                compact
+              />
             )}
             <Button variant="ghost" size="sm" className="px-2 sm:px-3" asChild>
               <Link href="/disciplines" aria-label="Zurück zu Disziplinen">
