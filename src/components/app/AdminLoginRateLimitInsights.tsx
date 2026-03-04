@@ -66,8 +66,12 @@ function BucketTable({
               <td className="py-2 pr-4">
                 <span className="tabular-nums">{formatCount(bucket.attempts)}</span>
               </td>
-              <td className="py-2 pr-4 text-muted-foreground">{formatDate(bucket.windowStartedAt)}</td>
-              <td className="py-2 pr-4 text-muted-foreground">{formatDate(bucket.lastAttemptAt)}</td>
+              <td className="py-2 pr-4 text-muted-foreground">
+                {formatDate(bucket.windowStartedAt)}
+              </td>
+              <td className="py-2 pr-4 text-muted-foreground">
+                {formatDate(bucket.lastAttemptAt)}
+              </td>
               <td className="py-2 text-muted-foreground">{formatDate(bucket.blockedUntil)}</td>
             </tr>
           ))}

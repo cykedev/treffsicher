@@ -166,7 +166,9 @@ function parseHitLocationMillimeters(rawValue: FormDataEntryValue | null): numbe
   return Math.round(parsed * 100) / 100
 }
 
-function parseHitLocationFromFormData(formData: FormData): ParsedHitLocationInput | null | "INVALID" {
+function parseHitLocationFromFormData(
+  formData: FormData
+): ParsedHitLocationInput | null | "INVALID" {
   const horizontalMmRaw = formData.get("hitLocationHorizontalMm")
   const horizontalDirectionRaw = formData.get("hitLocationHorizontalDirection")
   const verticalMmRaw = formData.get("hitLocationVerticalMm")
@@ -187,7 +189,9 @@ function parseHitLocationFromFormData(formData: FormData): ParsedHitLocationInpu
   if (
     typeof horizontalDirectionRaw !== "string" ||
     typeof verticalDirectionRaw !== "string" ||
-    !HORIZONTAL_DIRECTION_VALUES.includes(horizontalDirectionRaw as HitLocationHorizontalDirection) ||
+    !HORIZONTAL_DIRECTION_VALUES.includes(
+      horizontalDirectionRaw as HitLocationHorizontalDirection
+    ) ||
     !VERTICAL_DIRECTION_VALUES.includes(verticalDirectionRaw as HitLocationVerticalDirection)
   ) {
     return "INVALID"

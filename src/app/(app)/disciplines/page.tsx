@@ -54,7 +54,10 @@ export default async function DisciplinesPage() {
                       {/* Favorit in der Übersicht direkt sichtbar halten —
                           so muss die Detailansicht nicht erst geöffnet werden. */}
                       {favouriteDisciplineId === d.id && (
-                        <Star className="h-3.5 w-3.5 shrink-0 text-yellow-500" fill="currentColor" />
+                        <Star
+                          className="h-3.5 w-3.5 shrink-0 text-yellow-500"
+                          fill="currentColor"
+                        />
                       )}
                       <span className="break-words font-medium">{d.name}</span>
                       {d.isSystem && (
