@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Trash2 } from "lucide-react"
 import { createSession, previewMeytonImport, updateSession } from "@/lib/sessions/actions"
@@ -83,6 +83,11 @@ function toIsoFromDateTimeLocalValue(value: string): string | null {
   return parsed.toISOString()
 }
 
+function isPdfFile(file: File): boolean {
+  if (file.type === "application/pdf") return true
+  return file.name.toLowerCase().endsWith(".pdf")
+}
+
 function formatMillimeters(value: number): string {
   return value.toFixed(2)
 }
@@ -137,6 +142,7 @@ export function SessionForm({
   defaultDisciplineId,
 }: Props) {
   const router = useRouter()
+  const importFileInputRef = useRef<HTMLInputElement | null>(null)
   const [pending, setPending] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false)
@@ -250,6 +256,89 @@ export function SessionForm({
   // Gewählte Disziplin aus der Liste suchen
   const selectedDiscipline = disciplines.find((d) => d.id === disciplineId)
   const scoringType = selectedDiscipline?.scoringType
+  const needsDiscipline = typesWithDiscipline.includes(type)
+  const isMeytonButtonVisible = needsDiscipline && Boolean(selectedDiscipline) && totalSeries > 0
+  const canAutoSelectDropDefaults = !sessionId && type === ""
+  const defaultDropDisciplineId =
+    (defaultDisciplineId && disciplines.some((discipline) => discipline.id === defaultDisciplineId)
+      ? defaultDisciplineId
+      : disciplines[0]?.id) ?? null
+  const hasDropDisciplineCandidate = disciplineId !== "" || defaultDropDisciplineId !== null
+  const canAcceptDroppedMeytonPdf =
+    (Boolean(selectedDiscipline) && (sessionId ? needsDiscipline : isMeytonButtonVisible)) ||
+    (canAutoSelectDropDefaults && hasDropDisciplineCandidate)
+
+  // Disziplinwechsel: alle Serien-States auf Disziplin-Standardwerte zurücksetzen
+  const handleDisciplineChange = useCallback(
+    (id: string) => {
+      setDisciplineId(id)
+      const disc = disciplines.find((d) => d.id === id)
+      const defaults = createSeriesDefaults(disc)
+      setTotalSeries(defaults.totalSeries)
+      setShotCounts(defaults.shotCounts)
+      setSeriesIsPractice(defaults.seriesIsPractice)
+      setSeriesKeys(defaults.seriesKeys)
+      setSeriesTotals(defaults.seriesTotals)
+      setShowShots(false)
+      setShots([])
+    },
+    [disciplines]
+  )
+
+  useEffect(() => {
+    if (!canAcceptDroppedMeytonPdf || pending || isImportPending) return
+
+    const hasFiles = (event: DragEvent) =>
+      Array.from(event.dataTransfer?.types ?? []).includes("Files")
+
+    const handleWindowDragOver = (event: DragEvent) => {
+      if (!hasFiles(event)) return
+      event.preventDefault()
+      if (event.dataTransfer) {
+        event.dataTransfer.dropEffect = "copy"
+      }
+    }
+
+    const handleWindowDrop = (event: DragEvent) => {
+      if (!hasFiles(event)) return
+      event.preventDefault()
+
+      const files = Array.from(event.dataTransfer?.files ?? [])
+      if (files.length === 0) return
+
+      const pdfFile = files.find((file) => isPdfFile(file))
+      if (pdfFile && canAutoSelectDropDefaults) {
+        setType("TRAINING")
+        if (!disciplineId && defaultDropDisciplineId) {
+          handleDisciplineChange(defaultDropDisciplineId)
+        }
+      }
+
+      setImportSource("UPLOAD")
+      setImportUrl("")
+      setImportFile(pdfFile ?? null)
+      setImportError(pdfFile ? null : "Bitte eine PDF-Datei (.pdf) ziehen.")
+      setIsImportDialogOpen(true)
+    }
+
+    window.addEventListener("dragover", handleWindowDragOver)
+    window.addEventListener("drop", handleWindowDrop)
+
+    return () => {
+      window.removeEventListener("dragover", handleWindowDragOver)
+      window.removeEventListener("drop", handleWindowDrop)
+    }
+  }, [
+    canAcceptDroppedMeytonPdf,
+    canAutoSelectDropDefaults,
+    disciplineId,
+    defaultDropDisciplineId,
+    hasDropDisciplineCandidate,
+    handleDisciplineChange,
+    pending,
+    isImportPending,
+    sessionId,
+  ])
 
   // ─── Validierung ─────────────────────────────────────────────────────────────
   // Wird inline ohne separaten Error-State berechnet — so immer synchron mit dem
@@ -306,20 +395,6 @@ export function SessionForm({
   }
 
   // ─── Handler ─────────────────────────────────────────────────────────────────
-
-  // Disziplinwechsel: alle Serien-States auf Disziplin-Standardwerte zurücksetzen
-  function handleDisciplineChange(id: string) {
-    setDisciplineId(id)
-    const disc = disciplines.find((d) => d.id === id)
-    const defaults = createSeriesDefaults(disc)
-    setTotalSeries(defaults.totalSeries)
-    setShotCounts(defaults.shotCounts)
-    setSeriesIsPractice(defaults.seriesIsPractice)
-    setSeriesKeys(defaults.seriesKeys)
-    setSeriesTotals(defaults.seriesTotals)
-    setShowShots(false)
-    setShots([])
-  }
 
   // Shots-Array initialisieren wenn Toggle aktiviert wird.
   // Beim Deaktivieren: berechnete Summen in seriesTotals übernehmen.
@@ -570,8 +645,6 @@ export function SessionForm({
     // Falls keine Navigation erfolgt, Formular wieder freigeben.
     setPending(false)
   }
-
-  const needsDiscipline = typesWithDiscipline.includes(type)
 
   return (
     <form onSubmit={handleSubmit} noValidate className="space-y-6">
@@ -873,7 +946,7 @@ export function SessionForm({
       </Card>
 
       {/* Serien — erscheinen erst wenn Disziplin gewählt */}
-      {needsDiscipline && selectedDiscipline && totalSeries > 0 && (
+      {isMeytonButtonVisible && selectedDiscipline && (
         <div className="space-y-3">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <h2 className="text-lg font-semibold">Serien</h2>
@@ -1212,15 +1285,36 @@ export function SessionForm({
                 </div>
               ) : (
                 <div className="space-y-2">
-                  <Label htmlFor="file">PDF-Datei</Label>
-                  <Input
-                    key="meyton-file-input"
-                    id="file"
+                  <Label htmlFor="meyton-file">PDF-Datei</Label>
+                  <input
+                    ref={importFileInputRef}
+                    id="meyton-file"
                     type="file"
                     accept="application/pdf,.pdf"
+                    className="sr-only"
+                    onClick={(event) => {
+                      event.currentTarget.value = ""
+                    }}
                     onChange={(event) => setImportFile(event.target.files?.[0] ?? null)}
                     disabled={isImportPending}
                   />
+                  <div className="flex items-center gap-2 rounded-md border border-input bg-background px-2.5 py-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      disabled={isImportPending}
+                      onClick={() => importFileInputRef.current?.click()}
+                      className="shrink-0"
+                    >
+                      Datei auswählen
+                    </Button>
+                    {importFile && (
+                      <span className="min-w-0 truncate text-sm text-foreground">
+                        {importFile.name}
+                      </span>
+                    )}
+                  </div>
                 </div>
               )}
 
