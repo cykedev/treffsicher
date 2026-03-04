@@ -587,10 +587,9 @@ export function StatisticsCharts({
   )
   const hitLocationCloudCurveSegments = useMemo(() => {
     if (hitLocationCloudCurvePoints.length < 2) return []
-    return hitLocationCloudCurvePoints.slice(1).map((point, i) => [
-      hitLocationCloudCurvePoints[i],
-      point,
-    ] as const)
+    return hitLocationCloudCurvePoints
+      .slice(1)
+      .map((point, i) => [hitLocationCloudCurvePoints[i], point] as const)
   }, [hitLocationCloudCurvePoints])
 
   const hitLocationTrendBySessionId = useMemo(() => {
