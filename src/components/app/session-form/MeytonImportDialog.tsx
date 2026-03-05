@@ -17,39 +17,23 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import type { ImportSourceType } from "@/components/app/session-form/types"
+import type {
+  ImportSourceType,
+  MeytonImportDialogActions,
+  MeytonImportDialogModel,
+} from "@/components/app/session-form/types"
 
 interface Props {
-  open: boolean
-  isImportPending: boolean
-  importSource: ImportSourceType
-  importUrl: string
-  importFile: File | null
-  importError: string | null
-  onOpenChange: (open: boolean) => void
-  onImportSourceChange: (value: ImportSourceType) => void
-  onImportUrlChange: (value: string) => void
-  onImportFileChange: (file: File | null) => void
-  onImport: () => void
+  model: MeytonImportDialogModel
+  actions: MeytonImportDialogActions
 }
 
-export function MeytonImportDialog({
-  open,
-  isImportPending,
-  importSource,
-  importUrl,
-  importFile,
-  importError,
-  onOpenChange,
-  onImportSourceChange,
-  onImportUrlChange,
-  onImportFileChange,
-  onImport,
-}: Props) {
+export function MeytonImportDialog({ model, actions }: Props) {
+  const { open, isPending, source, url, file, error } = model
   const importFileInputRef = useRef<HTMLInputElement | null>(null)
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={actions.openChange}>
       <DialogContent className="max-w-xl">
         <DialogHeader>
           <DialogTitle>Meyton-Import</DialogTitle>
@@ -62,8 +46,8 @@ export function MeytonImportDialog({
           <div className="space-y-2">
             <Label htmlFor="meyton-source">Quelle</Label>
             <Select
-              value={importSource}
-              onValueChange={(value) => onImportSourceChange(value as ImportSourceType)}
+              value={source}
+              onValueChange={(value) => actions.sourceChange(value as ImportSourceType)}
             >
               <SelectTrigger id="meyton-source" className="w-full">
                 <SelectValue placeholder="Quelle wählen" />
@@ -75,7 +59,7 @@ export function MeytonImportDialog({
             </Select>
           </div>
 
-          {importSource === "URL" ? (
+          {source === "URL" ? (
             <div className="space-y-2">
               <Label htmlFor="pdfUrl">PDF-URL</Label>
               <Input
@@ -83,9 +67,9 @@ export function MeytonImportDialog({
                 id="pdfUrl"
                 type="url"
                 placeholder="example.com/meyton.pdf"
-                value={importUrl}
-                onChange={(event) => onImportUrlChange(event.target.value)}
-                disabled={isImportPending}
+                value={url}
+                onChange={(event) => actions.urlChange(event.target.value)}
+                disabled={isPending}
               />
             </div>
           ) : (
@@ -100,41 +84,41 @@ export function MeytonImportDialog({
                 onClick={(event) => {
                   event.currentTarget.value = ""
                 }}
-                onChange={(event) => onImportFileChange(event.target.files?.[0] ?? null)}
-                disabled={isImportPending}
+                onChange={(event) => actions.fileChange(event.target.files?.[0] ?? null)}
+                disabled={isPending}
               />
               <div className="flex items-center gap-2 rounded-md border border-input bg-background px-2.5 py-2">
                 <Button
                   type="button"
                   variant="outline"
                   size="sm"
-                  disabled={isImportPending}
+                  disabled={isPending}
                   onClick={() => importFileInputRef.current?.click()}
                   className="shrink-0"
                 >
                   Datei auswählen
                 </Button>
-                {importFile && (
+                {file && (
                   <span className="min-w-0 truncate text-sm text-foreground">
-                    {importFile.name}
+                    {file.name}
                   </span>
                 )}
               </div>
             </div>
           )}
 
-          {importError && <p className="text-sm text-destructive">{importError}</p>}
+          {error && <p className="text-sm text-destructive">{error}</p>}
         </div>
 
         <DialogFooter>
-          <Button type="button" disabled={isImportPending} onClick={onImport}>
-            {isImportPending ? "Importiere..." : "Importieren"}
+          <Button type="button" disabled={isPending} onClick={actions.runImport}>
+            {isPending ? "Importiere..." : "Importieren"}
           </Button>
           <Button
             type="button"
             variant="outline"
-            disabled={isImportPending}
-            onClick={() => onOpenChange(false)}
+            disabled={isPending}
+            onClick={() => actions.openChange(false)}
           >
             Abbrechen
           </Button>

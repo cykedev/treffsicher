@@ -12,55 +12,36 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import type { ScoringType } from "@/generated/prisma/client"
+import type {
+  SeriesEditorCardActions,
+  SeriesEditorCardModel,
+} from "@/components/app/session-form/types"
 
 interface Props {
-  seriesIndex: number
-  seriesLabel: string
-  isPractice: boolean
-  totalSeries: number
-  showShots: boolean
-  pending: boolean
-  scoringType: ScoringType
-  currentShotCount: number
-  shotsForSeries: string[]
-  computedTotal: number | null
-  maxLabel: string
-  invalidShots: boolean[]
-  totalIsInvalid: boolean
-  invalidShotCount: number
-  seriesTotalValue: string
-  defaultExecutionQuality: number | null | undefined
-  onTogglePractice: (index: number) => void
-  onRemoveSeries: (index: number) => void
-  onShotCountChange: (seriesIndex: number, newCount: number) => void
-  onShotChange: (seriesIndex: number, shotIndex: number, value: string) => void
-  onTotalChange: (seriesIndex: number, value: string) => void
+  model: SeriesEditorCardModel
+  actions: SeriesEditorCardActions
 }
 
-export function SeriesEditorCard({
-  seriesIndex,
-  seriesLabel,
-  isPractice,
-  totalSeries,
-  showShots,
-  pending,
-  scoringType,
-  currentShotCount,
-  shotsForSeries,
-  computedTotal,
-  maxLabel,
-  invalidShots,
-  totalIsInvalid,
-  invalidShotCount,
-  seriesTotalValue,
-  defaultExecutionQuality,
-  onTogglePractice,
-  onRemoveSeries,
-  onShotCountChange,
-  onShotChange,
-  onTotalChange,
-}: Props) {
+export function SeriesEditorCard({ model, actions }: Props) {
+  const {
+    seriesIndex,
+    seriesLabel,
+    isPractice,
+    totalSeries,
+    showShots,
+    pending,
+    scoringType,
+    currentShotCount,
+    shotsForSeries,
+    computedTotal,
+    maxLabel,
+    invalidShots,
+    totalIsInvalid,
+    invalidShotCount,
+    seriesTotalValue,
+    defaultExecutionQuality,
+  } = model
+
   return (
     <div
       className="relative"
@@ -104,7 +85,7 @@ export function SeriesEditorCard({
             <div className="flex items-center gap-1">
               <SelectableRow
                 selected={isPractice}
-                onToggle={() => onTogglePractice(seriesIndex)}
+                onToggle={() => actions.togglePractice(seriesIndex)}
                 disabled={pending}
                 className="w-auto rounded-md px-2 py-1 text-xs"
                 indicatorClassName="h-4 w-4"
@@ -115,7 +96,7 @@ export function SeriesEditorCard({
                 type="button"
                 variant="ghost"
                 size="icon-xs"
-                onClick={() => onRemoveSeries(seriesIndex)}
+                onClick={() => actions.removeSeries(seriesIndex)}
                 disabled={pending || totalSeries <= 1}
                 aria-label={`${seriesLabel} entfernen`}
                 className="text-destructive hover:bg-destructive/10 hover:text-destructive"
@@ -136,7 +117,7 @@ export function SeriesEditorCard({
                     max="99"
                     value={currentShotCount}
                     onChange={(event) =>
-                      onShotCountChange(seriesIndex, parseInt(event.target.value, 10) || 1)
+                      actions.shotCountChange(seriesIndex, parseInt(event.target.value, 10) || 1)
                     }
                     disabled={pending}
                     className="h-7 w-16 px-2 text-center text-xs"
@@ -156,7 +137,7 @@ export function SeriesEditorCard({
                         placeholder="-"
                         value={shotsForSeries[shotIndex] ?? ""}
                         onChange={(event) =>
-                          onShotChange(seriesIndex, shotIndex, event.target.value)
+                          actions.shotChange(seriesIndex, shotIndex, event.target.value)
                         }
                         disabled={pending}
                         className={`px-1 text-center text-sm ${
@@ -205,7 +186,7 @@ export function SeriesEditorCard({
                       totalIsInvalid ? "border-destructive focus-visible:ring-destructive" : ""
                     }`}
                     value={seriesTotalValue}
-                    onChange={(event) => onTotalChange(seriesIndex, event.target.value)}
+                    onChange={(event) => actions.totalChange(seriesIndex, event.target.value)}
                     disabled={pending}
                     aria-invalid={totalIsInvalid}
                   />

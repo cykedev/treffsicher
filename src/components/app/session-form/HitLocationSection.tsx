@@ -12,36 +12,42 @@ import type {
   HitLocationHorizontalDirection,
   HitLocationVerticalDirection,
 } from "@/generated/prisma/client"
-import type { SessionHitLocation } from "@/components/app/session-form/types"
+import type {
+  HitLocationSectionActions,
+  HitLocationSectionModel,
+} from "@/components/app/session-form/types"
 import { isValidHitLocationMillimeter } from "@/components/app/session-form/utils"
 
 interface Props {
-  pending: boolean
-  hitLocation: SessionHitLocation | null
-  hasHitLocationValidationError: boolean
-  onEnable: () => void
-  onClear: () => void
-  onChange: <K extends keyof SessionHitLocation>(key: K, value: SessionHitLocation[K]) => void
+  model: HitLocationSectionModel
+  actions: HitLocationSectionActions
 }
 
-export function HitLocationSection({
-  pending,
-  hitLocation,
-  hasHitLocationValidationError,
-  onEnable,
-  onClear,
-  onChange,
-}: Props) {
+export function HitLocationSection({ model, actions }: Props) {
+  const { pending, hitLocation, hasValidationError } = model
+
   return (
     <div className="space-y-3 rounded-lg border border-border/60 bg-muted/10 p-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <Label className="text-sm">Trefferlage (optional)</Label>
         {hitLocation ? (
-          <Button type="button" variant="outline" size="sm" onClick={onClear} disabled={pending}>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={actions.clear}
+            disabled={pending}
+          >
             Trefferlage löschen
           </Button>
         ) : (
-          <Button type="button" variant="outline" size="sm" onClick={onEnable} disabled={pending}>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={actions.enable}
+            disabled={pending}
+          >
             Trefferlage erfassen
           </Button>
         )}
@@ -57,10 +63,10 @@ export function HitLocationSection({
                 inputMode="decimal"
                 placeholder="mm"
                 value={hitLocation.horizontalMm}
-                onChange={(event) => onChange("horizontalMm", event.target.value)}
+                onChange={(event) => actions.change("horizontalMm", event.target.value)}
                 disabled={pending}
                 className={
-                  hasHitLocationValidationError &&
+                  hasValidationError &&
                   !isValidHitLocationMillimeter(hitLocation.horizontalMm)
                     ? "border-destructive focus-visible:ring-destructive"
                     : ""
@@ -71,7 +77,7 @@ export function HitLocationSection({
                 value={hitLocation.horizontalDirection || undefined}
                 disabled={pending}
                 onValueChange={(value) =>
-                  onChange("horizontalDirection", value as HitLocationHorizontalDirection)
+                  actions.change("horizontalDirection", value as HitLocationHorizontalDirection)
                 }
               >
                 <SelectTrigger className="w-32">
@@ -93,10 +99,10 @@ export function HitLocationSection({
                 inputMode="decimal"
                 placeholder="mm"
                 value={hitLocation.verticalMm}
-                onChange={(event) => onChange("verticalMm", event.target.value)}
+                onChange={(event) => actions.change("verticalMm", event.target.value)}
                 disabled={pending}
                 className={
-                  hasHitLocationValidationError &&
+                  hasValidationError &&
                   !isValidHitLocationMillimeter(hitLocation.verticalMm)
                     ? "border-destructive focus-visible:ring-destructive"
                     : ""
@@ -107,7 +113,7 @@ export function HitLocationSection({
                 value={hitLocation.verticalDirection || undefined}
                 disabled={pending}
                 onValueChange={(value) =>
-                  onChange("verticalDirection", value as HitLocationVerticalDirection)
+                  actions.change("verticalDirection", value as HitLocationVerticalDirection)
                 }
               >
                 <SelectTrigger className="w-32">
@@ -123,7 +129,7 @@ export function HitLocationSection({
         </div>
       )}
 
-      {hasHitLocationValidationError && (
+      {hasValidationError && (
         <p className="text-xs text-destructive">
           Trefferlage unvollständig oder ungültig. Bitte beide mm-Werte und Richtungen angeben oder
           die Trefferlage löschen.
