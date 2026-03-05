@@ -1,5 +1,5 @@
 import { useMemo } from "react"
-import type { TypeFilter } from "@/components/app/statistics-charts/useStatisticsFilterState"
+import type { TypeFilter } from "@/components/app/statistics-charts/hooks/useStatisticsFilterState"
 import type {
   QualityVsScorePoint,
   RadarComparisonSession,

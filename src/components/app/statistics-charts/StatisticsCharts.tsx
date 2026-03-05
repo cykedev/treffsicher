@@ -15,13 +15,15 @@ import type {
 } from "@/components/app/statistics-charts/filterTypes"
 import { StatisticsFiltersCard } from "@/components/app/statistics-charts/StatisticsFiltersCard"
 import { StatisticsChartsTabs } from "@/components/app/statistics-charts/StatisticsChartsTabs"
+import {
+  useAggregatedShotDistribution,
+  useHitLocationChartState,
+  useResultTrendChartState,
+  useStatisticsFilteredData,
+  useStatisticsFilterState,
+  useWellbeingQualityChartState,
+} from "@/components/app/statistics-charts/hooks"
 import type { StatisticsChartsTabsModel } from "@/components/app/statistics-charts/tabs/types"
-import { useAggregatedShotDistribution } from "@/components/app/statistics-charts/useAggregatedShotDistribution"
-import { useResultTrendChartState } from "@/components/app/statistics-charts/useResultTrendChartState"
-import { useStatisticsFilterState } from "@/components/app/statistics-charts/useStatisticsFilterState"
-import { useStatisticsFilteredData } from "@/components/app/statistics-charts/useStatisticsFilteredData"
-import { useHitLocationChartState } from "@/components/app/statistics-charts/useHitLocationChartState"
-import { useWellbeingQualityChartState } from "@/components/app/statistics-charts/useWellbeingQualityChartState"
 import type {
   RadarLegendItem,
   RadarSeriesKey,

@@ -13,7 +13,7 @@ import type {
   StatisticsFiltersCardActions,
   StatisticsFiltersCardModel,
 } from "@/components/app/statistics-charts/filterTypes"
-import type { TypeFilter } from "@/components/app/statistics-charts/useStatisticsFilterState"
+import type { TypeFilter } from "@/components/app/statistics-charts/hooks/useStatisticsFilterState"
 
 interface Props {
   model: StatisticsFiltersCardModel
