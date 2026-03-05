@@ -2,11 +2,12 @@
 
 import { useActionState, useState, useEffect } from "react"
 import { savePrognosis, type ActionResult, type SerializedPrognosis } from "@/lib/sessions/actions"
-import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Slider } from "@/components/ui/slider"
 import { Textarea } from "@/components/ui/textarea"
+import { ActionFormFooter } from "@/components/app/sessions/shared/ActionFormFooter"
+import { ActionFormMessages } from "@/components/app/sessions/shared/ActionFormMessages"
+import { ScoreSliderRows } from "@/components/app/sessions/shared/ScoreSliderRows"
 
 interface Props {
   sessionId: string
@@ -16,13 +17,13 @@ interface Props {
 }
 
 const dimensions = [
-  { name: "fitness", label: "Kondition" },
-  { name: "nutrition", label: "Ernährung" },
-  { name: "technique", label: "Technik" },
-  { name: "tactics", label: "Taktik" },
-  { name: "mentalStrength", label: "Mentale Stärke" },
-  { name: "environment", label: "Umfeld" },
-  { name: "equipment", label: "Material" },
+  { id: "prognosis-fitness", name: "fitness", label: "Kondition" },
+  { id: "prognosis-nutrition", name: "nutrition", label: "Ernährung" },
+  { id: "prognosis-technique", name: "technique", label: "Technik" },
+  { id: "prognosis-tactics", name: "tactics", label: "Taktik" },
+  { id: "prognosis-mentalStrength", name: "mentalStrength", label: "Mentale Stärke" },
+  { id: "prognosis-environment", name: "environment", label: "Umfeld" },
+  { id: "prognosis-equipment", name: "equipment", label: "Material" },
 ] as const
 
 type DimensionKey = (typeof dimensions)[number]["name"]
@@ -47,36 +48,25 @@ export function PrognosisForm({ sessionId, initialData, onSuccess, onCancel }: P
 
   return (
     <form action={formAction} className="space-y-4">
-      {state?.error && <p className="text-sm text-destructive">{state.error}</p>}
-      {state?.success && !onSuccess && (
-        <p className="text-sm text-green-600">Prognose gespeichert.</p>
-      )}
+      <ActionFormMessages
+        error={state?.error}
+        success={state?.success}
+        showInlineSuccess={!onSuccess}
+        successMessage="Prognose gespeichert."
+      />
 
-      <div className="space-y-3">
-        <p className="text-sm font-medium">Selbsteinschätzung (0–100)</p>
-        {dimensions.map((dim) => (
-          // Gleiche Ausrichtung wie Lese-Ansicht: Label (w-32) | Slider (flex-1) | Wert (w-8)
-          <div key={dim.name} className="flex items-center gap-3">
-            <Label htmlFor={`prognosis-${dim.name}`} className="w-32 shrink-0 truncate text-sm">
-              {dim.label}
-            </Label>
-            <input type="hidden" name={dim.name} value={values[dim.name]} />
-            <Slider
-              id={`prognosis-${dim.name}`}
-              min={0}
-              max={100}
-              step={1}
-              value={[values[dim.name]]}
-              onValueChange={([v]) => setValues((prev) => ({ ...prev, [dim.name]: v }))}
-              disabled={pending}
-              className="flex-1"
-            />
-            <span className="w-8 shrink-0 text-right text-sm tabular-nums text-muted-foreground">
-              {values[dim.name]}
-            </span>
-          </div>
-        ))}
-      </div>
+      <ScoreSliderRows
+        title="Selbsteinschätzung (0–100)"
+        rows={dimensions}
+        values={values}
+        pending={pending}
+        onValueChange={(name, value) => {
+          setValues((current) => ({
+            ...current,
+            [name]: value,
+          }))
+        }}
+      />
 
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-2">
@@ -120,16 +110,12 @@ export function PrognosisForm({ sessionId, initialData, onSuccess, onCancel }: P
         />
       </div>
 
-      <div className="flex gap-2">
-        <Button type="submit" size="sm" disabled={pending}>
-          {pending ? "Speichern..." : "Prognose speichern"}
-        </Button>
-        {onCancel && (
-          <Button type="button" variant="outline" size="sm" onClick={onCancel} disabled={pending}>
-            Abbrechen
-          </Button>
-        )}
-      </div>
+      <ActionFormFooter
+        pending={pending}
+        submitLabel="Prognose speichern"
+        submitPendingLabel="Speichern..."
+        onCancel={onCancel}
+      />
     </form>
   )
 }

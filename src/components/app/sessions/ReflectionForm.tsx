@@ -2,10 +2,11 @@
 
 import { useActionState, useState, useEffect } from "react"
 import { saveReflection, type ActionResult } from "@/lib/sessions/actions"
-import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { SelectableRow } from "@/components/ui/selectable-row"
 import { Textarea } from "@/components/ui/textarea"
+import { ActionFormFooter } from "@/components/app/sessions/shared/ActionFormFooter"
+import { ActionFormMessages } from "@/components/app/sessions/shared/ActionFormMessages"
 import type { Reflection } from "@/generated/prisma/client"
 
 interface Props {
@@ -35,11 +36,12 @@ export function ReflectionForm({ sessionId, initialData, onSuccess, onCancel }: 
 
   return (
     <form action={formAction} className="space-y-4">
-      {state?.error && <p className="text-sm text-destructive">{state.error}</p>}
-      {/* Erfolgsmeldung nur ohne Callback — Wrapper übernimmt sonst die Navigation */}
-      {state?.success && !onSuccess && (
-        <p className="text-sm text-green-600">Reflexion gespeichert.</p>
-      )}
+      <ActionFormMessages
+        error={state?.error}
+        success={state?.success}
+        showInlineSuccess={!onSuccess}
+        successMessage="Reflexion gespeichert."
+      />
 
       <div className="space-y-2">
         <Label htmlFor="observations">Beobachtungen</Label>
@@ -107,16 +109,12 @@ export function ReflectionForm({ sessionId, initialData, onSuccess, onCancel }: 
         )}
       </div>
 
-      <div className="flex gap-2">
-        <Button type="submit" size="sm" disabled={pending}>
-          {pending ? "Speichern..." : "Reflexion speichern"}
-        </Button>
-        {onCancel && (
-          <Button type="button" variant="outline" size="sm" onClick={onCancel} disabled={pending}>
-            Abbrechen
-          </Button>
-        )}
-      </div>
+      <ActionFormFooter
+        pending={pending}
+        submitLabel="Reflexion speichern"
+        submitPendingLabel="Speichern..."
+        onCancel={onCancel}
+      />
     </form>
   )
 }

@@ -2,9 +2,9 @@
 
 import { useActionState, useState, useEffect } from "react"
 import { saveWellbeing, type ActionResult } from "@/lib/sessions/actions"
-import { Button } from "@/components/ui/button"
-import { Label } from "@/components/ui/label"
-import { Slider } from "@/components/ui/slider"
+import { ActionFormFooter } from "@/components/app/sessions/shared/ActionFormFooter"
+import { ActionFormMessages } from "@/components/app/sessions/shared/ActionFormMessages"
+import { ScoreSliderRows } from "@/components/app/sessions/shared/ScoreSliderRows"
 import type { Wellbeing } from "@/generated/prisma/client"
 
 interface Props {
@@ -15,10 +15,10 @@ interface Props {
 }
 
 const wellbeingFields = [
-  { name: "sleep", label: "Schlaf" },
-  { name: "energy", label: "Energie" },
-  { name: "stress", label: "Stress" },
-  { name: "motivation", label: "Motivation" },
+  { id: "wellbeing-sleep", name: "sleep", label: "Schlaf" },
+  { id: "wellbeing-energy", name: "energy", label: "Energie" },
+  { id: "wellbeing-stress", name: "stress", label: "Stress" },
+  { id: "wellbeing-motivation", name: "motivation", label: "Motivation" },
 ] as const
 
 export function WellbeingForm({ sessionId, initialData, onSuccess, onCancel }: Props) {
@@ -38,47 +38,32 @@ export function WellbeingForm({ sessionId, initialData, onSuccess, onCancel }: P
 
   return (
     <form action={formAction} className="space-y-4">
-      {state?.error && <p className="text-sm text-destructive">{state.error}</p>}
-      {state?.success && !onSuccess && (
-        <p className="text-sm text-green-600">Befinden gespeichert.</p>
-      )}
+      <ActionFormMessages
+        error={state?.error}
+        success={state?.success}
+        showInlineSuccess={!onSuccess}
+        successMessage="Befinden gespeichert."
+      />
 
-      <div className="space-y-3">
-        <p className="text-sm font-medium">Befinden (0–100)</p>
-        {wellbeingFields.map((field) => (
-          // Gleiche Ausrichtung wie Prognose/Feedback: Label (w-32) | Slider (flex-1) | Wert (w-8)
-          <div key={field.name} className="flex items-center gap-3">
-            <Label htmlFor={field.name} className="w-32 shrink-0 truncate text-sm">
-              {field.label}
-            </Label>
-            <input type="hidden" name={field.name} value={values[field.name]} />
-            <Slider
-              id={field.name}
-              min={0}
-              max={100}
-              step={1}
-              value={[values[field.name]]}
-              onValueChange={([v]) => setValues((prev) => ({ ...prev, [field.name]: v }))}
-              disabled={pending}
-              className="flex-1"
-            />
-            <span className="w-8 shrink-0 text-right text-sm tabular-nums text-muted-foreground">
-              {values[field.name]}
-            </span>
-          </div>
-        ))}
-      </div>
+      <ScoreSliderRows
+        title="Befinden (0–100)"
+        rows={wellbeingFields}
+        values={values}
+        pending={pending}
+        onValueChange={(name, value) => {
+          setValues((current) => ({
+            ...current,
+            [name]: value,
+          }))
+        }}
+      />
 
-      <div className="flex gap-2">
-        <Button type="submit" size="sm" disabled={pending}>
-          {pending ? "Speichern..." : "Befinden speichern"}
-        </Button>
-        {onCancel && (
-          <Button type="button" variant="outline" size="sm" onClick={onCancel} disabled={pending}>
-            Abbrechen
-          </Button>
-        )}
-      </div>
+      <ActionFormFooter
+        pending={pending}
+        submitLabel="Befinden speichern"
+        submitPendingLabel="Speichern..."
+        onCancel={onCancel}
+      />
     </form>
   )
 }
