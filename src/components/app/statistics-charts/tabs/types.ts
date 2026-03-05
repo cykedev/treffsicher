@@ -74,7 +74,7 @@ export interface TrendTabModel {
   seriesHasDecimals: boolean
 }
 
-export interface HitLocationTabModel {
+export interface HitLocationCloudModel {
   filteredHitLocations: Array<{ sessionId: string; date: Date; x: number; y: number }>
   showCloudTrail: boolean
   onToggleCloudTrail: () => void
@@ -92,6 +92,10 @@ export interface HitLocationTabModel {
   hitLocationCloudPathStart: HitLocationPathPoint | null
   hitLocationCloudPathEnd: HitLocationPathPoint | null
   hitLocationMetrics: { meanX: number | null; meanY: number | null }
+}
+
+export interface HitLocationTrendModel {
+  displayTimeZone: string
   showHitLocationTrendX: boolean
   showHitLocationTrendY: boolean
   onToggleHitLocationTrendX: () => void
@@ -102,6 +106,11 @@ export interface HitLocationTabModel {
   hitLocationTrendAxis: AxisConfig
   showHitLocationTrendXSeries: boolean
   showHitLocationTrendYSeries: boolean
+}
+
+export interface HitLocationTabModel {
+  cloud: HitLocationCloudModel
+  trend: HitLocationTrendModel
 }
 
 export interface SelfAssessmentTabModel {
