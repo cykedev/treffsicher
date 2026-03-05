@@ -52,10 +52,7 @@ vi.mock("@/lib/sessions/meytonImport", () => ({
 
 import { previewMeytonImportAction } from "@/lib/sessions/actions/meytonActions"
 
-function buildBaseFormData(
-  source: "URL" | "UPLOAD",
-  disciplineId = "disc-1"
-): FormData {
+function buildBaseFormData(source: "URL" | "UPLOAD", disciplineId = "disc-1"): FormData {
   const formData = new FormData()
   formData.set("disciplineId", disciplineId)
   formData.set("source", source)

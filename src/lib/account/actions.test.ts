@@ -36,7 +36,11 @@ vi.mock("@/lib/db", () => ({
 
 import { changeOwnPassword } from "@/lib/account/actions"
 
-function createFormData(currentPassword: string, newPassword: string, confirmPassword: string): FormData {
+function createFormData(
+  currentPassword: string,
+  newPassword: string,
+  confirmPassword: string
+): FormData {
   const formData = new FormData()
   formData.set("currentPassword", currentPassword)
   formData.set("newPassword", newPassword)
@@ -100,10 +104,7 @@ describe("changeOwnPassword", () => {
     hashMock.mockResolvedValue("hash-neu")
     updateMock.mockResolvedValue({})
 
-    const result = await changeOwnPassword(
-      null,
-      createFormData("alt12345", "neu12345", "neu12345")
-    )
+    const result = await changeOwnPassword(null, createFormData("alt12345", "neu12345", "neu12345"))
 
     expect(result).toEqual({ success: true })
     expect(compareMock).toHaveBeenCalledWith("alt12345", "hash-alt")

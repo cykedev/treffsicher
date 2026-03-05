@@ -54,7 +54,9 @@ describe("buildSessionDetailViewModel", () => {
   it("deaktiviert Scoring-Bloecke fuer nicht-scorebasierte Einheitstypen", () => {
     const session = createSessionDetail({
       type: "MENTAL",
-      series: [{ scoreTotal: "30", isPractice: false, shots: ["10"] }] as unknown as SessionDetail["series"],
+      series: [
+        { scoreTotal: "30", isPractice: false, shots: ["10"] },
+      ] as unknown as SessionDetail["series"],
     })
 
     const result = buildSessionDetailViewModel(session)

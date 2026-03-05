@@ -142,7 +142,9 @@ describe("shot-routines actions", () => {
 
     getAuthSessionMock.mockResolvedValueOnce({ user: { id: "user-1" } })
     findFirstMock.mockResolvedValueOnce(null)
-    expect(await updateShotRoutine("r1", null, formData)).toEqual({ error: "Ablauf nicht gefunden" })
+    expect(await updateShotRoutine("r1", null, formData)).toEqual({
+      error: "Ablauf nicht gefunden",
+    })
 
     getAuthSessionMock.mockResolvedValueOnce({ user: { id: "user-1" } })
     findFirstMock.mockResolvedValueOnce({ id: "r1", userId: "user-1" })

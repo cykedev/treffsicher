@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest"
-import { addDateRangeFilter, addDisciplineFilter, resolveSeriesShotCount } from "@/lib/stats/actions/shared"
+import {
+  addDateRangeFilter,
+  addDisciplineFilter,
+  resolveSeriesShotCount,
+} from "@/lib/stats/actions/shared"
 
 describe("resolveSeriesShotCount", () => {
   it("nutzt die Shot-Array-Laenge wenn Schuesse vorhanden sind", () => {
