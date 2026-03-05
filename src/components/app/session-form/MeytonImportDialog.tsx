@@ -109,7 +109,13 @@ export function MeytonImportDialog({ model, actions }: Props) {
         </div>
 
         <DialogFooter>
-          <Button type="button" disabled={isPending} onClick={actions.runImport}>
+          <Button
+            type="button"
+            disabled={isPending}
+            onClick={() => {
+              void actions.runImport()
+            }}
+          >
             {isPending ? "Importiere..." : "Importieren"}
           </Button>
           <Button
