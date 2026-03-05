@@ -90,7 +90,9 @@ describe("createSessionAction", () => {
       parsed: { type: "TRAINING", location: "Halle", trainingGoal: "" },
       sessionDate: new Date("2026-03-05T18:00:00.000Z"),
       disciplineId: "disc-1",
-      seriesData: [{ position: 1, isPractice: false, scoreTotal: "95", shots: ["10"], executionQuality: 4 }],
+      seriesData: [
+        { position: 1, isPractice: false, scoreTotal: "95", shots: ["10"], executionQuality: 4 },
+      ],
       selectedGoalIds: ["goal-1"],
       hitLocationInput: null,
     }
@@ -113,8 +115,8 @@ describe("createSessionAction", () => {
       hitLocationVerticalMm: null,
       hitLocationVerticalDirection: null,
     })
-    transactionMock.mockImplementation(async (fn: (transactionClient: unknown) => Promise<unknown>) =>
-      fn(tx)
+    transactionMock.mockImplementation(
+      async (fn: (transactionClient: unknown) => Promise<unknown>) => fn(tx)
     )
 
     const promise = createSessionAction(formData)

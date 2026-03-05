@@ -113,7 +113,9 @@ describe("updateSessionAction", () => {
       parsed: { type: "WETTKAMPF", location: "Stand", trainingGoal: "Ruhig bleiben" },
       sessionDate: new Date("2026-03-06T10:00:00.000Z"),
       disciplineId: "disc-2",
-      seriesData: [{ position: 1, isPractice: false, scoreTotal: "88", shots: ["8"], executionQuality: 3 }],
+      seriesData: [
+        { position: 1, isPractice: false, scoreTotal: "88", shots: ["8"], executionQuality: 3 },
+      ],
       selectedGoalIds: ["goal-2"],
       hitLocationInput: {
         horizontalMm: 1.2,
@@ -142,8 +144,8 @@ describe("updateSessionAction", () => {
       hitLocationVerticalMm: 0.7,
       hitLocationVerticalDirection: "HIGH",
     })
-    transactionMock.mockImplementation(async (fn: (transactionClient: unknown) => Promise<unknown>) =>
-      fn(tx)
+    transactionMock.mockImplementation(
+      async (fn: (transactionClient: unknown) => Promise<unknown>) => fn(tx)
     )
 
     const promise = updateSessionAction("s1", formData)
@@ -164,7 +166,13 @@ describe("updateSessionAction", () => {
       },
     })
     expect(replaceSessionSeriesMock).toHaveBeenCalledWith(tx, "s1", prepared.seriesData)
-    expect(syncSessionGoalsMock).toHaveBeenCalledWith(tx, "s1", "user-1", prepared.selectedGoalIds, true)
+    expect(syncSessionGoalsMock).toHaveBeenCalledWith(
+      tx,
+      "s1",
+      "user-1",
+      prepared.selectedGoalIds,
+      true
+    )
     expect(revalidatePathMock).toHaveBeenCalledWith("/sessions")
     expect(revalidatePathMock).toHaveBeenCalledWith("/sessions/s1")
     expect(revalidatePathMock).toHaveBeenCalledWith("/goals")

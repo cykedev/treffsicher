@@ -138,11 +138,9 @@ describe("createSessionSeries", () => {
 describe("replaceSessionSeries", () => {
   it("loescht zuerst alte Serien und schreibt dann neue", async () => {
     const tx = createTxMock()
-    await replaceSessionSeries(
-      tx as never,
-      "session-1",
-      [{ position: 1, isPractice: false, scoreTotal: "90", shots: null, executionQuality: null }]
-    )
+    await replaceSessionSeries(tx as never, "session-1", [
+      { position: 1, isPractice: false, scoreTotal: "90", shots: null, executionQuality: null },
+    ])
 
     expect(tx.series.deleteMany).toHaveBeenCalledWith({ where: { sessionId: "session-1" } })
     expect(tx.series.createMany).toHaveBeenCalledTimes(1)
@@ -166,7 +164,13 @@ describe("syncSessionGoals", () => {
     const tx = createTxMock()
     tx.goal.findMany.mockResolvedValue([{ id: "goal-a" }, { id: "goal-b" }])
 
-    await syncSessionGoals(tx as never, "session-1", "user-1", ["goal-a", "goal-b", "goal-x"], false)
+    await syncSessionGoals(
+      tx as never,
+      "session-1",
+      "user-1",
+      ["goal-a", "goal-b", "goal-x"],
+      false
+    )
 
     expect(tx.goal.findMany).toHaveBeenCalledWith({
       where: {

@@ -2,7 +2,7 @@ import { afterEach, beforeAll, describe, expect, it, vi } from "vitest"
 
 vi.mock("server-only", () => ({}))
 
-let getDisplayTimeZone: typeof import("@/lib/dateTime")["getDisplayTimeZone"]
+let getDisplayTimeZone: (typeof import("@/lib/dateTime"))["getDisplayTimeZone"]
 
 const originalDisplayTimeZone = process.env.DISPLAY_TIME_ZONE
 
