@@ -9,7 +9,11 @@ vi.mock("@/lib/auth-helpers", () => ({
   getAuthSession: vi.fn(),
 }))
 
-import { canManageDiscipline, mapValidationErrors, parseDisciplineFormData } from "@/lib/disciplines/actions/shared"
+import {
+  canManageDiscipline,
+  mapValidationErrors,
+  parseDisciplineFormData,
+} from "@/lib/disciplines/actions/shared"
 
 describe("parseDisciplineFormData", () => {
   it("parst gueltige FormData-Werte und uebernimmt isSystem aus dem Kontext", () => {

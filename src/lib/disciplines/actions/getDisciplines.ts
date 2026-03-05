@@ -1,6 +1,7 @@
 import type { Discipline } from "@/generated/prisma/client"
 import { db } from "@/lib/db"
-import { requireAuthSession } from "@/lib/disciplines/actions/shared"
+import { canManageDiscipline, requireAuthSession } from "@/lib/disciplines/actions/shared"
+import type { DisciplineUsage } from "@/lib/disciplines/types"
 
 export async function getDisciplinesAction(): Promise<Discipline[]> {
   const session = await requireAuthSession()
@@ -22,13 +23,21 @@ export async function getDisciplinesForManagementAction(): Promise<Discipline[]>
   if (session.user.role === "ADMIN") {
     return db.discipline.findMany({
       where: {
-        OR: [{ isSystem: true }, { ownerId: session.user.id, isArchived: false }],
+        OR: [{ isSystem: true }, { ownerId: session.user.id, isSystem: false }],
       },
       orderBy: [{ isSystem: "desc" }, { isArchived: "asc" }, { name: "asc" }],
     })
   }
 
-  return getDisciplinesAction()
+  return db.discipline.findMany({
+    where: {
+      OR: [
+        { isSystem: true, isArchived: false },
+        { ownerId: session.user.id, isSystem: false },
+      ],
+    },
+    orderBy: [{ isSystem: "desc" }, { isArchived: "asc" }, { name: "asc" }],
+  })
 }
 
 export async function getDisciplineForDetailAction(id: string): Promise<Discipline | null> {
@@ -47,8 +56,10 @@ export async function getDisciplineForDetailAction(id: string): Promise<Discipli
   return db.discipline.findFirst({
     where: {
       id,
-      isArchived: false,
-      OR: [{ isSystem: true }, { ownerId: session.user.id }],
+      OR: [
+        { isSystem: true, isArchived: false },
+        { ownerId: session.user.id, isSystem: false },
+      ],
     },
   })
 }
@@ -102,7 +113,28 @@ export async function getDisciplineByIdAction(id: string): Promise<Discipline | 
       id,
       ownerId: session.user.id,
       isSystem: false,
-      isArchived: false,
     },
   })
+}
+
+export async function getDisciplineUsageAction(id: string): Promise<DisciplineUsage | null> {
+  const session = await requireAuthSession()
+  if (!session) return null
+
+  const discipline = await db.discipline.findUnique({
+    where: { id },
+    select: { id: true, ownerId: true, isSystem: true },
+  })
+  if (!discipline || !canManageDiscipline(session, discipline)) return null
+
+  const [sessionCount, shotRoutineCount] = await Promise.all([
+    db.trainingSession.count({ where: { disciplineId: id } }),
+    db.shotRoutine.count({ where: { disciplineId: id } }),
+  ])
+
+  return {
+    sessionCount,
+    shotRoutineCount,
+    canDelete: sessionCount === 0 && shotRoutineCount === 0,
+  }
 }

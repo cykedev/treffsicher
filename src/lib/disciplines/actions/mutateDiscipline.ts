@@ -120,3 +120,49 @@ export async function setDisciplineArchivedAction(
   revalidateDisciplinePaths()
   return { success: true }
 }
+
+export async function deleteDisciplineAction(id: string): Promise<ActionResult> {
+  const session = await requireAuthSession()
+  if (!session) return { error: "Nicht angemeldet" }
+
+  const discipline = await db.discipline.findUnique({
+    where: { id },
+    select: { id: true, ownerId: true, isSystem: true },
+  })
+  if (!discipline || !canManageDiscipline(session, discipline)) {
+    return { error: "Disziplin nicht gefunden oder keine Berechtigung." }
+  }
+
+  // Endgültiges Löschen nur ohne fachliche Verwendung erlauben, damit keine Verweise brechen.
+  const [sessionCount, shotRoutineCount] = await Promise.all([
+    db.trainingSession.count({ where: { disciplineId: id } }),
+    db.shotRoutine.count({ where: { disciplineId: id } }),
+  ])
+
+  if (sessionCount > 0 || shotRoutineCount > 0) {
+    return {
+      error:
+        "Disziplin kann nicht gelöscht werden, solange sie in Einheiten oder Abläufen verwendet wird.",
+    }
+  }
+
+  try {
+    await db.$transaction([
+      db.user.updateMany({
+        where: { favouriteDisciplineId: id },
+        data: { favouriteDisciplineId: null },
+      }),
+      db.discipline.delete({ where: { id } }),
+    ])
+  } catch (error) {
+    // Rennen zwischen Prüfung und Delete sind möglich; Fehler bleibt nutzerführend.
+    console.error("Fehler beim Löschen der Disziplin:", error)
+    return {
+      error:
+        "Disziplin konnte nicht gelöscht werden. Bitte prüfe, ob sie inzwischen verwendet wird.",
+    }
+  }
+
+  revalidateDisciplinePaths()
+  return { success: true }
+}
