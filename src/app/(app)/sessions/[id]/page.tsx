@@ -17,6 +17,7 @@ import { getSessionById } from "@/lib/sessions/actions"
 import { calculateTotalScore } from "@/lib/sessions/calculateScore"
 import { getDisplayTimeZone } from "@/lib/dateTime"
 import { SESSION_TYPE_BADGE_CLASS, SESSION_TYPE_LABELS } from "@/lib/sessions/presentation"
+import { parseShotsJson } from "@/lib/sessions/shots"
 import { AttachmentSection } from "@/components/app/AttachmentSection"
 import { DeleteSessionButton } from "@/components/app/DeleteSessionButton"
 import { FavouriteButton } from "@/components/app/FavouriteButton"
@@ -67,12 +68,6 @@ function formatDate(date: Date, displayTimeZone: string): string {
   }).format(date)
 }
 
-// Prisma gibt shots als JsonValue zurück — wir casten es zu string[]
-function parseShotsJson(shots: unknown): string[] | null {
-  if (!Array.isArray(shots)) return null
-  return shots.filter((s): s is string => typeof s === "string")
-}
-
 // Dimensionen für den Prognose-/Feedback-Vergleich
 const comparisonDimensions = [
   { key: "fitness", label: "Kondition" },
@@ -120,14 +115,14 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
   // Nur Wertungsschüsse für das Histogramm — Probeschüsse sind nicht Teil der Auswertung
   const allShots = sessionRecord.series
     .filter((serie) => !serie.isPractice)
-    .flatMap((serie) => parseShotsJson(serie.shots) ?? [])
+    .flatMap((serie) => parseShotsJson(serie.shots))
   const hasShots = allShots.length > 0
 
   // Schüsse-Spalte nur anzeigen wenn mindestens eine Serie Einzelschüsse enthält —
   // verhindert Layout-Unterschiede zwischen Einheiten mit und ohne Einzelschuss-Erfassung
   const hasAnyShots = sessionRecord.series.some((serie) => {
     const shots = parseShotsJson(serie.shots)
-    return shots !== null && shots.length > 0
+    return shots.length > 0
   })
 
   // Anhänge nur bei TRAINING und WETTKAMPF sinnvoll
@@ -276,7 +271,7 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
                     {hasAnyShots && (
                       <div className="space-y-1">
                         <p className="text-xs text-muted-foreground">Schüsse</p>
-                        {shotsArray && shotsArray.length > 0 ? (
+                        {shotsArray.length > 0 ? (
                           <p className="break-words font-mono text-xs text-muted-foreground">
                             {shotsArray.join(" · ")}
                           </p>
@@ -339,7 +334,7 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
                         </td>
                         {hasAnyShots && (
                           <td className="py-2">
-                            {shotsArray && shotsArray.length > 0 ? (
+                            {shotsArray.length > 0 ? (
                               // whitespace-nowrap: Schüsse bleiben in einer Zeile;
                               // die Tabelle hat overflow-x-auto — kein Umbruch nötig
                               <span className="whitespace-nowrap font-mono text-xs text-muted-foreground">
