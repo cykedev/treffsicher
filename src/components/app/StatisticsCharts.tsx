@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useMemo, useState } from "react"
 import {
   ComposedChart,
   Line,
@@ -21,7 +21,6 @@ import {
   Legend,
   ReferenceLine,
 } from "recharts"
-import { calculateMovingAverage } from "@/lib/stats/calculateMovingAverage"
 import { calculateSeriesStats } from "@/lib/stats/calculateSeriesStats"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
@@ -43,13 +42,67 @@ import {
   ChartTooltipContent,
   type ChartConfig,
 } from "@/components/ui/chart"
+import {
+  CHART_TIME_AXIS_MAX_TICKS,
+  CHART_TREND_BAND_FILL,
+  CHART_TREND_BAND_OPACITY,
+  CHART_TREND_STROKE_OPACITY,
+  CHART_TREND_STROKE_WIDTH,
+  HIT_LOCATION_CLOUD_AXIS_SIZE,
+  HIT_LOCATION_CLOUD_MARGIN,
+  HIT_LOCATION_CLOUD_TRAIL_END_RADIUS,
+  HIT_LOCATION_CLOUD_TRAIL_START_RADIUS,
+  HIT_LOCATION_CLOUD_TRAIL_STROKE,
+  HIT_LOCATION_CLOUD_TRAIL_STROKE_OPACITY,
+  HIT_LOCATION_CLOUD_TRAIL_STROKE_WIDTH,
+  HIT_LOCATION_TREND_BAND_OPACITY,
+  HIT_LOCATION_ZERO_LINE_STROKE,
+  HIT_LOCATION_ZERO_LINE_STROKE_OPACITY,
+  HIT_LOCATION_ZERO_LINE_STROKE_WIDTH,
+  radarDimensions,
+  radarSeriesConfig,
+  shotDistributionBundledColors,
+} from "@/components/app/statistics-charts/constants"
+import { RadarLegend } from "@/components/app/statistics-charts/RadarLegend"
 import type {
-  StatsSession,
+  AggregatedShotDistributionPoint,
+  DisplayMode,
+  HitLocationPathPoint,
+  HitLocationPoint,
+  RadarLegendItem,
+  RadarSeriesKey,
+} from "@/components/app/statistics-charts/types"
+import {
+  buildCatmullRomCurvePoints,
+  buildIndexTicks,
+  calculateMean,
+  calculateTrend,
+  calculateTrendBandsByQuantile,
+  computeCenteredAxis,
+  computeDisplayValue,
+  computeStableAxis,
+  createActiveDotStyle,
+  createDotStyle,
+  createTrendBandDistanceOptions,
+  createTrendStroke,
+  formatDirectionalMillimeters,
+  formatDisplayScore,
+  formatSignedMillimeters,
+  getShotDistributionBucketStart,
+  getShotDistributionGranularity,
+  mapSessionToHitLocationPoint,
+  monthsAgo,
+  parseDateInput,
+  renderScatterPoint,
+  today,
+} from "@/components/app/statistics-charts/utils"
+import type {
   DisciplineForStats,
-  WellbeingCorrelationPoint,
   QualityVsScorePoint,
-  ShotDistributionPoint,
   RadarComparisonSession,
+  ShotDistributionPoint,
+  StatsSession,
+  WellbeingCorrelationPoint,
 } from "@/lib/stats/actions"
 
 interface Props {
@@ -62,582 +115,6 @@ interface Props {
 }
 
 type TypeFilter = "all" | "TRAINING" | "WETTKAMPF"
-type DisplayMode = "per_shot" | "projected"
-type RadarSeriesKey = "prognosis" | "feedback"
-type RadarLegendItem = {
-  key: RadarSeriesKey
-  label: string
-  color: string
-}
-
-const radarDimensions = [
-  { label: "Kondition", prognosisKey: "fitnessPrognosis", feedbackKey: "fitnessFeedback" },
-  { label: "Ernährung", prognosisKey: "nutritionPrognosis", feedbackKey: "nutritionFeedback" },
-  { label: "Technik", prognosisKey: "techniquePrognosis", feedbackKey: "techniqueFeedback" },
-  { label: "Taktik", prognosisKey: "tacticsPrognosis", feedbackKey: "tacticsFeedback" },
-  {
-    label: "Mentale Stärke",
-    prognosisKey: "mentalStrengthPrognosis",
-    feedbackKey: "mentalStrengthFeedback",
-  },
-  { label: "Umfeld", prognosisKey: "environmentPrognosis", feedbackKey: "environmentFeedback" },
-  { label: "Material", prognosisKey: "equipmentPrognosis", feedbackKey: "equipmentFeedback" },
-] as const
-
-const radarSeriesConfig: Record<RadarSeriesKey, { label: string; color: string }> = {
-  prognosis: { label: "Prognose", color: "var(--chart-1)" },
-  feedback: { label: "Feedback", color: "var(--chart-2)" },
-}
-
-const shotDistributionColors: Record<string, string> = {
-  r0: "#edf1f5",
-  r1: "#dae1e8",
-  r2: "#c8d1da",
-  r3: "#b5bec8",
-  r4: "#9ca3af",
-  r5: "#8896a0",
-  r6: "#6b7280",
-  r7: "#52606d",
-  r8: "#374151",
-  r9: "#eab308",
-  r10: "#ef4444",
-}
-const shotDistributionBundledColors = {
-  r0to6: "color-mix(in srgb, #6b7280 74%, white 26%)",
-  r7: shotDistributionColors.r7,
-  r8: shotDistributionColors.r8,
-  r9: shotDistributionColors.r9,
-  r10: shotDistributionColors.r10,
-} as const
-
-const HIT_LOCATION_CLOUD_MARGIN = { top: 12, right: 12, bottom: 12, left: 12 } as const
-const HIT_LOCATION_CLOUD_AXIS_SIZE = 44
-const HIT_LOCATION_CLOUD_TRAIL_STROKE = "color-mix(in srgb, var(--chart-1) 82%, white 18%)"
-const HIT_LOCATION_CLOUD_TRAIL_STROKE_WIDTH = 1.8
-const HIT_LOCATION_CLOUD_TRAIL_STROKE_OPACITY = 0.32
-const HIT_LOCATION_CLOUD_TRAIL_START_RADIUS = 1.8
-const HIT_LOCATION_CLOUD_TRAIL_END_RADIUS = 2.8
-const TREND_WINDOW_SIZE = 5
-const CHART_POINT_RADIUS = 6
-const CHART_POINT_OPACITY = 0.7
-const CHART_TREND_POINT_RADIUS = 3.8
-const CHART_TREND_POINT_ACTIVE_RADIUS = 4.8
-const CHART_TREND_POINT_OPACITY = 0.42
-const CHART_TREND_POINT_ACTIVE_OPACITY = 0.7
-const CHART_POINT_STROKE_WIDTH = 1
-const CHART_TREND_STROKE_WIDTH = 2.5
-const CHART_TREND_STROKE_OPACITY = 0.9
-const CHART_TREND_BAND_OPACITY = 0.3
-const CHART_TREND_BAND_FILL = "color-mix(in srgb, var(--chart-1) 72%, white 28%)"
-const TREND_BAND_LOW_QUANTILE = 0.02
-const TREND_BAND_HIGH_QUANTILE = 0.98
-const TREND_BAND_WINDOW_SIZE = 5
-const TREND_BAND_SMOOTH_WINDOW = 1
-const TREND_BAND_MIN_DISTANCE_RATIO = 0.04
-const TREND_BAND_MAX_DISTANCE_RATIO = 0.55
-const HIT_LOCATION_TREND_BAND_OPACITY = 0.18
-const HIT_LOCATION_ZERO_LINE_STROKE_WIDTH = 0.8
-const HIT_LOCATION_ZERO_LINE_STROKE_OPACITY = 0.55
-const HIT_LOCATION_ZERO_LINE_STROKE =
-  "color-mix(in oklch, var(--muted-foreground) 42%, oklch(1 0 0) 58%)"
-const CHART_TIME_AXIS_MAX_TICKS = 7
-
-type HitLocationPoint = {
-  sessionId: string
-  date: Date
-  x: number
-  y: number
-  disciplineId: string | null
-}
-
-type HitLocationPathPoint = {
-  sessionId: string
-  date: Date
-  x: number
-  y: number
-}
-
-type HitLocationCurvePoint = {
-  x: number
-  y: number
-}
-
-type ShotDistributionGranularity = "day" | "week" | "month"
-
-type AggregatedShotDistributionPoint = {
-  i: number
-  date: Date
-  dateLabel: string
-  tooltipLabel: string
-  totalShots: number
-  r0to6: number
-  r7: number
-  r8: number
-  r9: number
-  r10: number
-}
-
-function niceNumber(value: number, round: boolean): number {
-  if (!Number.isFinite(value) || value <= 0) return 1
-
-  const exponent = Math.floor(Math.log10(value))
-  const fraction = value / 10 ** exponent
-
-  let niceFraction: number
-  if (round) {
-    if (fraction < 1.5) niceFraction = 1
-    else if (fraction < 3) niceFraction = 2
-    else if (fraction < 7) niceFraction = 5
-    else niceFraction = 10
-  } else {
-    if (fraction <= 1) niceFraction = 1
-    else if (fraction <= 2) niceFraction = 2
-    else if (fraction <= 5) niceFraction = 5
-    else niceFraction = 10
-  }
-
-  return niceFraction * 10 ** exponent
-}
-
-function computeStableAxis(
-  values: number[],
-  targetTickCount = 5
-): { domain: [number, number]; ticks: number[] } {
-  if (values.length === 0) {
-    return { domain: [0, 1], ticks: [0, 0.25, 0.5, 0.75, 1] }
-  }
-
-  let min = Math.min(...values)
-  let max = Math.max(...values)
-
-  if (min === max) {
-    const padding = Math.max(Math.abs(min) * 0.02, 0.1)
-    min -= padding
-    max += padding
-  } else {
-    const range = max - min
-    const padding = Math.max(range * 0.08, 0.1)
-    min -= padding
-    max += padding
-  }
-
-  const niceRange = niceNumber(max - min, false)
-  const step = niceNumber(niceRange / Math.max(targetTickCount - 1, 1), true)
-  const niceMin = Math.floor(min / step) * step
-  const niceMax = Math.ceil(max / step) * step
-
-  const ticks: number[] = []
-  for (let tick = niceMin; tick <= niceMax + step * 0.5; tick += step) {
-    ticks.push(Number(tick.toFixed(6)))
-    if (ticks.length >= 12) break
-  }
-
-  return {
-    domain: [ticks[0] ?? niceMin, ticks[ticks.length - 1] ?? niceMax],
-    ticks,
-  }
-}
-
-function computeCenteredAxis(
-  values: number[],
-  minAbsMax = 1
-): { domain: [number, number]; ticks: number[] } {
-  if (values.length === 0) {
-    return { domain: [-minAbsMax, minAbsMax], ticks: [-minAbsMax, 0, minAbsMax] }
-  }
-
-  const absMaxRaw = Math.max(...values.map((v) => Math.abs(v)))
-  const absMax = Math.max(minAbsMax, absMaxRaw)
-  const niceMax = niceNumber(absMax * 1.12, false)
-  const half = Math.round((niceMax / 2) * 100) / 100
-
-  return {
-    domain: [-niceMax, niceMax],
-    ticks: [-niceMax, -half, 0, half, niceMax],
-  }
-}
-
-function calculateMean(values: number[]): number | null {
-  if (values.length === 0) return null
-  return values.reduce((sum, v) => sum + v, 0) / values.length
-}
-
-// Datumsstring für Presets berechnen
-function formatLocalDate(date: Date): string {
-  const year = date.getFullYear()
-  const month = String(date.getMonth() + 1).padStart(2, "0")
-  const day = String(date.getDate()).padStart(2, "0")
-  return `${year}-${month}-${day}`
-}
-
-function monthsAgo(months: number): string {
-  const d = new Date()
-  d.setMonth(d.getMonth() - months)
-  return formatLocalDate(d)
-}
-
-function today(): string {
-  return formatLocalDate(new Date())
-}
-
-function parseDateInput(value: string, endOfDay: boolean): Date | null {
-  const [year, month, day] = value.split("-").map(Number)
-  if (!year || !month || !day) return null
-  return endOfDay
-    ? new Date(year, month - 1, day, 23, 59, 59, 999)
-    : new Date(year, month - 1, day, 0, 0, 0, 0)
-}
-
-/**
- * Anzeigewert je nach Modus berechnen.
- * per_shot: normalisierter Wert (Ringe/Schuss), 2 Stellen.
- * projected: Hochrechnung auf die Gesamtschusszahl der Disziplin.
- */
-function computeDisplayValue(
-  avgPerShot: number,
-  mode: DisplayMode,
-  discipline: DisciplineForStats | null
-): number {
-  if (mode === "projected" && discipline) {
-    const total = avgPerShot * discipline.shotsPerSeries * discipline.seriesCount
-    // Zehntelwertung: 1 Dezimalstelle; Ganzringe: auf ganze Ringe runden
-    return discipline.scoringType === "TENTH" ? Math.round(total * 10) / 10 : Math.round(total)
-  }
-  return avgPerShot
-}
-
-function calculateTrend(values: (number | null)[]): (number | null)[] {
-  return calculateMovingAverage(values, TREND_WINDOW_SIZE)
-}
-
-function calculateQuantile(sortedValues: number[], quantile: number): number {
-  if (sortedValues.length === 0) return 0
-  if (sortedValues.length === 1) return sortedValues[0]
-
-  const clampedQ = Math.max(0, Math.min(1, quantile))
-  const index = (sortedValues.length - 1) * clampedQ
-  const lowerIndex = Math.floor(index)
-  const upperIndex = Math.ceil(index)
-
-  if (lowerIndex === upperIndex) return sortedValues[lowerIndex]
-
-  const weight = index - lowerIndex
-  return sortedValues[lowerIndex] * (1 - weight) + sortedValues[upperIndex] * weight
-}
-
-function calculateRollingQuantileBand(
-  values: number[],
-  windowSize: number,
-  lowQuantile = 0.2,
-  highQuantile = 0.8
-): Array<{ low: number; high: number }> {
-  if (values.length === 0 || windowSize <= 0) return []
-
-  return values.map((_, i) => {
-    const start = Math.max(0, i - windowSize + 1)
-    const end = i
-    const windowValues = values.slice(start, end + 1)
-    if (windowValues.length === 0) {
-      return { low: 0, high: 0 }
-    }
-
-    const sorted = [...windowValues].sort((a, b) => a - b)
-
-    return {
-      low: calculateQuantile(sorted, lowQuantile),
-      high: calculateQuantile(sorted, highQuantile),
-    }
-  })
-}
-
-function calculateTrailingMovingAverage(values: number[], windowSize: number): number[] {
-  if (values.length === 0 || windowSize <= 0) return []
-
-  return values.map((_, i) => {
-    const start = Math.max(0, i - windowSize + 1)
-    const end = i
-    const windowValues = values.slice(start, end + 1)
-    if (windowValues.length === 0) return values[i] ?? 0
-    return windowValues.reduce((sum, value) => sum + value, 0) / windowValues.length
-  })
-}
-
-function calculateTrendBandsByQuantile(
-  values: number[],
-  trends: (number | null)[],
-  options: {
-    minLowerDistance: number
-    minUpperDistance: number
-    maxLowerDistance: number
-    maxUpperDistance: number
-  }
-): Array<{ low: number; high: number } | null> {
-  if (values.length === 0 || trends.length === 0) return []
-
-  const bandWindowSize = Math.max(TREND_BAND_WINDOW_SIZE, TREND_WINDOW_SIZE + 1)
-  const residualValues = values.map((value, i) => {
-    const trend = trends[i]
-    if (trend === null) return 0
-    return value - trend
-  })
-  const quantileBand = calculateRollingQuantileBand(
-    residualValues,
-    bandWindowSize,
-    TREND_BAND_LOW_QUANTILE,
-    TREND_BAND_HIGH_QUANTILE
-  )
-  const rawResidualLows = quantileBand.map((band) => band.low)
-  const rawResidualHighs = quantileBand.map((band) => band.high)
-  const smoothedResidualLows = calculateTrailingMovingAverage(
-    rawResidualLows,
-    TREND_BAND_SMOOTH_WINDOW
-  )
-  const smoothedResidualHighs = calculateTrailingMovingAverage(
-    rawResidualHighs,
-    TREND_BAND_SMOOTH_WINDOW
-  )
-
-  return trends.map((trend, i) => {
-    if (trend === null) return null
-
-    let low = trend + (smoothedResidualLows[i] ?? rawResidualLows[i] ?? 0)
-    let high = trend + (smoothedResidualHighs[i] ?? rawResidualHighs[i] ?? 0)
-
-    if (!Number.isFinite(low) || !Number.isFinite(high)) return null
-    if (high < low) {
-      const temp = low
-      low = high
-      high = temp
-    }
-
-    const rawLowerDistance = Math.abs(Math.min(0, low - trend))
-    const rawUpperDistance = Math.abs(Math.max(0, high - trend))
-    const lowerDistance = Math.min(
-      options.maxLowerDistance,
-      Math.max(options.minLowerDistance, rawLowerDistance)
-    )
-    const upperDistance = Math.min(
-      options.maxUpperDistance,
-      Math.max(options.minUpperDistance, rawUpperDistance)
-    )
-
-    return { low: trend - lowerDistance, high: trend + upperDistance }
-  })
-}
-
-function createTrendBandDistanceOptions(
-  range: number,
-  minDistanceFloor: number,
-  maxDistanceFloor: number
-): {
-  minLowerDistance: number
-  minUpperDistance: number
-  maxLowerDistance: number
-  maxUpperDistance: number
-} {
-  const minDistance = Math.max(range * TREND_BAND_MIN_DISTANCE_RATIO, minDistanceFloor)
-  const maxDistance = Math.max(range * TREND_BAND_MAX_DISTANCE_RATIO, maxDistanceFloor)
-  return {
-    minLowerDistance: minDistance,
-    minUpperDistance: minDistance,
-    maxLowerDistance: maxDistance,
-    maxUpperDistance: maxDistance,
-  }
-}
-
-function buildIndexTicks(length: number, maxTicks: number): number[] {
-  if (length <= 0) return []
-  if (length <= maxTicks) return Array.from({ length }, (_, i) => i)
-  if (maxTicks <= 1) return [0]
-
-  const lastIndex = length - 1
-  const step = lastIndex / (maxTicks - 1)
-  const ticks = new Set<number>([0, lastIndex])
-
-  for (let i = 1; i < maxTicks - 1; i++) {
-    ticks.add(Math.round(step * i))
-  }
-
-  return [...ticks].sort((a, b) => a - b)
-}
-
-function getShotDistributionGranularity(
-  points: ShotDistributionPoint[]
-): ShotDistributionGranularity {
-  if (points.length <= 1) return "day"
-
-  let min = Number.POSITIVE_INFINITY
-  let max = Number.NEGATIVE_INFINITY
-
-  for (const point of points) {
-    const time = new Date(point.date).getTime()
-    if (!Number.isFinite(time)) continue
-    min = Math.min(min, time)
-    max = Math.max(max, time)
-  }
-
-  if (!Number.isFinite(min) || !Number.isFinite(max)) return "day"
-  const spanDays = (max - min) / (24 * 60 * 60 * 1000)
-  // Feiner aggregieren: bei moderaten Datenmengen und bis ca. 4-5 Monaten
-  // Tagesansicht, bei langen Verläufen Wochenansicht; Monate erst bei sehr langen Zeiträumen.
-  if (points.length <= 45 || spanDays <= 140) return "day"
-  if (spanDays <= 500) return "week"
-  return "month"
-}
-
-function getShotDistributionBucketStart(
-  dateValue: Date,
-  granularity: ShotDistributionGranularity
-): Date {
-  const date = new Date(dateValue)
-  date.setHours(0, 0, 0, 0)
-
-  if (granularity === "month") {
-    date.setDate(1)
-    return date
-  }
-
-  if (granularity === "week") {
-    const weekday = date.getDay()
-    const distanceToMonday = (weekday + 6) % 7
-    date.setDate(date.getDate() - distanceToMonday)
-  }
-
-  return date
-}
-
-function createDotStyle(color: string) {
-  return {
-    r: CHART_TREND_POINT_RADIUS,
-    fill: color,
-    fillOpacity: CHART_TREND_POINT_OPACITY,
-    stroke: "var(--background)",
-    strokeWidth: CHART_POINT_STROKE_WIDTH,
-  }
-}
-
-function createActiveDotStyle(color: string) {
-  return {
-    r: CHART_TREND_POINT_ACTIVE_RADIUS,
-    fill: color,
-    fillOpacity: CHART_TREND_POINT_ACTIVE_OPACITY,
-    stroke: "var(--background)",
-    strokeWidth: CHART_POINT_STROKE_WIDTH,
-  }
-}
-
-function renderScatterPoint(props: { cx?: number; cy?: number }, color: string) {
-  return (
-    <circle
-      cx={props.cx}
-      cy={props.cy}
-      r={CHART_POINT_RADIUS}
-      fill={color}
-      opacity={CHART_POINT_OPACITY}
-      stroke="var(--background)"
-      strokeWidth={CHART_POINT_STROKE_WIDTH}
-    />
-  )
-}
-
-function createTrendStroke(color: string): string {
-  // In sRGB bleibt der Original-Farbton stabiler; nur leicht mit Weiß aufhellen.
-  return `color-mix(in srgb, ${color} 85%, white 15%)`
-}
-
-function mapSessionToHitLocationPoint(session: StatsSession): HitLocationPoint | null {
-  if (
-    session.hitLocationHorizontalMm === null ||
-    session.hitLocationHorizontalDirection === null ||
-    session.hitLocationVerticalMm === null ||
-    session.hitLocationVerticalDirection === null
-  ) {
-    return null
-  }
-
-  const signedX =
-    session.hitLocationHorizontalDirection === "RIGHT"
-      ? session.hitLocationHorizontalMm
-      : -session.hitLocationHorizontalMm
-  const signedY =
-    session.hitLocationVerticalDirection === "HIGH"
-      ? session.hitLocationVerticalMm
-      : -session.hitLocationVerticalMm
-
-  return {
-    sessionId: session.id,
-    date: session.date,
-    x: Math.round(signedX * 100) / 100,
-    y: Math.round(signedY * 100) / 100,
-    disciplineId: session.disciplineId,
-  }
-}
-
-function buildCatmullRomCurvePoints(
-  points: HitLocationPathPoint[],
-  samplesPerSegment = 8
-): HitLocationCurvePoint[] {
-  if (points.length === 0) return []
-  if (points.length === 1) return [{ x: points[0].x, y: points[0].y }]
-  if (points.length === 2) return points.map((point) => ({ x: point.x, y: point.y }))
-
-  const curve: HitLocationCurvePoint[] = [{ x: points[0].x, y: points[0].y }]
-
-  for (let i = 0; i < points.length - 1; i++) {
-    const p0 = points[Math.max(0, i - 1)]
-    const p1 = points[i]
-    const p2 = points[i + 1]
-    const p3 = points[Math.min(points.length - 1, i + 2)]
-
-    for (let step = 1; step <= samplesPerSegment; step++) {
-      const t = step / samplesPerSegment
-      const t2 = t * t
-      const t3 = t2 * t
-
-      const x =
-        0.5 *
-        ((2 * p1.x +
-          (-p0.x + p2.x) * t +
-          (2 * p0.x - 5 * p1.x + 4 * p2.x - p3.x) * t2 +
-          (-p0.x + 3 * p1.x - 3 * p2.x + p3.x) * t3) as number)
-      const y =
-        0.5 *
-        ((2 * p1.y +
-          (-p0.y + p2.y) * t +
-          (2 * p0.y - 5 * p1.y + 4 * p2.y - p3.y) * t2 +
-          (-p0.y + 3 * p1.y - 3 * p2.y + p3.y) * t3) as number)
-
-      curve.push({ x, y })
-    }
-  }
-
-  return curve
-}
-
-function RadarLegend({ items }: { items: RadarLegendItem[] }) {
-  if (items.length === 0) return null
-
-  return (
-    <div className="mt-3 flex flex-wrap items-center justify-center gap-4 sm:gap-6">
-      {items.map((item) => (
-        <div key={item.key} className="inline-flex items-center gap-1.5">
-          <span
-            className="h-2.5 w-2.5 shrink-0 rounded-[3px]"
-            style={{ backgroundColor: item.color }}
-          />
-          <span className="text-sm font-medium">{item.label}</span>
-        </div>
-      ))}
-    </div>
-  )
-}
-
-/**
- * Statistik-Charts-Komponente.
- * Empfängt alle Einheiten und filtert client-seitig — ausreichend für kleine Nutzerzahl.
- * Zeigt Ringe/Schuss statt absolute Summe — damit sind Einheiten mit unterschiedlicher
- * Schussanzahl direkt vergleichbar. Optional: Hochrechnung auf Disziplin-Gesamtschuss.
- */
 export function StatisticsCharts({
   sessions,
   wellbeingData,
@@ -1119,36 +596,6 @@ export function StatisticsCharts({
       ? `Ringe/Serie (${selectedDiscipline.shotsPerSeries} Sch.)`
       : "Ringe/Sch."
 
-  // Tooltip-Formatierung: 2 Stellen für Ringe/Schuss, disziplinabhängig für Hochrechnung
-  function formatDisplayValue(value: number): string {
-    if (effectiveDisplayMode === "projected" && selectedDiscipline) {
-      return selectedDiscipline.scoringType === "TENTH" ? value.toFixed(1) : String(value)
-    }
-    return value.toFixed(2)
-  }
-
-  function formatSignedMillimeters(value: number | null): string {
-    if (value === null || !Number.isFinite(value)) return "–"
-    const sign = value > 0 ? "+" : value < 0 ? "−" : "±"
-    return `${sign}${Math.abs(value).toFixed(2)} mm`
-  }
-
-  function formatDirectionalMillimeters(value: number | null, axis: "x" | "y"): string {
-    if (value === null || !Number.isFinite(value)) return "–"
-
-    const absValue = `${Math.abs(value).toFixed(2)} mm`
-
-    if (axis === "x") {
-      if (value > 0) return `→ ${absValue}`
-      if (value < 0) return `← ${absValue}`
-      return `↔ ${absValue}`
-    }
-
-    if (value > 0) return `↑ ${absValue}`
-    if (value < 0) return `↓ ${absValue}`
-    return `↕ ${absValue}`
-  }
-
   // Daten für den Verlaufschart
   const lineData = withScore.map((s, i) => {
     const trend = movingAvgBySessionId.get(s.id) ?? null
@@ -1567,7 +1014,7 @@ export function StatisticsCharts({
                         allowDataOverflow={true}
                         tickFormatter={(v: number) =>
                           effectiveDisplayMode === "projected" && selectedDiscipline
-                            ? formatDisplayValue(v)
+                            ? formatDisplayScore(v, effectiveDisplayMode, selectedDiscipline)
                             : v
                                 .toFixed(2)
                                 .replace(/\.00$/, "")
@@ -1593,7 +1040,11 @@ export function StatisticsCharts({
                                 </span>
                                 <span className="text-foreground font-mono font-medium tabular-nums">
                                   {typeof value === "number"
-                                    ? formatDisplayValue(value)
+                                    ? formatDisplayScore(
+                                        value,
+                                        effectiveDisplayMode,
+                                        selectedDiscipline
+                                      )
                                     : String(value ?? "")}
                                 </span>
                               </div>
@@ -2224,7 +1675,7 @@ export function StatisticsCharts({
                           width={34}
                           tickFormatter={(v: number) =>
                             effectiveDisplayMode === "projected" && selectedDiscipline
-                              ? formatDisplayValue(v)
+                              ? formatDisplayScore(v, effectiveDisplayMode, selectedDiscipline)
                               : v.toFixed(2)
                           }
                         />
@@ -2240,7 +1691,11 @@ export function StatisticsCharts({
                                   </span>
                                   <span className="text-foreground font-mono font-medium tabular-nums">
                                     {typeof value === "number" && name === "displayScore"
-                                      ? formatDisplayValue(value)
+                                      ? formatDisplayScore(
+                                          value,
+                                          effectiveDisplayMode,
+                                          selectedDiscipline
+                                        )
                                       : String(value ?? "")}
                                   </span>
                                 </div>
@@ -2320,7 +1775,7 @@ export function StatisticsCharts({
                       width={40}
                       tickFormatter={(v: number) =>
                         effectiveDisplayMode === "projected" && selectedDiscipline
-                          ? formatDisplayValue(v)
+                          ? formatDisplayScore(v, effectiveDisplayMode, selectedDiscipline)
                           : v.toFixed(2)
                       }
                     />
@@ -2336,7 +1791,11 @@ export function StatisticsCharts({
                               </span>
                               <span className="text-foreground font-mono font-medium tabular-nums">
                                 {typeof value === "number" && name === "displayScore"
-                                  ? formatDisplayValue(value)
+                                  ? formatDisplayScore(
+                                      value,
+                                      effectiveDisplayMode,
+                                      selectedDiscipline
+                                    )
                                   : String(value ?? "")}
                               </span>
                             </div>

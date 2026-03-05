@@ -3,6 +3,7 @@ import { getAuthSession } from "@/lib/auth-helpers"
 import { db } from "@/lib/db"
 import { calculateTotalScore } from "@/lib/sessions/calculateScore"
 import { SESSION_TYPE_LABELS } from "@/lib/sessions/presentation"
+import { formatShotsForLine, parseShotValue, parseShotsJson } from "@/lib/sessions/shots"
 import { buildStyledPdf, type PdfSection } from "@/lib/exports/simplePdf"
 
 const comparisonDimensions = [
@@ -45,25 +46,6 @@ function formatDateForFile(date: Date): string {
     month: "2-digit",
     day: "2-digit",
   }).format(new Date(date))
-}
-
-function parseShotsJson(shots: unknown): string[] {
-  if (!Array.isArray(shots)) return []
-  return shots.filter((entry): entry is string => typeof entry === "string")
-}
-
-function parseShotValue(shot: string): number | null {
-  const normalized = shot.trim().replace(",", ".")
-  const value = Number.parseFloat(normalized)
-  if (!Number.isFinite(value)) return null
-  return value
-}
-
-function formatShotsForLine(shots: string[]): string {
-  return shots
-    .map((shot) => shot.trim())
-    .filter((shot) => shot.length > 0)
-    .join(" · ")
 }
 
 function buildShotHistogramBuckets(shots: string[], isDecimal: boolean) {
