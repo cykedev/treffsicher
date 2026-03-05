@@ -47,7 +47,7 @@ export type MeytonImportDialogActions = {
   sourceChange: (value: ImportSourceType) => void
   urlChange: (value: string) => void
   fileChange: (file: File | null) => void
-  runImport: () => void
+  runImport: () => Promise<void>
 }
 
 export type SeriesEditorCardModel = {
