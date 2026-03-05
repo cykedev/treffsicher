@@ -5,6 +5,7 @@ import { setFavouriteDisciplineAction } from "@/lib/disciplines/actions/favourit
 import {
   getDisciplineByIdAction,
   getDisciplineForDetailAction,
+  getDisciplineUsageAction,
   getDisciplinesAction,
   getDisciplinesForManagementAction,
   getFavouriteDisciplineIdAction,
@@ -12,10 +13,11 @@ import {
 import {
   archiveDisciplineAction,
   createDisciplineAction,
+  deleteDisciplineAction,
   setDisciplineArchivedAction,
   updateDisciplineAction,
 } from "@/lib/disciplines/actions/mutateDiscipline"
-import type { ActionResult } from "@/lib/disciplines/types"
+import type { ActionResult, DisciplineUsage } from "@/lib/disciplines/types"
 
 export type { ActionResult } from "@/lib/disciplines/types"
 
@@ -30,6 +32,10 @@ export async function getDisciplinesForManagement(): Promise<Discipline[]> {
 
 export async function getDisciplineForDetail(id: string): Promise<Discipline | null> {
   return getDisciplineForDetailAction(id)
+}
+
+export async function getDisciplineUsage(id: string): Promise<DisciplineUsage | null> {
+  return getDisciplineUsageAction(id)
 }
 
 export async function getFavouriteDisciplineId(): Promise<string | null> {
@@ -68,4 +74,8 @@ export async function setDisciplineArchived(
   nextArchived: boolean
 ): Promise<ActionResult> {
   return setDisciplineArchivedAction(id, nextArchived)
+}
+
+export async function deleteDiscipline(id: string): Promise<ActionResult> {
+  return deleteDisciplineAction(id)
 }

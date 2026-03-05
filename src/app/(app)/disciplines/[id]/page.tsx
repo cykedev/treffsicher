@@ -2,8 +2,13 @@ import { notFound, redirect } from "next/navigation"
 import Link from "next/link"
 import { ArrowLeft, CheckCircle2, Gauge, Pencil, Target } from "lucide-react"
 import { getAuthSession } from "@/lib/auth-helpers"
-import { getDisciplineForDetail, getFavouriteDisciplineId } from "@/lib/disciplines/actions"
+import {
+  getDisciplineForDetail,
+  getDisciplineUsage,
+  getFavouriteDisciplineId,
+} from "@/lib/disciplines/actions"
 import { ArchiveDisciplineButton } from "@/components/app/disciplines/ArchiveDisciplineButton"
+import { DeleteDisciplineButton } from "@/components/app/disciplines/DeleteDisciplineButton"
 import { FavouriteDisciplineButton } from "@/components/app/disciplines/FavouriteDisciplineButton"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -32,6 +37,8 @@ export default async function DisciplineDetailPage({
   if (!discipline) notFound()
 
   const canManage = !discipline.isSystem || session.user.role === "ADMIN"
+  const usage = canManage ? await getDisciplineUsage(discipline.id) : null
+  const canDelete = usage?.canDelete ?? false
 
   return (
     <div className="space-y-6">
@@ -57,6 +64,9 @@ export default async function DisciplineDetailPage({
                 isArchived={discipline.isArchived}
                 compact
               />
+            )}
+            {canManage && canDelete && (
+              <DeleteDisciplineButton disciplineId={discipline.id} compact />
             )}
             <Button variant="ghost" size="sm" className="px-2 sm:px-3" asChild>
               <Link href="/disciplines" aria-label="Zurück zu Disziplinen">
@@ -143,6 +153,12 @@ export default async function DisciplineDetailPage({
             ? "Diese Standard-Disziplin wird zentral verwaltet und kann von allen Nutzern verwendet werden."
             : "Diese Disziplin gehört deinem Konto und kann unabhängig von System-Disziplinen angepasst werden."}
         </p>
+        {canManage && !canDelete && (
+          <p className="rounded-md border border-border/50 bg-muted/20 px-3 py-2 text-sm text-muted-foreground">
+            Endgültiges Löschen ist erst möglich, wenn die Disziplin nicht mehr in Einheiten oder
+            Abläufen verwendet wird.
+          </p>
+        )}
       </div>
     </div>
   )
