@@ -107,7 +107,9 @@ export function HitLocationTab({ model }: Props) {
                       dataKey="x"
                       domain={hitLocationCloudAxes.xDomain}
                       ticks={hitLocationCloudAxes.xTicks}
-                      tickFormatter={(value: number) => `${value > 0 ? "+" : ""}${value.toFixed(1)}`}
+                      tickFormatter={(value: number) =>
+                        `${value > 0 ? "+" : ""}${value.toFixed(1)}`
+                      }
                       tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
                       axisLine={false}
                       tickLine={false}
@@ -125,7 +127,9 @@ export function HitLocationTab({ model }: Props) {
                       dataKey="y"
                       domain={hitLocationCloudAxes.yDomain}
                       ticks={hitLocationCloudAxes.yTicks}
-                      tickFormatter={(value: number) => `${value > 0 ? "+" : ""}${value.toFixed(1)}`}
+                      tickFormatter={(value: number) =>
+                        `${value > 0 ? "+" : ""}${value.toFixed(1)}`
+                      }
                       tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
                       axisLine={false}
                       tickLine={false}
@@ -166,7 +170,9 @@ export function HitLocationTab({ model }: Props) {
                           }}
                           formatter={(value, name) => (
                             <div className="flex w-full items-center justify-between gap-6">
-                              <span className="text-muted-foreground">{name === "x" ? "X" : "Y"}</span>
+                              <span className="text-muted-foreground">
+                                {name === "x" ? "X" : "Y"}
+                              </span>
                               <span className="text-foreground font-mono font-medium tabular-nums">
                                 {formatSignedMillimeters(
                                   typeof value === "number" ? value : Number(value)
@@ -296,7 +302,10 @@ export function HitLocationTab({ model }: Props) {
             </CardHeader>
             <CardContent>
               <ChartContainer config={hitLocationTrendChartConfig} className="h-[280px] w-full">
-                <ComposedChart data={hitLocationTrendData} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
+                <ComposedChart
+                  data={hitLocationTrendData}
+                  margin={{ top: 5, right: 20, bottom: 5, left: 0 }}
+                >
                   <CartesianGrid stroke="var(--border)" strokeOpacity={0.4} vertical={false} />
                   <XAxis
                     dataKey="i"
@@ -347,7 +356,9 @@ export function HitLocationTab({ model }: Props) {
                                     : "Y Trend"}
                             </span>
                             <span className="text-foreground font-mono font-medium tabular-nums">
-                              {formatSignedMillimeters(typeof value === "number" ? value : Number(value))}
+                              {formatSignedMillimeters(
+                                typeof value === "number" ? value : Number(value)
+                              )}
                             </span>
                           </div>
                         )}

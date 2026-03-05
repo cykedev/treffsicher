@@ -86,7 +86,9 @@ export interface HitLocationTabModel {
     yTicks: number[]
   }
   displayTimeZone: string
-  hitLocationCloudCurveSegments: Array<readonly [{ x: number; y: number }, { x: number; y: number }]>
+  hitLocationCloudCurveSegments: Array<
+    readonly [{ x: number; y: number }, { x: number; y: number }]
+  >
   hitLocationCloudPathStart: HitLocationPathPoint | null
   hitLocationCloudPathEnd: HitLocationPathPoint | null
   hitLocationMetrics: { meanX: number | null; meanY: number | null }

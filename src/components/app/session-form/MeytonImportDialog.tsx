@@ -99,9 +99,7 @@ export function MeytonImportDialog({ model, actions }: Props) {
                   Datei auswählen
                 </Button>
                 {file && (
-                  <span className="min-w-0 truncate text-sm text-foreground">
-                    {file.name}
-                  </span>
+                  <span className="min-w-0 truncate text-sm text-foreground">{file.name}</span>
                 )}
               </div>
             </div>

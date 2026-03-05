@@ -1,9 +1,5 @@
 import { calculateMovingAverage } from "@/lib/stats/calculateMovingAverage"
-import type {
-  DisciplineForStats,
-  ShotDistributionPoint,
-  StatsSession,
-} from "@/lib/stats/actions"
+import type { DisciplineForStats, ShotDistributionPoint, StatsSession } from "@/lib/stats/actions"
 import {
   CHART_POINT_OPACITY,
   CHART_POINT_RADIUS,

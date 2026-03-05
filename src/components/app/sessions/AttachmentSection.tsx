@@ -142,7 +142,13 @@ export function AttachmentSection({ sessionId, attachments }: Props) {
             disabled={isPending}
             className="flex-1"
           />
-          <Button type="submit" disabled={isPending} variant="outline" size="sm" className="shrink-0">
+          <Button
+            type="submit"
+            disabled={isPending}
+            variant="outline"
+            size="sm"
+            className="shrink-0"
+          >
             {isPending ? "Wird hochgeladen..." : "Hochladen"}
           </Button>
         </div>

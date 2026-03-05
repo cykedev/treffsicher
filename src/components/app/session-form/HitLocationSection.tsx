@@ -66,8 +66,7 @@ export function HitLocationSection({ model, actions }: Props) {
                 onChange={(event) => actions.change("horizontalMm", event.target.value)}
                 disabled={pending}
                 className={
-                  hasValidationError &&
-                  !isValidHitLocationMillimeter(hitLocation.horizontalMm)
+                  hasValidationError && !isValidHitLocationMillimeter(hitLocation.horizontalMm)
                     ? "border-destructive focus-visible:ring-destructive"
                     : ""
                 }
@@ -102,8 +101,7 @@ export function HitLocationSection({ model, actions }: Props) {
                 onChange={(event) => actions.change("verticalMm", event.target.value)}
                 disabled={pending}
                 className={
-                  hasValidationError &&
-                  !isValidHitLocationMillimeter(hitLocation.verticalMm)
+                  hasValidationError && !isValidHitLocationMillimeter(hitLocation.verticalMm)
                     ? "border-destructive focus-visible:ring-destructive"
                     : ""
                 }

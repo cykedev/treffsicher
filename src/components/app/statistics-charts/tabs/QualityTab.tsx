@@ -1,4 +1,13 @@
-import { Area, AreaChart, CartesianGrid, Legend, Scatter, ScatterChart, XAxis, YAxis } from "recharts"
+import {
+  Area,
+  AreaChart,
+  CartesianGrid,
+  Legend,
+  Scatter,
+  ScatterChart,
+  XAxis,
+  YAxis,
+} from "recharts"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { TabsContent } from "@/components/ui/tabs"
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
@@ -47,7 +56,9 @@ export function QualityTab({ model }: Props) {
                   type="number"
                   domain={[0.5, 5.5]}
                   ticks={[1, 2, 3, 4, 5]}
-                  tickFormatter={(v) => ["", "Schlecht", "Mässig", "Mittel", "Gut", "Sehr gut"][v] ?? v}
+                  tickFormatter={(v) =>
+                    ["", "Schlecht", "Mässig", "Mittel", "Gut", "Sehr gut"][v] ?? v
+                  }
                   tick={{ fontSize: 10, fill: "var(--muted-foreground)" }}
                   axisLine={false}
                   tickLine={false}
@@ -149,7 +160,9 @@ export function QualityTab({ model }: Props) {
                         return typeof tooltipLabel === "string" ? tooltipLabel : ""
                       }}
                       payloadFilter={(item) =>
-                        typeof item.value === "number" && Number.isFinite(item.value) && item.value > 0
+                        typeof item.value === "number" &&
+                        Number.isFinite(item.value) &&
+                        item.value > 0
                       }
                       payloadSorter={(a, b) => {
                         const order: Record<string, number> = {
@@ -175,7 +188,9 @@ export function QualityTab({ model }: Props) {
                                     : "0–6er"}
                           </span>
                           <span className="text-foreground font-mono font-medium tabular-nums">
-                            {typeof value === "number" ? `${value.toFixed(1)} %` : String(value ?? "")}
+                            {typeof value === "number"
+                              ? `${value.toFixed(1)} %`
+                              : String(value ?? "")}
                           </span>
                         </div>
                       )}
@@ -210,7 +225,10 @@ export function QualityTab({ model }: Props) {
                         }}
                       >
                         {items.map((entry) => (
-                          <div key={entry.value} style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                          <div
+                            key={entry.value}
+                            style={{ display: "flex", alignItems: "center", gap: 4 }}
+                          >
                             <div
                               style={{
                                 width: 10,

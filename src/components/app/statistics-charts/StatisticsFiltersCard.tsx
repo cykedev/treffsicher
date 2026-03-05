@@ -84,7 +84,12 @@ export function StatisticsFiltersCard({ model, actions }: Props) {
 
           <div className="space-y-2">
             <Label htmlFor="to">Bis</Label>
-            <Input id="to" type="date" value={to} onChange={(e) => actions.toChange(e.target.value)} />
+            <Input
+              id="to"
+              type="date"
+              value={to}
+              onChange={(e) => actions.toChange(e.target.value)}
+            />
           </div>
         </div>
 

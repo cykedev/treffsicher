@@ -7,7 +7,8 @@ import type { StatisticsChartsDataBundle } from "@/components/app/statistics-cha
 // SSR führt zu Hydration-Mismatch (Server vs. Client IDs differ).
 // ssr: false darf nur in Client Components verwendet werden — daher dieser Wrapper.
 const StatisticsChartsInner = dynamic(
-  () => import("@/components/app/statistics-charts/StatisticsCharts").then((m) => m.StatisticsCharts),
+  () =>
+    import("@/components/app/statistics-charts/StatisticsCharts").then((m) => m.StatisticsCharts),
   { ssr: false }
 )
 
