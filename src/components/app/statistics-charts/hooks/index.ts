@@ -3,4 +3,7 @@ export { useHitLocationChartState } from "@/components/app/statistics-charts/hoo
 export { useResultTrendChartState } from "@/components/app/statistics-charts/hooks/useResultTrendChartState"
 export { useStatisticsFilteredData } from "@/components/app/statistics-charts/hooks/useStatisticsFilteredData"
 export { useStatisticsFilterState } from "@/components/app/statistics-charts/hooks/useStatisticsFilterState"
+export { useStatisticsChartPresentationState } from "@/components/app/statistics-charts/hooks/useStatisticsChartPresentationState"
+export { useStatisticsFiltersCardState } from "@/components/app/statistics-charts/hooks/useStatisticsFiltersCardState"
+export { useStatisticsTabsModel } from "@/components/app/statistics-charts/hooks/useStatisticsTabsModel"
 export { useWellbeingQualityChartState } from "@/components/app/statistics-charts/hooks/useWellbeingQualityChartState"
