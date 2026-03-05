@@ -1,551 +1,79 @@
 "use server"
 
-import bcrypt from "bcryptjs"
-import { isIP } from "node:net"
-import { z } from "zod"
-import { revalidatePath } from "next/cache"
-import { db } from "@/lib/db"
-import { getAuthSession } from "@/lib/auth-helpers"
+import { getAdminSystemDisciplinesAction } from "@/lib/admin/actions/getAdminSystemDisciplines"
+import { getAdminUserByIdAction, getAdminUsersAction } from "@/lib/admin/actions/getAdminUsers"
 import {
-  MAX_PASSWORD_LENGTH,
-  MAX_USER_EMAIL_LENGTH,
-  MIN_PASSWORD_LENGTH,
-} from "@/lib/authValidation"
-import type { ScoringType, UserRole } from "@/generated/prisma/client"
+  clearLoginRateLimitBucketAction,
+  getAdminBlockedLoginRateLimitBucketsAction,
+  getAdminLoginRateLimitInsightsAction,
+} from "@/lib/admin/actions/loginRateLimit"
+import {
+  createUserAction,
+  setUserActiveAction,
+  updateUserAction,
+} from "@/lib/admin/actions/userMutations"
+import type {
+  AdminActionResult,
+  AdminLoginRateLimitBucket,
+  AdminLoginRateLimitInsights,
+  AdminSystemDisciplineSummary,
+  AdminUserListItem,
+  AdminUserSummary,
+} from "@/lib/admin/types"
 
-export type AdminActionResult = {
-  error?: string
-  success?: boolean
-}
+export type {
+  AdminActionResult,
+  AdminLoginRateLimitBucket,
+  AdminLoginRateLimitInsights,
+  AdminSystemDisciplineSummary,
+  AdminUserListItem,
+  AdminUserSummary,
+} from "@/lib/admin/types"
 
-export type AdminUserSummary = {
-  id: string
-  name: string | null
-  email: string
-  role: UserRole
-  isActive: boolean
-  createdAt: Date
-}
-
-export type AdminUserListItem = AdminUserSummary & {
-  sessionsCount: number
-  goalsCount: number
-  shotRoutinesCount: number
-  lastSessionEditAt: Date | null
-}
-
-export type AdminSystemDisciplineSummary = {
-  id: string
-  name: string
-  seriesCount: number
-  shotsPerSeries: number
-  practiceSeries: number
-  scoringType: ScoringType
-  isArchived: boolean
-  createdAt: Date
-  updatedAt: Date
-}
-
-export type AdminLoginRateLimitBucket = {
-  key: string
-  type: "EMAIL" | "IP"
-  identifier: string
-  attempts: number
-  windowStartedAt: Date
-  blockedUntil: Date | null
-  lastAttemptAt: Date
-}
-
-export type AdminLoginRateLimitInsights = {
-  totalBucketCount: number
-  activeBlockedCount: number
-  activeBlockedBuckets: AdminLoginRateLimitBucket[]
-  topNoisyBuckets: AdminLoginRateLimitBucket[]
-}
-
-const CreateUserSchema = z.object({
-  name: z.string().trim().min(1, "Bitte einen Namen angeben.").max(120, "Name ist zu lang."),
-  email: z
-    .string()
-    .trim()
-    .max(MAX_USER_EMAIL_LENGTH, "E-Mail ist zu lang.")
-    .email("Bitte eine gültige E-Mail angeben."),
-  tempPassword: z
-    .string()
-    .min(
-      MIN_PASSWORD_LENGTH,
-      `Temporäres Passwort muss mindestens ${MIN_PASSWORD_LENGTH} Zeichen haben.`
-    )
-    .max(MAX_PASSWORD_LENGTH, "Passwort ist zu lang."),
-  role: z.enum(["USER", "ADMIN"] as const).default("USER"),
-})
-
-const UpdateUserSchema = z.object({
-  name: z.string().trim().min(1, "Bitte einen Namen angeben.").max(120, "Name ist zu lang."),
-  email: z
-    .string()
-    .trim()
-    .max(MAX_USER_EMAIL_LENGTH, "E-Mail ist zu lang.")
-    .email("Bitte eine gültige E-Mail angeben."),
-  role: z.enum(["USER", "ADMIN"] as const),
-  isActive: z.boolean(),
-})
-
-const LoginRateLimitBucketKeySchema = z
-  .string()
-  .trim()
-  .min(1, "Ungültiger Rate-Limit-Schlüssel.")
-  .max(400, "Ungültiger Rate-Limit-Schlüssel.")
-  .refine((value) => parseLoginRateLimitKey(value) !== null, "Ungültiger Rate-Limit-Schlüssel.")
-
-const TOP_NOISY_WINDOW_HOURS = 24
-const TOP_NOISY_LIMIT = 10
-
-async function requireAdminSession(): Promise<{ id: string } | null> {
-  const session = await getAuthSession()
-  if (!session || session.user.role !== "ADMIN") {
-    return null
-  }
-  return { id: session.user.id }
-}
-
-function revalidateAdminPaths(): void {
-  // Layout-Revalidation deckt /admin und alle Unterseiten ab.
-  revalidatePath("/admin", "layout")
-}
-
-function parseLoginRateLimitKey(
-  key: string
-): { type: AdminLoginRateLimitBucket["type"]; identifier: string } | null {
-  if (key.startsWith("email:")) {
-    const identifier = key.slice("email:".length)
-    if (!identifier || identifier.length > MAX_USER_EMAIL_LENGTH) {
-      return null
-    }
-    return { type: "EMAIL", identifier }
-  }
-
-  if (key.startsWith("ip:")) {
-    const identifier = key.slice("ip:".length)
-    if (!identifier || isIP(identifier) === 0) {
-      return null
-    }
-    return { type: "IP", identifier }
-  }
-
-  return null
-}
-
-function mapLoginRateLimitRowToAdminBucket(row: {
-  key: string
-  attempts: number
-  windowStartedAt: Date
-  blockedUntil: Date | null
-  lastAttemptAt: Date
-}): AdminLoginRateLimitBucket | null {
-  const parsedKey = parseLoginRateLimitKey(row.key)
-  if (!parsedKey) return null
-
-  return {
-    key: row.key,
-    type: parsedKey.type,
-    identifier: parsedKey.identifier,
-    attempts: row.attempts,
-    windowStartedAt: row.windowStartedAt,
-    blockedUntil: row.blockedUntil,
-    lastAttemptAt: row.lastAttemptAt,
-  }
-}
-
-/**
- * Gibt alle Nutzer für die Admin-Verwaltung zurück (ohne Passwort-Hashes).
- */
 export async function getAdminUsers(): Promise<AdminUserListItem[]> {
-  const admin = await requireAdminSession()
-  if (!admin) return []
-
-  const users = await db.user.findMany({
-    select: {
-      id: true,
-      name: true,
-      email: true,
-      role: true,
-      isActive: true,
-      createdAt: true,
-      _count: {
-        select: {
-          sessions: true,
-          goals: true,
-          shotRoutines: true,
-        },
-      },
-    },
-    orderBy: [{ role: "asc" }, { createdAt: "asc" }],
-  })
-
-  const lastSessionUpdates = await db.trainingSession.groupBy({
-    by: ["userId"],
-    _max: {
-      updatedAt: true,
-    },
-  })
-  const lastSessionByUserId = new Map(
-    lastSessionUpdates.map((row) => [row.userId, row._max.updatedAt ?? null])
-  )
-
-  return users.map((user) => ({
-    id: user.id,
-    name: user.name,
-    email: user.email,
-    role: user.role,
-    isActive: user.isActive,
-    createdAt: user.createdAt,
-    sessionsCount: user._count.sessions,
-    goalsCount: user._count.goals,
-    shotRoutinesCount: user._count.shotRoutines,
-    lastSessionEditAt: lastSessionByUserId.get(user.id) ?? null,
-  }))
+  return getAdminUsersAction()
 }
 
-/**
- * Gibt einen einzelnen Nutzer für die Bearbeitungsseite zurück.
- */
 export async function getAdminUserById(userId: string): Promise<AdminUserSummary | null> {
-  const admin = await requireAdminSession()
-  if (!admin) return null
-
-  return db.user.findUnique({
-    where: { id: userId },
-    select: {
-      id: true,
-      name: true,
-      email: true,
-      role: true,
-      isActive: true,
-      createdAt: true,
-    },
-  })
+  return getAdminUserByIdAction(userId)
 }
 
-/**
- * Gibt alle System-Disziplinen für die Admin-Verwaltung zurück.
- */
 export async function getAdminSystemDisciplines(): Promise<AdminSystemDisciplineSummary[]> {
-  const admin = await requireAdminSession()
-  if (!admin) return []
-
-  return db.discipline.findMany({
-    where: { isSystem: true },
-    select: {
-      id: true,
-      name: true,
-      seriesCount: true,
-      shotsPerSeries: true,
-      practiceSeries: true,
-      scoringType: true,
-      isArchived: true,
-      createdAt: true,
-      updatedAt: true,
-    },
-    orderBy: [{ isArchived: "asc" }, { name: "asc" }],
-  })
+  return getAdminSystemDisciplinesAction()
 }
 
-/**
- * Gibt aktuell aktive Login-Sperren (E-Mail/IP) für die Admin-Ansicht zurück.
- */
-export async function getAdminBlockedLoginRateLimitBuckets(): Promise<AdminLoginRateLimitBucket[]> {
-  const admin = await requireAdminSession()
-  if (!admin) return []
-
-  const now = new Date()
-  const rows = await db.loginRateLimitBucket.findMany({
-    where: {
-      blockedUntil: {
-        gt: now,
-      },
-    },
-    select: {
-      key: true,
-      attempts: true,
-      windowStartedAt: true,
-      blockedUntil: true,
-      lastAttemptAt: true,
-    },
-    orderBy: [{ blockedUntil: "asc" }, { lastAttemptAt: "desc" }],
-    take: 200,
-  })
-
-  return rows.flatMap((row) => {
-    const mapped = mapLoginRateLimitRowToAdminBucket(row)
-    return mapped ? [mapped] : []
-  })
+export async function getAdminBlockedLoginRateLimitBuckets(): Promise<
+  AdminLoginRateLimitBucket[]
+> {
+  return getAdminBlockedLoginRateLimitBucketsAction()
 }
 
-/**
- * Liefert Insights zur Login-Rate-Limit-Tabelle für die Admin-Oberfläche.
- */
 export async function getAdminLoginRateLimitInsights(): Promise<AdminLoginRateLimitInsights> {
-  const admin = await requireAdminSession()
-  if (!admin) {
-    return {
-      totalBucketCount: 0,
-      activeBlockedCount: 0,
-      activeBlockedBuckets: [],
-      topNoisyBuckets: [],
-    }
-  }
-
-  const now = new Date()
-  const noisyWindowStart = new Date(now.getTime() - TOP_NOISY_WINDOW_HOURS * 60 * 60 * 1000)
-
-  const [totalBucketCount, activeBlockedCount, activeRows, noisyRows] = await Promise.all([
-    db.loginRateLimitBucket.count(),
-    db.loginRateLimitBucket.count({
-      where: {
-        blockedUntil: {
-          gt: now,
-        },
-      },
-    }),
-    db.loginRateLimitBucket.findMany({
-      where: {
-        blockedUntil: {
-          gt: now,
-        },
-      },
-      select: {
-        key: true,
-        attempts: true,
-        windowStartedAt: true,
-        blockedUntil: true,
-        lastAttemptAt: true,
-      },
-      orderBy: [{ blockedUntil: "asc" }, { lastAttemptAt: "desc" }],
-      take: 200,
-    }),
-    db.loginRateLimitBucket.findMany({
-      where: {
-        lastAttemptAt: {
-          gte: noisyWindowStart,
-        },
-      },
-      select: {
-        key: true,
-        attempts: true,
-        windowStartedAt: true,
-        blockedUntil: true,
-        lastAttemptAt: true,
-      },
-      orderBy: [{ attempts: "desc" }, { lastAttemptAt: "desc" }, { key: "asc" }],
-      take: TOP_NOISY_LIMIT,
-    }),
-  ])
-
-  const activeBlockedBuckets = activeRows.flatMap((row) => {
-    const mapped = mapLoginRateLimitRowToAdminBucket(row)
-    return mapped ? [mapped] : []
-  })
-  const topNoisyBuckets = noisyRows.flatMap((row) => {
-    const mapped = mapLoginRateLimitRowToAdminBucket(row)
-    return mapped ? [mapped] : []
-  })
-
-  return {
-    totalBucketCount,
-    activeBlockedCount,
-    activeBlockedBuckets,
-    topNoisyBuckets,
-  }
+  return getAdminLoginRateLimitInsightsAction()
 }
 
-/**
- * Entfernt eine aktive Login-Sperre (einzelner Bucket-Schlüssel).
- */
 export async function clearLoginRateLimitBucket(bucketKey: string): Promise<AdminActionResult> {
-  const admin = await requireAdminSession()
-  if (!admin) return { error: "Keine Berechtigung." }
-
-  const parsed = LoginRateLimitBucketKeySchema.safeParse(bucketKey)
-  if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? "Ungültiger Rate-Limit-Schlüssel." }
-  }
-
-  await db.loginRateLimitBucket.deleteMany({
-    where: { key: parsed.data },
-  })
-
-  revalidateAdminPaths()
-  return { success: true }
+  return clearLoginRateLimitBucketAction(bucketKey)
 }
 
-/**
- * Legt einen neuen Nutzer (USER oder ADMIN) mit temporärem Passwort an.
- */
 export async function createUser(
-  _prevState: AdminActionResult | null,
+  prevState: AdminActionResult | null,
   formData: FormData
 ): Promise<AdminActionResult> {
-  const admin = await requireAdminSession()
-  if (!admin) return { error: "Keine Berechtigung." }
-
-  const parsed = CreateUserSchema.safeParse({
-    name: formData.get("name"),
-    email: formData.get("email"),
-    tempPassword: formData.get("tempPassword"),
-    role: formData.get("role") ?? "USER",
-  })
-
-  if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? "Ungültige Eingaben." }
-  }
-
-  const email = parsed.data.email.toLowerCase()
-  const existing = await db.user.findUnique({
-    where: { email },
-    select: { id: true },
-  })
-  if (existing) {
-    return { error: "Diese E-Mail ist bereits vergeben." }
-  }
-
-  const passwordHash = await bcrypt.hash(parsed.data.tempPassword, 12)
-
-  await db.user.create({
-    data: {
-      name: parsed.data.name,
-      email,
-      passwordHash,
-      role: parsed.data.role,
-      isActive: true,
-    },
-  })
-
-  revalidateAdminPaths()
-  return { success: true }
+  return createUserAction(prevState, formData)
 }
 
-/**
- * Aktiviert oder deaktiviert einen Nutzer.
- */
 export async function setUserActive(
   userId: string,
   nextIsActive: boolean
 ): Promise<AdminActionResult> {
-  const admin = await requireAdminSession()
-  if (!admin) return { error: "Keine Berechtigung." }
-
-  const target = await db.user.findUnique({
-    where: { id: userId },
-    select: { id: true, role: true, isActive: true },
-  })
-  if (!target) return { error: "Nutzer nicht gefunden." }
-
-  // Selbst-Deaktivierung verhindern, damit der Admin sich nicht aussperrt.
-  if (admin.id === userId && nextIsActive === false) {
-    return { error: "Der eigene Account kann nicht deaktiviert werden." }
-  }
-
-  // Verhindert, dass der letzte aktive Admin deaktiviert wird.
-  if (target.role === "ADMIN" && nextIsActive === false) {
-    const activeAdminCount = await db.user.count({
-      where: { role: "ADMIN", isActive: true },
-    })
-    if (activeAdminCount <= 1) {
-      return { error: "Mindestens ein aktiver Admin muss vorhanden bleiben." }
-    }
-  }
-
-  if (target.isActive === nextIsActive) {
-    return { success: true }
-  }
-
-  await db.user.update({
-    where: { id: userId },
-    data: { isActive: nextIsActive },
-  })
-
-  revalidateAdminPaths()
-  return { success: true }
+  return setUserActiveAction(userId, nextIsActive)
 }
 
-/**
- * Aktualisiert E-Mail, Rolle und Status eines Nutzers.
- * Optional kann in derselben Aktion ein neues temporäres Passwort gesetzt werden.
- */
 export async function updateUser(
   userId: string,
-  _prevState: AdminActionResult | null,
+  prevState: AdminActionResult | null,
   formData: FormData
 ): Promise<AdminActionResult> {
-  const admin = await requireAdminSession()
-  if (!admin) return { error: "Keine Berechtigung." }
-
-  const target = await db.user.findUnique({
-    where: { id: userId },
-    select: { id: true, role: true, isActive: true, email: true },
-  })
-  if (!target) return { error: "Nutzer nicht gefunden." }
-
-  const parsed = UpdateUserSchema.safeParse({
-    name: formData.get("name"),
-    email: formData.get("email"),
-    role: formData.get("role"),
-    isActive: String(formData.get("isActive")) === "true",
-  })
-  if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? "Ungültige Eingaben." }
-  }
-
-  const email = parsed.data.email.toLowerCase()
-  const existing = await db.user.findUnique({
-    where: { email },
-    select: { id: true },
-  })
-  if (existing && existing.id !== userId) {
-    return { error: "Diese E-Mail ist bereits vergeben." }
-  }
-
-  if (admin.id === userId && !parsed.data.isActive) {
-    return { error: "Der eigene Account kann nicht deaktiviert werden." }
-  }
-
-  // Schuetzt den letzten aktiven Admin bei Deaktivierung oder Rollenwechsel.
-  if (
-    target.role === "ADMIN" &&
-    target.isActive &&
-    (parsed.data.role !== "ADMIN" || !parsed.data.isActive)
-  ) {
-    const activeAdminCount = await db.user.count({
-      where: { role: "ADMIN", isActive: true },
-    })
-    if (activeAdminCount <= 1) {
-      return { error: "Mindestens ein aktiver Admin muss vorhanden bleiben." }
-    }
-  }
-
-  const tempPassword = String(formData.get("tempPassword") ?? "")
-  if (tempPassword.length > 0 && tempPassword.length < MIN_PASSWORD_LENGTH) {
-    return { error: `Temporäres Passwort muss mindestens ${MIN_PASSWORD_LENGTH} Zeichen haben.` }
-  }
-  if (tempPassword.length > MAX_PASSWORD_LENGTH) {
-    return { error: "Passwort ist zu lang." }
-  }
-
-  const passwordHash = tempPassword.length > 0 ? await bcrypt.hash(tempPassword, 12) : undefined
-
-  await db.user.update({
-    where: { id: userId },
-    data: {
-      name: parsed.data.name,
-      email,
-      role: parsed.data.role,
-      isActive: parsed.data.isActive,
-      ...(passwordHash ? { passwordHash } : {}),
-      ...(passwordHash ? { sessionVersion: { increment: 1 } } : {}),
-    },
-  })
-
-  revalidateAdminPaths()
-  return { success: true }
+  return updateUserAction(userId, prevState, formData)
 }

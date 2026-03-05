@@ -1,384 +1,70 @@
 "use server"
 
-import { z } from "zod"
-import { revalidatePath } from "next/cache"
-import { db } from "@/lib/db"
-import { getAuthSession } from "@/lib/auth-helpers"
 import type { Discipline } from "@/generated/prisma/client"
+import { setFavouriteDisciplineAction } from "@/lib/disciplines/actions/favouriteDiscipline"
+import {
+  getDisciplineByIdAction,
+  getDisciplineForDetailAction,
+  getDisciplinesAction,
+  getDisciplinesForManagementAction,
+  getFavouriteDisciplineIdAction,
+} from "@/lib/disciplines/actions/getDisciplines"
+import {
+  archiveDisciplineAction,
+  createDisciplineAction,
+  setDisciplineArchivedAction,
+  updateDisciplineAction,
+} from "@/lib/disciplines/actions/mutateDiscipline"
+import type { ActionResult } from "@/lib/disciplines/types"
 
-// Zod-Schema für eine neue Disziplin.
-// Zod v4: `invalid_type_error` wurde entfernt — stattdessen `message` verwenden
-const CreateDisciplineSchema = z.object({
-  name: z.string().min(1, "Name ist erforderlich").max(100, "Name zu lang"),
-  seriesCount: z
-    .number({ message: "Anzahl Serien muss eine Zahl sein" })
-    .int()
-    .min(1, "Mindestens 1 Serie")
-    .max(20, "Maximal 20 Serien"),
-  shotsPerSeries: z
-    .number({ message: "Schuss pro Serie muss eine Zahl sein" })
-    .int()
-    .min(1, "Mindestens 1 Schuss")
-    .max(60, "Maximal 60 Schuss"),
-  practiceSeries: z
-    .number({ message: "Probe-Serien muss eine Zahl sein" })
-    .int()
-    .min(0)
-    .max(5)
-    .default(0),
-  // Zod v4: Array muss `as const` sein für korrekte Enum-Typisierung
-  scoringType: z.enum(["WHOLE", "TENTH"] as const, {
-    message: "Ungültige Wertungsart",
-  }),
-  isSystem: z.boolean().default(false),
-})
+export type { ActionResult } from "@/lib/disciplines/types"
 
-export type ActionResult = {
-  error?: string | Record<string, string[]>
-  success?: boolean
-}
-
-/**
- * Gibt alle Disziplinen zurück, die der Nutzer verwenden kann:
- * - System-Disziplinen (für alle sichtbar)
- * - Eigene Disziplinen des eingeloggten Nutzers
- * Archivierte Disziplinen werden nicht zurückgegeben.
- */
 export async function getDisciplines(): Promise<Discipline[]> {
-  const session = await getAuthSession()
-  if (!session) return []
-
-  return db.discipline.findMany({
-    where: {
-      isArchived: false,
-      // System-Disziplinen ODER eigene Disziplinen des Nutzers
-      OR: [{ isSystem: true }, { ownerId: session.user.id }],
-    },
-    orderBy: [
-      // System-Disziplinen zuerst, dann eigene alphabetisch
-      { isSystem: "desc" },
-      { name: "asc" },
-    ],
-  })
+  return getDisciplinesAction()
 }
 
-/**
- * Gibt Disziplinen für die Disziplin-Verwaltung zurueck.
- * Admins sehen hier auch archivierte System-Disziplinen für Reaktivierung und Pflege.
- */
 export async function getDisciplinesForManagement(): Promise<Discipline[]> {
-  const session = await getAuthSession()
-  if (!session) return []
-
-  if (session.user.role === "ADMIN") {
-    return db.discipline.findMany({
-      where: {
-        OR: [{ isSystem: true }, { ownerId: session.user.id, isArchived: false }],
-      },
-      orderBy: [{ isSystem: "desc" }, { isArchived: "asc" }, { name: "asc" }],
-    })
-  }
-
-  return getDisciplines()
+  return getDisciplinesForManagementAction()
 }
 
-/**
- * Gibt eine einzelne Disziplin für die Detailansicht zurück.
- * Normale Nutzer sehen aktive System- und eigene Disziplinen, Admins zusätzlich
- * archivierte System-Disziplinen.
- */
 export async function getDisciplineForDetail(id: string): Promise<Discipline | null> {
-  const session = await getAuthSession()
-  if (!session) return null
-
-  const isAdmin = session.user.role === "ADMIN"
-
-  if (isAdmin) {
-    return db.discipline.findFirst({
-      where: {
-        id,
-        OR: [{ isSystem: true }, { ownerId: session.user.id }],
-      },
-    })
-  }
-
-  return db.discipline.findFirst({
-    where: {
-      id,
-      isArchived: false,
-      OR: [{ isSystem: true }, { ownerId: session.user.id }],
-    },
-  })
+  return getDisciplineForDetailAction(id)
 }
 
-/**
- * Gibt die Favorit-Disziplin des Nutzers zurück.
- * Falls die gespeicherte Disziplin nicht mehr verfügbar ist, wird der Favorit entfernt.
- */
 export async function getFavouriteDisciplineId(): Promise<string | null> {
-  const session = await getAuthSession()
-  if (!session) return null
-
-  const user = await db.user.findUnique({
-    where: { id: session.user.id },
-    select: { favouriteDisciplineId: true },
-  })
-
-  const favouriteDisciplineId = user?.favouriteDisciplineId ?? null
-  if (!favouriteDisciplineId) return null
-
-  const favouriteDiscipline = await db.discipline.findFirst({
-    where: {
-      id: favouriteDisciplineId,
-      isArchived: false,
-      OR: [{ isSystem: true }, { ownerId: session.user.id }],
-    },
-    select: { id: true },
-  })
-
-  if (favouriteDiscipline) return favouriteDiscipline.id
-
-  await db.user.update({
-    where: { id: session.user.id },
-    data: { favouriteDisciplineId: null },
-  })
-  return null
+  return getFavouriteDisciplineIdAction()
 }
 
-/**
- * Setzt oder entfernt die Favorit-Disziplin des Nutzers.
- * Erneutes Klicken auf die bereits gesetzte Favorit-Disziplin entfernt den Favoriten.
- */
 export async function setFavouriteDiscipline(disciplineId: string): Promise<ActionResult> {
-  const session = await getAuthSession()
-  if (!session) return { error: "Nicht angemeldet" }
-
-  const user = await db.user.findUnique({
-    where: { id: session.user.id },
-    select: { favouriteDisciplineId: true },
-  })
-  if (!user) return { error: "Nutzer nicht gefunden." }
-
-  const nextFavouriteId = user.favouriteDisciplineId === disciplineId ? null : disciplineId
-
-  if (nextFavouriteId) {
-    const discipline = await db.discipline.findFirst({
-      where: {
-        id: nextFavouriteId,
-        isArchived: false,
-        OR: [{ isSystem: true }, { ownerId: session.user.id }],
-      },
-      select: { id: true },
-    })
-
-    if (!discipline) {
-      return { error: "Disziplin nicht gefunden oder keine Berechtigung." }
-    }
-  }
-
-  await db.user.update({
-    where: { id: session.user.id },
-    data: { favouriteDisciplineId: nextFavouriteId },
-  })
-
-  revalidatePath("/disciplines")
-  revalidatePath("/sessions", "layout")
-  return { success: true }
+  return setFavouriteDisciplineAction(disciplineId)
 }
 
-/**
- * Legt eine neue benutzerdefinierte Disziplin an.
- * React 19 useActionState erfordert (prevState, formData) Signatur.
- */
 export async function createDiscipline(
-  _prevState: ActionResult | null,
+  prevState: ActionResult | null,
   formData: FormData
 ): Promise<ActionResult> {
-  // Schritt 1: Authentifizierung prüfen
-  const session = await getAuthSession()
-  if (!session) return { error: "Nicht angemeldet" }
-
-  // Schritt 2: Eingaben parsen und validieren
-  const parsed = CreateDisciplineSchema.safeParse({
-    name: formData.get("name"),
-    seriesCount: Number(formData.get("seriesCount")),
-    shotsPerSeries: Number(formData.get("shotsPerSeries")),
-    practiceSeries: Number(formData.get("practiceSeries") ?? 0),
-    scoringType: formData.get("scoringType"),
-    isSystem: String(formData.get("isSystem") ?? "false") === "true",
-  })
-
-  if (!parsed.success) {
-    return { error: parsed.error.flatten().fieldErrors as Record<string, string[]> }
-  }
-
-  const canCreateSystem = session.user.role === "ADMIN" && parsed.data.isSystem
-
-  // Schritt 3: Disziplin in DB anlegen — gehört dem eingeloggten Nutzer
-  await db.discipline.create({
-    data: {
-      ...parsed.data,
-      isSystem: canCreateSystem,
-      ownerId: canCreateSystem ? null : session.user.id,
-    },
-  })
-
-  // Next.js Cache für die Disziplin-Liste und alle Einheit-Seiten ungültig machen
-  // (Einheit-Formulare zeigen Disziplinen an — Router Cache muss invalidiert werden)
-  revalidatePath("/disciplines")
-  revalidatePath("/sessions", "layout")
-
-  return { success: true }
+  return createDisciplineAction(prevState, formData)
 }
 
-/**
- * Gibt eine einzelne Disziplin zurück — nur eigene (nicht System) und nicht archivierte.
- * Wird für die Bearbeiten-Seite verwendet.
- */
 export async function getDisciplineById(id: string): Promise<Discipline | null> {
-  const session = await getAuthSession()
-  if (!session) return null
-
-  const isAdmin = session.user.role === "ADMIN"
-
-  if (isAdmin) {
-    return db.discipline.findFirst({
-      where: {
-        id,
-        OR: [{ isSystem: true }, { ownerId: session.user.id }],
-      },
-    })
-  }
-
-  return db.discipline.findFirst({
-    where: {
-      id,
-      ownerId: session.user.id,
-      isSystem: false,
-      isArchived: false,
-    },
-  })
+  return getDisciplineByIdAction(id)
 }
 
-/**
- * Aktualisiert eine benutzerdefinierte Disziplin.
- * Die Wertungsart kann nicht geändert werden wenn die Disziplin bereits in Einheiten verwendet wird —
- * sonst würden gespeicherte Ringwerte falsch interpretiert.
- */
 export async function updateDiscipline(
   id: string,
-  _prevState: ActionResult | null,
+  prevState: ActionResult | null,
   formData: FormData
 ): Promise<ActionResult> {
-  const session = await getAuthSession()
-  if (!session) return { error: "Nicht angemeldet" }
-
-  const discipline = await db.discipline.findUnique({ where: { id } })
-  if (!discipline) return { error: "Disziplin nicht gefunden oder keine Berechtigung." }
-
-  const canEditSystem = session.user.role === "ADMIN" && discipline.isSystem
-  const canEditOwn = !discipline.isSystem && discipline.ownerId === session.user.id
-  if (!canEditSystem && !canEditOwn) {
-    return { error: "Disziplin nicht gefunden oder keine Berechtigung." }
-  }
-
-  const parsed = CreateDisciplineSchema.safeParse({
-    name: formData.get("name"),
-    seriesCount: Number(formData.get("seriesCount")),
-    shotsPerSeries: Number(formData.get("shotsPerSeries")),
-    practiceSeries: Number(formData.get("practiceSeries") ?? 0),
-    scoringType: formData.get("scoringType"),
-    // Bestehende Zugehoerigkeit bleibt erhalten; fuer Bearbeiten nicht aus dem Formular lesen.
-    isSystem: discipline.isSystem,
-  })
-
-  if (!parsed.success) {
-    return { error: parsed.error.flatten().fieldErrors as Record<string, string[]> }
-  }
-
-  // Wertungsart-Änderung verhindern wenn Disziplin bereits in Einheiten verwendet wird
-  if (parsed.data.scoringType !== discipline.scoringType) {
-    const usedInSessions = await db.trainingSession.count({ where: { disciplineId: id } })
-    if (usedInSessions > 0) {
-      return {
-        error:
-          "Wertungsart kann nicht geändert werden — die Disziplin wird bereits in Einheiten verwendet.",
-      }
-    }
-  }
-
-  await db.discipline.update({
-    where: { id },
-    data: parsed.data,
-  })
-
-  revalidatePath("/disciplines")
-  revalidatePath("/sessions", "layout")
-  return { success: true }
+  return updateDisciplineAction(id, prevState, formData)
 }
 
-/**
- * Archiviert eine Disziplin.
- * Archivierte Disziplinen erscheinen nicht mehr in der Auswahl für neue Einheiten,
- * aber bestehende Einheiten bleiben lesbar (keine Datenlöschung).
- */
 export async function archiveDiscipline(id: string): Promise<ActionResult> {
-  return setDisciplineArchived(id, true)
+  return archiveDisciplineAction(id)
 }
 
-/**
- * Archiviert oder aktiviert eine Disziplin.
- * System-Disziplinen duerfen nur von Admins geaendert werden.
- */
 export async function setDisciplineArchived(
   id: string,
   nextArchived: boolean
 ): Promise<ActionResult> {
-  const session = await getAuthSession()
-  if (!session) return { error: "Nicht angemeldet" }
-
-  const discipline = await db.discipline.findUnique({
-    where: { id },
-    select: { id: true, ownerId: true, isSystem: true, isArchived: true },
-  })
-
-  if (!discipline) {
-    return { error: "Disziplin nicht gefunden oder keine Berechtigung." }
-  }
-
-  const canManageSystem = discipline.isSystem && session.user.role === "ADMIN"
-  const canManageOwn = !discipline.isSystem && discipline.ownerId === session.user.id
-  if (!canManageSystem && !canManageOwn) {
-    return { error: "Disziplin nicht gefunden oder keine Berechtigung." }
-  }
-
-  if (discipline.isArchived === nextArchived) {
-    return { success: true }
-  }
-
-  if (nextArchived) {
-    await db.$transaction([
-      db.discipline.update({
-        where: { id },
-        data: { isArchived: true },
-      }),
-      db.user.updateMany({
-        where: {
-          favouriteDisciplineId: id,
-          // Bei eigenen Disziplinen reicht der eigene Nutzer; bei System-Disziplinen alle.
-          ...(discipline.isSystem ? {} : { id: session.user.id }),
-        },
-        data: { favouriteDisciplineId: null },
-      }),
-    ])
-  } else {
-    await db.discipline.update({
-      where: { id },
-      data: { isArchived: false },
-    })
-  }
-
-  revalidatePath("/disciplines")
-  revalidatePath("/sessions", "layout")
-  return { success: true }
+  return setDisciplineArchivedAction(id, nextArchived)
 }
