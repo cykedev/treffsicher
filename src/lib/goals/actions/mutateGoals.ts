@@ -8,7 +8,9 @@ import {
 } from "@/lib/goals/actions/shared"
 import type { GoalActionResult } from "@/lib/goals/types"
 
-async function createGoalForUser(userId: string, formData: FormData): Promise<GoalActionResult> {
+type GoalMutationResult = { error: string } | { success: true }
+
+async function createGoalForUser(userId: string, formData: FormData): Promise<GoalMutationResult> {
   const input = parseGoalInput(formData, "create")
   if ("error" in input) return input
 

@@ -10,9 +10,9 @@ import {
   type ParsedSeriesInput,
   type SessionTransactionClient,
 } from "@/lib/sessions/actions/shared"
-import type { ActionResult } from "@/lib/sessions/actions/types"
 
 type ParsedSessionInput = z.infer<typeof CreateSessionSchema>
+type SessionInputError = { error: string }
 
 export type PreparedSessionWriteInput = {
   parsed: ParsedSessionInput
@@ -31,7 +31,7 @@ type PrepareContext = {
 function parseBaseSessionInput(
   formData: FormData,
   context: PrepareContext
-): ParsedSessionInput | ActionResult {
+): ParsedSessionInput | SessionInputError {
   const parsed = CreateSessionSchema.safeParse({
     type: formData.get("type"),
     date: formData.get("date"),
@@ -53,7 +53,7 @@ export async function prepareSessionWriteInput(
   formData: FormData,
   userId: string,
   context: PrepareContext
-): Promise<PreparedSessionWriteInput | ActionResult> {
+): Promise<PreparedSessionWriteInput | SessionInputError> {
   // Parsing und Guarding an einer Stelle halten, damit Create/Update identische Regeln erzwingen.
   const parsed = parseBaseSessionInput(formData, context)
   if ("error" in parsed) return parsed

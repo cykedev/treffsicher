@@ -1,22 +1,26 @@
 import type { Dispatch, SetStateAction } from "react"
+import type { ChartConfig } from "@/components/ui/chart"
 import type {
   StatisticsFiltersCardActions,
   StatisticsFiltersCardModel,
+  StatisticsFiltersPreset,
 } from "@/components/app/statistics-charts/filterTypes"
 import type { StatisticsChartsTabsModel } from "@/components/app/statistics-charts/tabs/types"
 import type {
   AggregatedShotDistributionPoint,
-  TimePreset,
+  DisplayMode,
+  HitLocationPathPoint,
 } from "@/components/app/statistics-charts/types"
+import type { TypeFilter } from "@/components/app/statistics-charts/hooks/useStatisticsFilterState"
 import type { DisciplineForStats } from "@/lib/stats/actions"
 
 export interface TabsParams {
   // Breite, explizite Struktur hält Mapping-Hooks von konkreten Tab-Komponenten entkoppelt.
   hasData: boolean
-  effectiveDisplayMode: "per_shot" | "projected"
+  effectiveDisplayMode: DisplayMode
   selectedDiscipline: DisciplineForStats | null
   totalDisciplineShots: number | null
-  lineChartConfig: Record<string, { label?: string; color?: string }>
+  lineChartConfig: ChartConfig
   lineData: Array<{
     i: number
     datum: string
@@ -31,13 +35,13 @@ export interface TabsParams {
   metricLabel: string
   barData: Array<{ name: string; Min: number; Avg: number; Max: number }>
   disciplineFilter: string
-  seriesChartConfig: Record<string, { label?: string; color?: string }>
+  seriesChartConfig: ChartConfig
   seriesYAxis: { domain: [number, number]; ticks: number[] }
   seriesHasDecimals: boolean
   filteredHitLocations: Array<{ sessionId: string; date: Date; x: number; y: number }>
   showCloudTrail: boolean
   setShowCloudTrail: Dispatch<SetStateAction<boolean>>
-  hitLocationCloudChartConfig: Record<string, { label?: string; color?: string }>
+  hitLocationCloudChartConfig: ChartConfig
   hitLocationCloudAxes: {
     xDomain: [number, number]
     xTicks: number[]
@@ -48,14 +52,14 @@ export interface TabsParams {
   hitLocationCloudCurveSegments: Array<
     readonly [{ x: number; y: number }, { x: number; y: number }]
   >
-  hitLocationCloudPathStart: { x: number; y: number } | null
-  hitLocationCloudPathEnd: { x: number; y: number } | null
+  hitLocationCloudPathStart: HitLocationPathPoint | null
+  hitLocationCloudPathEnd: HitLocationPathPoint | null
   hitLocationMetrics: { meanX: number | null; meanY: number | null }
   showHitLocationTrendX: boolean
   showHitLocationTrendY: boolean
   setShowHitLocationTrendX: Dispatch<SetStateAction<boolean>>
   setShowHitLocationTrendY: Dispatch<SetStateAction<boolean>>
-  hitLocationTrendChartConfig: Record<string, { label?: string; color?: string }>
+  hitLocationTrendChartConfig: ChartConfig
   hitLocationTrendData: Array<{
     i: number
     date: Date
@@ -78,10 +82,10 @@ export interface TabsParams {
   radarChartData: Array<{ dimension: string; prognosis: number; feedback: number }>
   filteredRadarSessionsCount: number
   radarDateLabel: string | null
-  radarChartConfig: Record<string, { label?: string; color?: string }>
+  radarChartConfig: ChartConfig
   radarLegendItems: Array<{ key: "prognosis" | "feedback"; label: string; color: string }>
   filteredWellbeingCount: number
-  wellbeingChartConfig: Record<string, { label?: string; color?: string }>
+  wellbeingChartConfig: ChartConfig
   wellbeingYAxis: { domain: [number, number]; ticks: number[] }
   wellbeingScoreLabel: string
   wellbeingDisplayData: Array<{
@@ -92,32 +96,32 @@ export interface TabsParams {
     displayScore: number
   }>
   filteredQualityCount: number
-  qualityChartConfig: Record<string, { label?: string; color?: string }>
+  qualityChartConfig: ChartConfig
   qualityYAxis: { domain: [number, number]; ticks: number[] }
   qualityScoreLabel: string
   qualityDisplayData: Array<{ quality: number; displayScore: number }>
   aggregatedShotDistribution: AggregatedShotDistributionPoint[]
-  shotDistributionChartConfig: Record<string, { label?: string; color?: string }>
+  shotDistributionChartConfig: ChartConfig
   shotDistributionTicks: number[]
 }
 
 export interface FiltersParams {
-  typeFilter: string
+  typeFilter: TypeFilter
   disciplineFilter: string
   availableDisciplines: DisciplineForStats[]
   from: string
   to: string
-  activeTimePreset: TimePreset
+  activeTimePreset: StatisticsFiltersPreset
   selectedDiscipline: DisciplineForStats | null
-  effectiveDisplayMode: "per_shot" | "projected"
+  effectiveDisplayMode: DisplayMode
   totalDisciplineShots: number | null
   filteredCount: number
   withScoreCount: number
-  setTypeFilter: Dispatch<SetStateAction<string>>
+  setTypeFilter: Dispatch<SetStateAction<TypeFilter>>
   setDisciplineFilter: Dispatch<SetStateAction<string>>
   setFrom: Dispatch<SetStateAction<string>>
   setTo: Dispatch<SetStateAction<string>>
-  setDisplayMode: Dispatch<SetStateAction<"per_shot" | "projected">>
+  setDisplayMode: Dispatch<SetStateAction<DisplayMode>>
   presetToday: string
   presetFrom6Months: string
   presetFrom3Months: string

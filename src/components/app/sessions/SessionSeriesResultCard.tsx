@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
 interface Props {
   session: SessionDetail
-  totalScore: number
+  totalScore: number | null
   isDecimal: boolean
 }
 
@@ -78,19 +78,13 @@ function buildSeriesRows(session: SessionDetail): { rows: SeriesRow[]; hasAnySho
 export function SessionSeriesResultCard({ session, totalScore, isDecimal }: Props) {
   const { rows, hasAnyShots } = buildSeriesRows(session)
 
-  const hasHitLocation =
-    session.hitLocationHorizontalMm !== null &&
-    session.hitLocationHorizontalDirection !== null &&
-    session.hitLocationVerticalMm !== null &&
-    session.hitLocationVerticalDirection !== null
-
   return (
     <Card>
       <CardHeader>
         <CardTitle className="flex flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between">
           <span>Ergebnis</span>
           <span className="text-3xl font-bold tabular-nums">
-            {isDecimal ? totalScore.toFixed(1) : totalScore}
+            {totalScore !== null ? (isDecimal ? totalScore.toFixed(1) : totalScore) : "–"}
             <span className="ml-1 text-base font-normal text-muted-foreground">Ringe</span>
           </span>
         </CardTitle>
@@ -181,16 +175,19 @@ export function SessionSeriesResultCard({ session, totalScore, isDecimal }: Prop
           </table>
         </div>
 
-        {hasHitLocation && (
-          <div className="mt-5 border-t border-border/40 pt-4">
-            <HitLocationVisualization
-              horizontalMm={session.hitLocationHorizontalMm}
-              horizontalDirection={session.hitLocationHorizontalDirection}
-              verticalMm={session.hitLocationVerticalMm}
-              verticalDirection={session.hitLocationVerticalDirection}
-            />
-          </div>
-        )}
+        {session.hitLocationHorizontalMm !== null &&
+          session.hitLocationHorizontalDirection !== null &&
+          session.hitLocationVerticalMm !== null &&
+          session.hitLocationVerticalDirection !== null && (
+            <div className="mt-5 border-t border-border/40 pt-4">
+              <HitLocationVisualization
+                horizontalMm={session.hitLocationHorizontalMm}
+                horizontalDirection={session.hitLocationHorizontalDirection}
+                verticalMm={session.hitLocationVerticalMm}
+                verticalDirection={session.hitLocationVerticalDirection}
+              />
+            </div>
+          )}
       </CardContent>
     </Card>
   )
