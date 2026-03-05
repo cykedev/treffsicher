@@ -46,7 +46,10 @@ export async function createSessionAction(formData: FormData): Promise<ActionRes
     return { error: "Datum/Uhrzeit ist ungültig." }
   }
 
-  const disciplineId = await resolveAccessibleDisciplineId(parsed.data.disciplineId, session.user.id)
+  const disciplineId = await resolveAccessibleDisciplineId(
+    parsed.data.disciplineId,
+    session.user.id
+  )
   if (parsed.data.disciplineId && !disciplineId) {
     console.warn("createSession: ungueltige oder nicht erlaubte disciplineId", {
       userId: session.user.id,
@@ -258,7 +261,10 @@ export async function updateSessionAction(id: string, formData: FormData): Promi
     return { error: "Datum/Uhrzeit ist ungültig." }
   }
 
-  const disciplineId = await resolveAccessibleDisciplineId(parsed.data.disciplineId, session.user.id)
+  const disciplineId = await resolveAccessibleDisciplineId(
+    parsed.data.disciplineId,
+    session.user.id
+  )
   if (parsed.data.disciplineId && !disciplineId) {
     console.warn("updateSession: ungueltige oder nicht erlaubte disciplineId", {
       userId: session.user.id,

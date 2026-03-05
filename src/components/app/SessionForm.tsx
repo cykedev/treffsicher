@@ -1,12 +1,12 @@
 "use client"
 
-import { useCallback, useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import { Trash2 } from "lucide-react"
 import { createSession, previewMeytonImport, updateSession } from "@/lib/sessions/actions"
 import type { SessionDetail } from "@/lib/sessions/actions"
 import { calculateSumFromShots } from "@/lib/sessions/calculateScore"
 import { isValidShotValue, isValidSeriesTotal, formatSeriesMax } from "@/lib/sessions/validation"
+import { needsDisciplineForSessionType, SESSION_TYPE_LABELS } from "@/lib/sessions/presentation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -19,21 +19,21 @@ import {
 } from "@/components/ui/select"
 import { Card, CardContent } from "@/components/ui/card"
 import { Textarea } from "@/components/ui/textarea"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
 import { SelectableRow } from "@/components/ui/selectable-row"
-import type {
-  Discipline,
-  HitLocationHorizontalDirection,
-  HitLocationVerticalDirection,
-} from "@/generated/prisma/client"
+import type { Discipline } from "@/generated/prisma/client"
 import type { GoalForSelection } from "@/lib/goals/actions"
+import { HitLocationSection } from "@/components/app/session-form/HitLocationSection"
+import { MeytonImportDialog } from "@/components/app/session-form/MeytonImportDialog"
+import { SeriesEditorCard } from "@/components/app/session-form/SeriesEditorCard"
+import type { ImportSourceType, SessionHitLocation } from "@/components/app/session-form/types"
+import {
+  createSeriesDefaults,
+  formatMillimeters,
+  isPdfFile,
+  isValidHitLocationMillimeter,
+  toDateTimeLocalValue,
+  toIsoFromDateTimeLocalValue,
+} from "@/components/app/session-form/utils"
 
 interface Props {
   disciplines: Discipline[]
@@ -42,91 +42,6 @@ interface Props {
   initialData?: SessionDetail
   sessionId?: string
   defaultDisciplineId?: string
-}
-
-const sessionTypeLabels: Record<string, string> = {
-  TRAINING: "Training",
-  WETTKAMPF: "Wettkampf",
-  TROCKENTRAINING: "Trockentraining",
-  MENTAL: "Mentaltraining",
-}
-
-const executionQualityLabels: Record<number, string> = {
-  1: "1 – Schlecht",
-  2: "2 – Mässig",
-  3: "3 – Mittel",
-  4: "4 – Gut",
-  5: "5 – Sehr gut",
-}
-
-// Einheitentypen die eine Disziplin erfordern
-const typesWithDiscipline = ["TRAINING", "WETTKAMPF"]
-
-type ImportSourceType = "URL" | "UPLOAD"
-
-type SessionHitLocation = {
-  horizontalMm: string
-  horizontalDirection: HitLocationHorizontalDirection | ""
-  verticalMm: string
-  verticalDirection: HitLocationVerticalDirection | ""
-}
-
-function toDateTimeLocalValue(value: Date | string): string {
-  const base = new Date(value)
-  base.setMinutes(base.getMinutes() - base.getTimezoneOffset())
-  return base.toISOString().slice(0, 16)
-}
-
-function toIsoFromDateTimeLocalValue(value: string): string | null {
-  const parsed = new Date(value)
-  if (Number.isNaN(parsed.getTime())) return null
-  return parsed.toISOString()
-}
-
-function isPdfFile(file: File): boolean {
-  if (file.type === "application/pdf") return true
-  return file.name.toLowerCase().endsWith(".pdf")
-}
-
-function formatMillimeters(value: number): string {
-  return value.toFixed(2)
-}
-
-function isValidHitLocationMillimeter(value: string): boolean {
-  const normalized = value.trim().replace(",", ".")
-  if (!/^\d+(?:\.\d{1,2})?$/.test(normalized)) return false
-
-  const parsed = Number(normalized)
-  return Number.isFinite(parsed) && parsed >= 0 && parsed <= 9999.99
-}
-
-function createSeriesDefaults(discipline: Discipline | undefined) {
-  if (!discipline) {
-    return {
-      totalSeries: 0,
-      shotCounts: [] as number[],
-      seriesIsPractice: [] as boolean[],
-      seriesKeys: [] as string[],
-      seriesTotals: [] as string[],
-    }
-  }
-
-  const newTotal = discipline.practiceSeries + discipline.seriesCount
-  const seed = Date.now()
-
-  return {
-    totalSeries: newTotal,
-    shotCounts: Array(newTotal).fill(discipline.shotsPerSeries),
-    seriesIsPractice: [
-      ...Array(discipline.practiceSeries).fill(true),
-      ...Array(discipline.seriesCount).fill(false),
-    ] as boolean[],
-    seriesKeys: [
-      ...Array.from({ length: discipline.practiceSeries }, (_, i) => `d-p-${i}-${seed}`),
-      ...Array.from({ length: discipline.seriesCount }, (_, i) => `d-r-${i}-${seed}`),
-    ],
-    seriesTotals: Array(newTotal).fill(""),
-  }
 }
 
 // Formular für neue oder bestehende Einheit.
@@ -142,7 +57,6 @@ export function SessionForm({
   defaultDisciplineId,
 }: Props) {
   const router = useRouter()
-  const importFileInputRef = useRef<HTMLInputElement | null>(null)
   const [pending, setPending] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false)
@@ -256,7 +170,7 @@ export function SessionForm({
   // Gewählte Disziplin aus der Liste suchen
   const selectedDiscipline = disciplines.find((d) => d.id === disciplineId)
   const scoringType = selectedDiscipline?.scoringType
-  const needsDiscipline = typesWithDiscipline.includes(type)
+  const needsDiscipline = needsDisciplineForSessionType(type)
   const isMeytonButtonVisible = needsDiscipline && Boolean(selectedDiscipline) && totalSeries > 0
   const canAutoSelectDropDefaults = !sessionId && type === ""
   const defaultDropDisciplineId =
@@ -661,7 +575,7 @@ export function SessionForm({
                 onValueChange={(v) => {
                   setType(v)
                   // Disziplin zurücksetzen wenn kein Schiessen
-                  if (!typesWithDiscipline.includes(v)) {
+                  if (!needsDisciplineForSessionType(v)) {
                     setDisciplineId("")
                     setTotalSeries(0)
                     setShotCounts([])
@@ -684,7 +598,7 @@ export function SessionForm({
                   <SelectValue placeholder="Typ wählen" />
                 </SelectTrigger>
                 <SelectContent>
-                  {Object.entries(sessionTypeLabels).map(([value, label]) => (
+                  {Object.entries(SESSION_TYPE_LABELS).map(([value, label]) => (
                     <SelectItem key={value} value={value}>
                       {label}
                     </SelectItem>
@@ -734,125 +648,14 @@ export function SessionForm({
           )}
 
           {needsDiscipline && (
-            <div className="space-y-3 rounded-lg border border-border/60 bg-muted/10 p-3">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <Label className="text-sm">Trefferlage (optional)</Label>
-                {hitLocation ? (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={handleClearHitLocation}
-                    disabled={pending}
-                  >
-                    Trefferlage löschen
-                  </Button>
-                ) : (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={handleEnableHitLocation}
-                    disabled={pending}
-                  >
-                    Trefferlage erfassen
-                  </Button>
-                )}
-              </div>
-
-              {hitLocation && (
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label className="text-xs text-muted-foreground">Horizontal</Label>
-                    <div className="flex gap-2">
-                      <Input
-                        type="text"
-                        inputMode="decimal"
-                        placeholder="mm"
-                        value={hitLocation.horizontalMm}
-                        onChange={(event) =>
-                          handleHitLocationChange("horizontalMm", event.target.value)
-                        }
-                        disabled={pending}
-                        className={
-                          hasHitLocationValidationError &&
-                          !isValidHitLocationMillimeter(hitLocation.horizontalMm)
-                            ? "border-destructive focus-visible:ring-destructive"
-                            : ""
-                        }
-                        aria-label="Trefferlage horizontal in mm"
-                      />
-                      <Select
-                        value={hitLocation.horizontalDirection || undefined}
-                        disabled={pending}
-                        onValueChange={(value) =>
-                          handleHitLocationChange(
-                            "horizontalDirection",
-                            value as HitLocationHorizontalDirection
-                          )
-                        }
-                      >
-                        <SelectTrigger className="w-32">
-                          <SelectValue placeholder="Richtung" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="LEFT">links</SelectItem>
-                          <SelectItem value="RIGHT">rechts</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label className="text-xs text-muted-foreground">Vertikal</Label>
-                    <div className="flex gap-2">
-                      <Input
-                        type="text"
-                        inputMode="decimal"
-                        placeholder="mm"
-                        value={hitLocation.verticalMm}
-                        onChange={(event) =>
-                          handleHitLocationChange("verticalMm", event.target.value)
-                        }
-                        disabled={pending}
-                        className={
-                          hasHitLocationValidationError &&
-                          !isValidHitLocationMillimeter(hitLocation.verticalMm)
-                            ? "border-destructive focus-visible:ring-destructive"
-                            : ""
-                        }
-                        aria-label="Trefferlage vertikal in mm"
-                      />
-                      <Select
-                        value={hitLocation.verticalDirection || undefined}
-                        disabled={pending}
-                        onValueChange={(value) =>
-                          handleHitLocationChange(
-                            "verticalDirection",
-                            value as HitLocationVerticalDirection
-                          )
-                        }
-                      >
-                        <SelectTrigger className="w-32">
-                          <SelectValue placeholder="Richtung" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="HIGH">hoch</SelectItem>
-                          <SelectItem value="LOW">tief</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {hasHitLocationValidationError && (
-                <p className="text-xs text-destructive">
-                  Trefferlage unvollständig oder ungültig. Bitte beide mm-Werte und Richtungen
-                  angeben oder die Trefferlage löschen.
-                </p>
-              )}
-            </div>
+            <HitLocationSection
+              pending={pending}
+              hitLocation={hitLocation}
+              hasHitLocationValidationError={hasHitLocationValidationError}
+              onEnable={handleEnableHitLocation}
+              onClear={handleClearHitLocation}
+              onChange={handleHitLocationChange}
+            />
           )}
 
           <input
@@ -1006,211 +809,30 @@ export function SessionForm({
               const totalIsInvalid = invalidTotals[i] ?? false
 
               return (
-                // Wrapper hat stabilen key und trägt das dunkle Dreieck als CSS-Gradient —
-                // es scheint durch die abgeschnittene Ecke der Card hindurch
-                <div
+                <SeriesEditorCard
                   key={seriesKeys[i] ?? i}
-                  className="relative"
-                  style={
-                    isPractice
-                      ? {
-                          backgroundImage: "linear-gradient(225deg, #374151 50%, transparent 50%)",
-                          backgroundSize: "50px 50px",
-                          backgroundPosition: "top right",
-                          backgroundRepeat: "no-repeat",
-                        }
-                      : undefined
-                  }
-                >
-                  <Card
-                    className={isPractice ? "bg-muted/30" : ""}
-                    style={
-                      isPractice
-                        ? {
-                            clipPath:
-                              "polygon(0 0, calc(100% - 50px) 0, 100% 50px, 100% 100%, 0 100%)",
-                          }
-                        : undefined
-                    }
-                  >
-                    <CardContent className="space-y-3 pt-4">
-                      {/* Verstecktes Feld für isPractice */}
-                      <input
-                        type="hidden"
-                        name={`series[${i}][isPractice]`}
-                        value={isPractice ? "true" : "false"}
-                      />
-
-                      {/* Serien-Header mit Label, Typ-Toggle und Entfernen-Button */}
-                      <div className="flex items-center justify-between gap-2">
-                        <Label htmlFor={`series-${i}`} className="leading-none">
-                          {seriesLabel}
-                          {isPractice && (
-                            <span className="ml-2 text-xs font-normal text-muted-foreground">
-                              (zählt nicht)
-                            </span>
-                          )}
-                        </Label>
-                        <div className="flex items-center gap-1">
-                          {/* Gleicher Auswahlstil wie bei Ziel-Markierungen:
-                              reduziert visuelle Sonderfälle und ist auf Mobil klarer erkennbar. */}
-                          <SelectableRow
-                            selected={isPractice}
-                            onToggle={() => handleTogglePractice(i)}
-                            disabled={pending}
-                            className="w-auto rounded-md px-2 py-1 text-xs"
-                            indicatorClassName="h-4 w-4"
-                          >
-                            Probe
-                          </SelectableRow>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon-xs"
-                            onClick={() => handleRemoveSeries(i)}
-                            disabled={pending || totalSeries <= 1}
-                            aria-label={`${seriesLabel} entfernen`}
-                            // Kleine, aber klar als destruktiv erkennbare Aktion:
-                            // so bleibt der Header kompakt und der Zweck trotzdem eindeutig.
-                            className="text-destructive hover:bg-destructive/10 hover:text-destructive"
-                          >
-                            <Trash2 className="h-3 w-3" />
-                          </Button>
-                        </div>
-                      </div>
-
-                      <div className="space-y-2">
-                        {showShots ? (
-                          // Einzelschuss-Modus: Schussanzahl-Selector + N Eingabefelder + Summe
-                          <div className="space-y-2">
-                            <div className="flex items-center gap-2">
-                              <span className="text-xs text-muted-foreground">Schüsse:</span>
-                              <Input
-                                type="number"
-                                min="1"
-                                max="99"
-                                value={currentShotCount}
-                                onChange={(e) =>
-                                  handleShotCountChange(i, parseInt(e.target.value, 10) || 1)
-                                }
-                                disabled={pending}
-                                className="h-7 w-16 px-2 text-center text-xs"
-                                aria-label={`Schussanzahl Serie ${i + 1}`}
-                              />
-                            </div>
-                            <div className="grid grid-cols-5 gap-1">
-                              {Array.from({ length: currentShotCount }, (_, j) => {
-                                const isInvalid = invalidShots[i]?.[j] ?? false
-                                return (
-                                  <Input
-                                    key={j}
-                                    type="number"
-                                    min="0"
-                                    max={selectedDiscipline.scoringType === "WHOLE" ? "10" : "10.9"}
-                                    step={selectedDiscipline.scoringType === "TENTH" ? "0.1" : "1"}
-                                    placeholder="-"
-                                    value={shotsForSeries[j] ?? ""}
-                                    onChange={(e) => handleShotChange(i, j, e.target.value)}
-                                    disabled={pending}
-                                    className={`px-1 text-center text-sm ${
-                                      isInvalid
-                                        ? "border-destructive focus-visible:ring-destructive"
-                                        : ""
-                                    }`}
-                                    aria-label={`Serie ${i + 1} Schuss ${j + 1}`}
-                                    aria-invalid={isInvalid}
-                                  />
-                                )
-                              })}
-                            </div>
-
-                            {/* Fehlermeldung bei ungültigen Schüssen */}
-                            {invalidShotCount > 0 && (
-                              <p className="text-xs text-destructive">
-                                {selectedDiscipline.scoringType === "TENTH"
-                                  ? `${invalidShotCount} ungültige${invalidShotCount === 1 ? "r" : ""} Wert — erlaubt: 0.0 oder 1.0–10.9`
-                                  : `${invalidShotCount} ungültige${invalidShotCount === 1 ? "r" : ""} Wert — erlaubt: 0–10 (ganzzahlig)`}
-                              </p>
-                            )}
-
-                            {/* Seriensumme live berechnet und read-only angezeigt */}
-                            <div className="flex items-center gap-2">
-                              <span className="text-sm text-muted-foreground">Summe:</span>
-                              <span className="font-medium">
-                                {computedTotal !== null ? computedTotal : "–"}
-                              </span>
-                              <span className="text-sm text-muted-foreground">/ {maxLabel}</span>
-                              {/* Berechnete Summe als Hidden-Field für den Server */}
-                              <input
-                                type="hidden"
-                                name={`series[${i}][scoreTotal]`}
-                                value={computedTotal !== null ? String(computedTotal) : ""}
-                              />
-                            </div>
-                          </div>
-                        ) : (
-                          // Summen-Modus: Seriensumme direkt eingeben (kontrolliertes Input)
-                          <div className="space-y-1">
-                            <div className="flex items-center gap-2">
-                              <Input
-                                id={`series-${i}`}
-                                name={`series[${i}][scoreTotal]`}
-                                type="number"
-                                min="0"
-                                max={maxLabel}
-                                step={selectedDiscipline.scoringType === "TENTH" ? "0.1" : "1"}
-                                placeholder="Ringe"
-                                className={`w-28 ${
-                                  totalIsInvalid
-                                    ? "border-destructive focus-visible:ring-destructive"
-                                    : ""
-                                }`}
-                                value={seriesTotals[i] ?? ""}
-                                onChange={(e) => handleTotalChange(i, e.target.value)}
-                                disabled={pending}
-                                aria-invalid={totalIsInvalid}
-                              />
-                              <span className="text-sm text-muted-foreground">/ {maxLabel}</span>
-                            </div>
-                            {/* Fehlermeldung bei überschrittenem Maximum */}
-                            {totalIsInvalid && (
-                              <p className="text-xs text-destructive">
-                                Maximum: {maxLabel}{" "}
-                                {selectedDiscipline.scoringType === "TENTH" ? "Zehntel" : "Ringe"}
-                              </p>
-                            )}
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Ausführungsqualität — optional */}
-                      <div className="space-y-1">
-                        <Label htmlFor={`quality-${i}`} className="text-xs text-muted-foreground">
-                          Ausführung (optional)
-                        </Label>
-                        <Select
-                          name={`series[${i}][executionQuality]`}
-                          defaultValue={
-                            sortedInitialSeries[i]?.executionQuality != null
-                              ? String(sortedInitialSeries[i].executionQuality)
-                              : undefined
-                          }
-                        >
-                          <SelectTrigger id={`quality-${i}`} className="h-8 text-xs">
-                            <SelectValue placeholder="Bewertung wählen" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {Object.entries(executionQualityLabels).map(([value, label]) => (
-                              <SelectItem key={value} value={value} className="text-xs">
-                                {label}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
+                  seriesIndex={i}
+                  seriesLabel={seriesLabel}
+                  isPractice={isPractice}
+                  totalSeries={totalSeries}
+                  showShots={showShots}
+                  pending={pending}
+                  scoringType={selectedDiscipline.scoringType}
+                  currentShotCount={currentShotCount}
+                  shotsForSeries={shotsForSeries}
+                  computedTotal={computedTotal}
+                  maxLabel={maxLabel}
+                  invalidShots={invalidShots[i] ?? []}
+                  totalIsInvalid={totalIsInvalid}
+                  invalidShotCount={invalidShotCount}
+                  seriesTotalValue={seriesTotals[i] ?? ""}
+                  defaultExecutionQuality={sortedInitialSeries[i]?.executionQuality}
+                  onTogglePractice={handleTogglePractice}
+                  onRemoveSeries={handleRemoveSeries}
+                  onShotCountChange={handleShotCountChange}
+                  onShotChange={handleShotChange}
+                  onTotalChange={handleTotalChange}
+                />
               )
             })}
           </div>
@@ -1239,103 +861,24 @@ export function SessionForm({
       )}
 
       {selectedDiscipline && (
-        <Dialog open={isImportDialogOpen} onOpenChange={setIsImportDialogOpen}>
-          <DialogContent className="max-w-xl">
-            <DialogHeader>
-              <DialogTitle>Meyton-Import</DialogTitle>
-              <DialogDescription>
-                Die importierten Daten ersetzen alle aktuellen Serien in dieser Einheit.
-              </DialogDescription>
-            </DialogHeader>
-
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="meyton-source">Quelle</Label>
-                <Select
-                  value={importSource}
-                  onValueChange={(value) => {
-                    setImportSource(value as ImportSourceType)
-                    setImportError(null)
-                    setImportUrl("")
-                    setImportFile(null)
-                  }}
-                >
-                  <SelectTrigger id="meyton-source" className="w-full">
-                    <SelectValue placeholder="Quelle wählen" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="URL">PDF-URL</SelectItem>
-                    <SelectItem value="UPLOAD">PDF-Upload</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {importSource === "URL" ? (
-                <div className="space-y-2">
-                  <Label htmlFor="pdfUrl">PDF-URL</Label>
-                  <Input
-                    key="meyton-url-input"
-                    id="pdfUrl"
-                    type="url"
-                    placeholder="example.com/meyton.pdf"
-                    value={importUrl}
-                    onChange={(event) => setImportUrl(event.target.value)}
-                    disabled={isImportPending}
-                  />
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  <Label htmlFor="meyton-file">PDF-Datei</Label>
-                  <input
-                    ref={importFileInputRef}
-                    id="meyton-file"
-                    type="file"
-                    accept="application/pdf,.pdf"
-                    className="sr-only"
-                    onClick={(event) => {
-                      event.currentTarget.value = ""
-                    }}
-                    onChange={(event) => setImportFile(event.target.files?.[0] ?? null)}
-                    disabled={isImportPending}
-                  />
-                  <div className="flex items-center gap-2 rounded-md border border-input bg-background px-2.5 py-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      disabled={isImportPending}
-                      onClick={() => importFileInputRef.current?.click()}
-                      className="shrink-0"
-                    >
-                      Datei auswählen
-                    </Button>
-                    {importFile && (
-                      <span className="min-w-0 truncate text-sm text-foreground">
-                        {importFile.name}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {importError && <p className="text-sm text-destructive">{importError}</p>}
-            </div>
-
-            <DialogFooter>
-              <Button type="button" disabled={isImportPending} onClick={handleMeytonImport}>
-                {isImportPending ? "Importiere..." : "Importieren"}
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                disabled={isImportPending}
-                onClick={() => setIsImportDialogOpen(false)}
-              >
-                Abbrechen
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+        <MeytonImportDialog
+          open={isImportDialogOpen}
+          onOpenChange={setIsImportDialogOpen}
+          isImportPending={isImportPending}
+          importSource={importSource}
+          importUrl={importUrl}
+          importFile={importFile}
+          importError={importError}
+          onImportSourceChange={(value) => {
+            setImportSource(value)
+            setImportError(null)
+            setImportUrl("")
+            setImportFile(null)
+          }}
+          onImportUrlChange={setImportUrl}
+          onImportFileChange={setImportFile}
+          onImport={handleMeytonImport}
+        />
       )}
 
       <div className="space-y-2">

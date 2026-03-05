@@ -2,14 +2,8 @@ import { NextRequest, NextResponse } from "next/server"
 import { getAuthSession } from "@/lib/auth-helpers"
 import { db } from "@/lib/db"
 import { calculateTotalScore } from "@/lib/sessions/calculateScore"
+import { SESSION_TYPE_LABELS } from "@/lib/sessions/presentation"
 import { buildStyledPdf, type PdfSection } from "@/lib/exports/simplePdf"
-
-const sessionTypeLabels: Record<string, string> = {
-  TRAINING: "Training",
-  WETTKAMPF: "Wettkampf",
-  TROCKENTRAINING: "Trockentraining",
-  MENTAL: "Mentaltraining",
-}
 
 const comparisonDimensions = [
   { key: "fitness", label: "Kondition" },
@@ -168,7 +162,7 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
 
   const metaLines = [
     `Name: ${displayName}`,
-    `Typ: ${sessionTypeLabels[trainingSession.type] ?? trainingSession.type}`,
+    `Typ: ${SESSION_TYPE_LABELS[trainingSession.type] ?? trainingSession.type}`,
     `Disziplin: ${trainingSession.discipline?.name ?? "-"}`,
     `Ort: ${trainingSession.location ?? "-"}`,
     `Trainingsziel: ${trainingSession.trainingGoal ?? "-"}`,
