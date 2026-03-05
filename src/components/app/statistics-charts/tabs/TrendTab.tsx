@@ -111,7 +111,11 @@ export function TrendTab({ model }: Props) {
                             </span>
                             <span className="text-foreground font-mono font-medium tabular-nums">
                               {typeof value === "number"
-                                ? formatDisplayScore(value, effectiveDisplayMode, selectedDiscipline)
+                                ? formatDisplayScore(
+                                    value,
+                                    effectiveDisplayMode,
+                                    selectedDiscipline
+                                  )
                                 : String(value ?? "")}
                             </span>
                           </div>

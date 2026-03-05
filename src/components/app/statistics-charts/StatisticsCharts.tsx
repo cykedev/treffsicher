@@ -41,9 +41,7 @@ import {
   getShotDistributionGranularity,
   mapSessionToHitLocationPoint,
 } from "@/components/app/statistics-charts/utils"
-import type {
-  DisciplineForStats,
-} from "@/lib/stats/actions"
+import type { DisciplineForStats } from "@/lib/stats/actions"
 
 interface Props {
   data: StatisticsChartsDataBundle
