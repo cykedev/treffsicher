@@ -669,6 +669,63 @@ export default eslintConfig
 
 ---
 
+## Modularität & Wartbarkeit (verbindlich)
+
+Diese Regeln sind verbindlich für **neuen Code** und für **wesentlich geänderte** bestehende Dateien.
+Bestandsdateien werden schrittweise bei fachlichen Änderungen in Richtung dieser Regeln refaktoriert.
+
+### 1) Dünne Orchestrator-Dateien
+
+- `page.tsx`, `route.ts` und Action-Einstiegspunkte orchestrieren nur:
+  - Auth/Param-Handling
+  - Aufruf von Feature-Logik
+  - Zusammenbau der Antwort/Komposition
+- Fachlogik, Datenaufbereitung und Mapping gehören in dedizierte Module (`lib/`, Feature-`_lib/`, Hooks, View-Models).
+
+### 2) Dateigröße und Split-Regel
+
+- Zielbereich je Datei: **80–180 Zeilen**.
+- Ab **>220 Zeilen** ist ein Split verpflichtend, wenn kein klarer technischer Ausnahmegrund vorliegt.
+- Ausnahmen: generierter Code (`src/generated/*`) und externe Basisbibliotheken (`src/components/ui/*`).
+- Hotfix-Ausnahme: Bei kritischen Fixes darf temporär darüber hinaus gearbeitet werden; der Split folgt im nächsten Wartungs-PR.
+
+### 3) Props-Budget und Kopplung
+
+- Komponenten sollen im Regelfall maximal **6 Top-Level-Props** haben.
+- Bei größerem Datenbedarf: auf `model` + `actions` oder Feature-Hook aufteilen.
+- Prop-Drilling über mehr als zwei Ebenen ist zu vermeiden; stattdessen Komposition, lokale Container-Komponente oder dedizierter Hook.
+- Komponenten erhalten keine unstrukturierten Setter-Sammlungen mehrerer Domänen.
+
+### 4) Einheitliche Feature-Struktur
+
+- Komponenten-Dateien bleiben `PascalCase`; Hook-/Utility-Dateien bleiben `camelCase`; Ordnernamen bleiben `kebab-case`.
+- Nicht-triviale Bereiche (mehrere zusammengehörige Dateien) werden in einen Feature-Unterordner gruppiert, z.B.:
+
+```text
+components/app/<feature>/<module>/
+  index.ts
+  <ModuleRoot>.tsx
+  <SubPart>.tsx
+  use<ModulePart>.ts
+  types.ts
+```
+
+- Imports innerhalb desselben Feature-Unterordners nutzen relative Pfade (`./`, `../`); Alias-Imports (`@/...`) sind für feature-übergreifende Abhängigkeiten.
+
+### 5) Duplikationsregel
+
+- Logik, die an mehreren Stellen identisch oder nahezu identisch auftritt, wird in ein gemeinsames Modul extrahiert.
+- Spätestens beim dritten Vorkommen ist ein Split in Shared-Utility/Helfer verpflichtend.
+- Bewusste Duplikate müssen mit kurzem Kommentar begründet werden (`Warum noch nicht extrahiert`).
+
+### 6) Refactor-Sicherheitsnetz
+
+- Struktur-Refactors dürfen kein Verhalten ändern.
+- Pflicht vor Merge: `npm run lint` und `npm run test` grün.
+- Bei UI-Refactors ist die visuelle Konsistenz (Layout/Alignment) manuell zu prüfen.
+
+---
+
 ## Umgebungsvariablen
 
 Eine `.env.example` Datei dokumentiert alle benötigten Variablen.
@@ -837,6 +894,7 @@ Admins koennen System-Disziplinen verwalten (anlegen, bearbeiten, archivieren/re
 
 ## Änderungsnotizen
 
+- **05.03.2026**: Neue verbindliche Modularitätsregeln ergänzt: dünne Orchestrator-Dateien, Dateigrößen-/Split-Regel, Props-Budget (max. 6 Top-Level-Props), einheitliche Feature-Unterordner, Duplikationsregel sowie Refactor-Sicherheitsnetz (Lint/Test + visuelle Prüfung).
 - **03.03.2026**: Navigations- und Flow-Regeln verbindlich präzisiert: Einheiten-Detailansicht als Referenzmuster für Action-Leisten und Aktionsreihenfolge; Listen als klickbare Karten ohne separaten Details-Button; reine Icon-Aktionen ohne Outline; UI-Terminologie auf "Probe" standardisiert.
 - **03.03.2026**: Verbindliche Konsistenzregeln ergänzt: serverseitige Fachregel-Erzwingung, explizite Fehlerpfade ohne silent fail, feste Upload-Whitelist, englische interne Benennung/Routen sowie verbindliche UI-Muster (shadcn/ui, einheitliche Auswahl-/Delete-/Archive-Flows, mobile Verständlichkeit) plus Betriebs-/Fehlerfall-Regeln mit Restore-Test-Pflicht.
 - **02.03.2026**: DoS-Härtung dokumentiert: Streaming-URL-Import mit Hard-Cap, begrenzte PDF-Dekompression, serverseitige FormData-Limits und Statistik-Caps.
