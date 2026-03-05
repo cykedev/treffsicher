@@ -334,6 +334,8 @@ const sessions = await db.trainingSession.findMany()
 ### Kommentare
 
 Kommentare erklären **Warum**, nicht Was. Das Was ergibt sich aus dem Code selbst.
+Kommentare sind **sparsam und zielgerichtet**: kein Kommentar-Selbstzweck und keine offensichtlichen
+"Warum sowieso"-Sätze.
 
 ```typescript
 // RICHTIG: erklärt die Absicht und den Grund
@@ -357,6 +359,8 @@ Kommentare sind **Pflicht** bei:
 - Sicherheitsrelevanten Stellen (Auth-Checks, userId-Filter)
 - Nicht-offensichtlicher Geschäftslogik (Berechnungen, Sonderfälle)
 - Workarounds oder bewussten Vereinfachungen (`// TODO: ...` mit Begründung)
+- Nicht-trivialer UI-Logik in `.tsx` (z. B. abgeleitete Zustände, Guard-Branches, Mapping
+  zwischen Form-/Domain-Modell), wenn der Grund nicht direkt lesbar ist
 - Jeder Funktion in `lib/` die nicht trivial ist (JSDoc-Stil):
 
 ```typescript
@@ -417,12 +421,29 @@ Tests sind **Pflicht** für:
 3. **Zugangskontrolle in lib-Funktionen** (wo sinnvoll testbar):
    - Funktion gibt `null` zurück wenn userId nicht übereinstimmt
 
+4. **Server-Action-Orchestrierung mit klarer Entscheidungslogik**:
+   - Auth-/Ownership-Guards
+   - Delegation in Shared-Logik/Fassaden
+   - Fehlerpfade mit erwarteten Fehlermeldungen
+   - Revalidate-/Redirect-Reihenfolge bei Mutationen
+
+5. **Import-/Mapping-Pfade mit hoher Wirkung**:
+   - Disziplinabhängige Wert-Konvertierung
+   - Harte Abbruchpfade bei invaliden Inputs
+   - Kein stilles Teilimport-Verhalten
+
 ### Was wird nicht getestet
 
-- React-Komponenten (UI-Details ändern sich oft, Tests wären fragil)
+- React-Komponenten auf reiner Presentational-Ebene (UI-Details ändern sich oft, Tests wären fragil)
 - Next.js Routing und Middleware
-- Prisma-Datenbankoperationen (zu aufwendig ohne Test-DB)
-- Server Actions direkt (Integration mit Prisma, schwer zu isolieren)
+- Volle Prisma-Integrationspfade ohne dedizierte Test-DB
+
+### UI- und Flow-Tests (aktuelle Priorisierung)
+
+- UI-/Flow-Tests sind **gewünscht**, aber derzeit **nicht Merge-blockend**.
+- Priorität liegt auf stabilen Tests der Business-Logik und Action-Entscheidungspfade.
+- UI-/Flow-Tests folgen gezielt für die kritischsten End-to-End-Abläufe, sobald die betreffenden
+  Screens/Flows fachlich stabil sind.
 
 ### Teststruktur
 
@@ -894,6 +915,7 @@ Admins koennen System-Disziplinen verwalten (anlegen, bearbeiten, archivieren/re
 
 ## Änderungsnotizen
 
+- **05.03.2026**: Test- und Kommentierungsregeln präzisiert: Business-Logik und Action-Orchestrierung verpflichtend testen, UI-/Flow-Tests vorerst nachgelagert; Kommentare explizit sparsam und nur für nicht-triviale Logikgründe.
 - **05.03.2026**: Neue verbindliche Modularitätsregeln ergänzt: dünne Orchestrator-Dateien, Dateigrößen-/Split-Regel, Props-Budget (max. 6 Top-Level-Props), einheitliche Feature-Unterordner, Duplikationsregel sowie Refactor-Sicherheitsnetz (Lint/Test + visuelle Prüfung).
 - **03.03.2026**: Navigations- und Flow-Regeln verbindlich präzisiert: Einheiten-Detailansicht als Referenzmuster für Action-Leisten und Aktionsreihenfolge; Listen als klickbare Karten ohne separaten Details-Button; reine Icon-Aktionen ohne Outline; UI-Terminologie auf "Probe" standardisiert.
 - **03.03.2026**: Verbindliche Konsistenzregeln ergänzt: serverseitige Fachregel-Erzwingung, explizite Fehlerpfade ohne silent fail, feste Upload-Whitelist, englische interne Benennung/Routen sowie verbindliche UI-Muster (shadcn/ui, einheitliche Auswahl-/Delete-/Archive-Flows, mobile Verständlichkeit) plus Betriebs-/Fehlerfall-Regeln mit Restore-Test-Pflicht.
