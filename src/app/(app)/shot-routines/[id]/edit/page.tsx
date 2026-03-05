@@ -1,7 +1,7 @@
 import { notFound, redirect } from "next/navigation"
 import { getAuthSession } from "@/lib/auth-helpers"
 import { getShotRoutineById } from "@/lib/shot-routines/actions"
-import { ShotRoutineEditor } from "@/components/app/ShotRoutineEditor"
+import { ShotRoutineEditor } from "@/components/app/shot-routines/ShotRoutineEditor"
 import type { RoutineStep } from "@/lib/shot-routines/actions"
 
 export default async function EditShotRoutinePage({ params }: { params: Promise<{ id: string }> }) {

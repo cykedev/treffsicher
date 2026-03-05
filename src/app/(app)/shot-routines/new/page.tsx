@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation"
 import { getAuthSession } from "@/lib/auth-helpers"
-import { ShotRoutineEditor } from "@/components/app/ShotRoutineEditor"
+import { ShotRoutineEditor } from "@/components/app/shot-routines/ShotRoutineEditor"
 
 export default async function NeuerShotRoutinesPage() {
   const session = await getAuthSession()

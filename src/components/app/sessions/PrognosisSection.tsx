@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { PrognosisForm } from "@/components/app/PrognosisForm"
+import { PrognosisForm } from "@/components/app/sessions/PrognosisForm"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import type { SerializedPrognosis } from "@/lib/sessions/actions"

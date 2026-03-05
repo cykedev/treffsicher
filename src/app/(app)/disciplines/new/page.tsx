@@ -1,6 +1,6 @@
 import { getAuthSession } from "@/lib/auth-helpers"
 import { redirect } from "next/navigation"
-import { DisciplineForm } from "@/components/app/DisciplineForm"
+import { DisciplineForm } from "@/components/app/disciplines/DisciplineForm"
 
 export default async function NewDisciplinePage() {
   const session = await getAuthSession()

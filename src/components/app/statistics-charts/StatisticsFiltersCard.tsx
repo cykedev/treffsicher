@@ -9,55 +9,32 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import type { DisplayMode } from "@/components/app/statistics-charts/types"
+import type {
+  StatisticsFiltersCardActions,
+  StatisticsFiltersCardModel,
+} from "@/components/app/statistics-charts/filterTypes"
 import type { TypeFilter } from "@/components/app/statistics-charts/useStatisticsFilterState"
-import type { DisciplineForStats } from "@/lib/stats/actions"
 
 interface Props {
-  typeFilter: TypeFilter
-  onTypeFilterChange: (type: TypeFilter) => void
-  disciplineFilter: string
-  onDisciplineFilterChange: (disciplineId: string) => void
-  availableDisciplines: DisciplineForStats[]
-  from: string
-  to: string
-  onFromChange: (value: string) => void
-  onToChange: (value: string) => void
-  activeTimePreset: "all" | "6m" | "3m" | "1m" | "custom"
-  onSelectAllTime: () => void
-  onSelect6Months: () => void
-  onSelect3Months: () => void
-  onSelect1Month: () => void
-  selectedDiscipline: DisciplineForStats | null
-  effectiveDisplayMode: DisplayMode
-  onDisplayModeChange: (mode: DisplayMode) => void
-  totalDisciplineShots: number | null
-  filteredCount: number
-  withScoreCount: number
+  model: StatisticsFiltersCardModel
+  actions: StatisticsFiltersCardActions
 }
 
-export function StatisticsFiltersCard({
-  typeFilter,
-  onTypeFilterChange,
-  disciplineFilter,
-  onDisciplineFilterChange,
-  availableDisciplines,
-  from,
-  to,
-  onFromChange,
-  onToChange,
-  activeTimePreset,
-  onSelectAllTime,
-  onSelect6Months,
-  onSelect3Months,
-  onSelect1Month,
-  selectedDiscipline,
-  effectiveDisplayMode,
-  onDisplayModeChange,
-  totalDisciplineShots,
-  filteredCount,
-  withScoreCount,
-}: Props) {
+export function StatisticsFiltersCard({ model, actions }: Props) {
+  const {
+    typeFilter,
+    disciplineFilter,
+    availableDisciplines,
+    from,
+    to,
+    activeTimePreset,
+    selectedDiscipline,
+    effectiveDisplayMode,
+    totalDisciplineShots,
+    filteredCount,
+    withScoreCount,
+  } = model
+
   return (
     <Card>
       <CardContent className="space-y-4 pt-6">
@@ -69,7 +46,7 @@ export function StatisticsFiltersCard({
                 <Button
                   key={t}
                   variant={typeFilter === t ? "default" : "outline"}
-                  onClick={() => onTypeFilterChange(t)}
+                  onClick={() => actions.typeFilterChange(t)}
                   className="h-9 flex-1 text-sm"
                 >
                   {t === "all" ? "Alle" : t === "TRAINING" ? "Training" : "Wettkampf"}
@@ -80,7 +57,7 @@ export function StatisticsFiltersCard({
 
           <div className="space-y-2">
             <Label>Disziplin</Label>
-            <Select value={disciplineFilter} onValueChange={onDisciplineFilterChange}>
+            <Select value={disciplineFilter} onValueChange={actions.disciplineFilterChange}>
               <SelectTrigger className="w-full">
                 <SelectValue />
               </SelectTrigger>
@@ -97,12 +74,17 @@ export function StatisticsFiltersCard({
 
           <div className="space-y-2">
             <Label htmlFor="from">Von</Label>
-            <Input id="from" type="date" value={from} onChange={(e) => onFromChange(e.target.value)} />
+            <Input
+              id="from"
+              type="date"
+              value={from}
+              onChange={(e) => actions.fromChange(e.target.value)}
+            />
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="to">Bis</Label>
-            <Input id="to" type="date" value={to} onChange={(e) => onToChange(e.target.value)} />
+            <Input id="to" type="date" value={to} onChange={(e) => actions.toChange(e.target.value)} />
           </div>
         </div>
 
@@ -113,28 +95,28 @@ export function StatisticsFiltersCard({
               <Button
                 variant={activeTimePreset === "all" ? "default" : "outline"}
                 className="h-9 text-sm"
-                onClick={onSelectAllTime}
+                onClick={actions.selectAllTime}
               >
                 Alle
               </Button>
               <Button
                 variant={activeTimePreset === "6m" ? "default" : "outline"}
                 className="h-9 text-sm"
-                onClick={onSelect6Months}
+                onClick={actions.select6Months}
               >
                 6 Monate
               </Button>
               <Button
                 variant={activeTimePreset === "3m" ? "default" : "outline"}
                 className="h-9 text-sm"
-                onClick={onSelect3Months}
+                onClick={actions.select3Months}
               >
                 3 Monate
               </Button>
               <Button
                 variant={activeTimePreset === "1m" ? "default" : "outline"}
                 className="h-9 text-sm"
-                onClick={onSelect1Month}
+                onClick={actions.select1Month}
               >
                 1 Monat
               </Button>
@@ -147,14 +129,14 @@ export function StatisticsFiltersCard({
               <div className="flex flex-wrap gap-1">
                 <Button
                   variant={effectiveDisplayMode === "per_shot" ? "default" : "outline"}
-                  onClick={() => onDisplayModeChange("per_shot")}
+                  onClick={() => actions.displayModeChange("per_shot")}
                   className="h-9 text-sm"
                 >
                   Ringe/Sch.
                 </Button>
                 <Button
                   variant={effectiveDisplayMode === "projected" ? "default" : "outline"}
-                  onClick={() => onDisplayModeChange("projected")}
+                  onClick={() => actions.displayModeChange("projected")}
                   className="h-9 text-sm"
                 >
                   Hochrechnung ({totalDisciplineShots} Sch.)

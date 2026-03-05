@@ -1,3 +1,11 @@
+import type {
+  QualityVsScorePoint,
+  RadarComparisonSession,
+  ShotDistributionPoint,
+  StatsSession,
+  WellbeingCorrelationPoint,
+} from "@/lib/stats/actions"
+
 export type DisplayMode = "per_shot" | "projected"
 
 export type RadarSeriesKey = "prognosis" | "feedback"
@@ -41,4 +49,12 @@ export type AggregatedShotDistributionPoint = {
   r8: number
   r9: number
   r10: number
+}
+
+export interface StatisticsChartsDataBundle {
+  sessions: StatsSession[]
+  wellbeingData: WellbeingCorrelationPoint[]
+  qualityData: QualityVsScorePoint[]
+  shotDistributionData: ShotDistributionPoint[]
+  radarData: RadarComparisonSession[]
 }

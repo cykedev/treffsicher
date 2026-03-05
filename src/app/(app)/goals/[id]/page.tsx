@@ -2,7 +2,7 @@ import { notFound, redirect } from "next/navigation"
 import { getAuthSession } from "@/lib/auth-helpers"
 import { getDisplayTimeZone } from "@/lib/dateTime"
 import { getGoalById, getGoalSessionOptions } from "@/lib/goals/actions"
-import { GoalCardSection } from "@/components/app/GoalCardSection"
+import { GoalCardSection } from "@/components/app/goals/GoalCardSection"
 
 export default async function GoalDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const displayTimeZone = getDisplayTimeZone()

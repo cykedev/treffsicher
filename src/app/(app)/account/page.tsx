@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation"
 import { getAuthSession } from "@/lib/auth-helpers"
-import { AccountPasswordForm } from "@/components/app/AccountPasswordForm"
+import { AccountPasswordForm } from "@/components/app/account/AccountPasswordForm"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
 export default async function AccountPage() {

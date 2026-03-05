@@ -9,8 +9,8 @@ import { getDisplayTimeZone } from "@/lib/dateTime"
 import { SESSION_TYPE_BADGE_CLASS, SESSION_TYPE_LABELS } from "@/lib/sessions/presentation"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
-import { SessionsFilters } from "@/components/app/SessionsFilters"
-import { CreateItemLinkButton } from "@/components/app/CreateItemLinkButton"
+import { SessionsFilters } from "@/components/app/sessions/SessionsFilters"
+import { CreateItemLinkButton } from "@/components/app/sessions/CreateItemLinkButton"
 
 type SessionsSearchParams = Promise<{
   type?: string | string[]

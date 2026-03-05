@@ -9,6 +9,10 @@ import {
   radarSeriesConfig,
   shotDistributionBundledColors,
 } from "@/components/app/statistics-charts/constants"
+import type {
+  StatisticsFiltersCardActions,
+  StatisticsFiltersCardModel,
+} from "@/components/app/statistics-charts/filterTypes"
 import { StatisticsFiltersCard } from "@/components/app/statistics-charts/StatisticsFiltersCard"
 import { StatisticsChartsTabs } from "@/components/app/statistics-charts/StatisticsChartsTabs"
 import type { StatisticsChartsTabsModel } from "@/components/app/statistics-charts/tabs/types"
@@ -20,6 +24,7 @@ import type {
   HitLocationPoint,
   RadarLegendItem,
   RadarSeriesKey,
+  StatisticsChartsDataBundle,
 } from "@/components/app/statistics-charts/types"
 import {
   buildCatmullRomCurvePoints,
@@ -38,30 +43,15 @@ import {
 } from "@/components/app/statistics-charts/utils"
 import type {
   DisciplineForStats,
-  QualityVsScorePoint,
-  RadarComparisonSession,
-  ShotDistributionPoint,
-  StatsSession,
-  WellbeingCorrelationPoint,
 } from "@/lib/stats/actions"
 
 interface Props {
-  sessions: StatsSession[]
-  wellbeingData: WellbeingCorrelationPoint[]
-  qualityData: QualityVsScorePoint[]
-  shotDistributionData: ShotDistributionPoint[]
-  radarData: RadarComparisonSession[]
+  data: StatisticsChartsDataBundle
   displayTimeZone: string
 }
 
-export function StatisticsCharts({
-  sessions,
-  wellbeingData,
-  qualityData,
-  shotDistributionData,
-  radarData,
-  displayTimeZone,
-}: Props) {
+export function StatisticsCharts({ data, displayTimeZone }: Props) {
+  const { sessions, wellbeingData, qualityData, shotDistributionData, radarData } = data
   const DISPLAY_TIME_ZONE = displayTimeZone
   const [showCloudTrail, setShowCloudTrail] = useState(false)
   const [showHitLocationTrendX, setShowHitLocationTrendX] = useState(true)
@@ -776,43 +766,46 @@ export function StatisticsCharts({
       shotDistributionTicks,
     },
   }
+  const filtersModel: StatisticsFiltersCardModel = {
+    typeFilter,
+    disciplineFilter,
+    availableDisciplines,
+    from,
+    to,
+    activeTimePreset,
+    selectedDiscipline,
+    effectiveDisplayMode,
+    totalDisciplineShots,
+    filteredCount: filtered.length,
+    withScoreCount: withScore.length,
+  }
+  const filtersActions: StatisticsFiltersCardActions = {
+    typeFilterChange: setTypeFilter,
+    disciplineFilterChange: setDisciplineFilter,
+    fromChange: setFrom,
+    toChange: setTo,
+    selectAllTime: () => {
+      setFrom("")
+      setTo("")
+    },
+    select6Months: () => {
+      setFrom(presetFrom6Months)
+      setTo(presetToday)
+    },
+    select3Months: () => {
+      setFrom(presetFrom3Months)
+      setTo(presetToday)
+    },
+    select1Month: () => {
+      setFrom(presetFrom1Month)
+      setTo(presetToday)
+    },
+    displayModeChange: setDisplayMode,
+  }
 
   return (
     <div className="space-y-6">
-      <StatisticsFiltersCard
-        typeFilter={typeFilter}
-        onTypeFilterChange={setTypeFilter}
-        disciplineFilter={disciplineFilter}
-        onDisciplineFilterChange={setDisciplineFilter}
-        availableDisciplines={availableDisciplines}
-        from={from}
-        to={to}
-        onFromChange={setFrom}
-        onToChange={setTo}
-        activeTimePreset={activeTimePreset}
-        onSelectAllTime={() => {
-          setFrom("")
-          setTo("")
-        }}
-        onSelect6Months={() => {
-          setFrom(presetFrom6Months)
-          setTo(presetToday)
-        }}
-        onSelect3Months={() => {
-          setFrom(presetFrom3Months)
-          setTo(presetToday)
-        }}
-        onSelect1Month={() => {
-          setFrom(presetFrom1Month)
-          setTo(presetToday)
-        }}
-        selectedDiscipline={selectedDiscipline}
-        effectiveDisplayMode={effectiveDisplayMode}
-        onDisplayModeChange={setDisplayMode}
-        totalDisciplineShots={totalDisciplineShots}
-        filteredCount={filtered.length}
-        withScoreCount={withScore.length}
-      />
+      <StatisticsFiltersCard model={filtersModel} actions={filtersActions} />
 
       <StatisticsChartsTabs model={tabsModel} />
     </div>
