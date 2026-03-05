@@ -59,19 +59,23 @@ export type QualityDisplayPoint = {
 
 export interface TrendTabModel {
   hasData: boolean
-  effectiveDisplayMode: DisplayMode
-  selectedDiscipline: DisciplineForStats | null
-  totalDisciplineShots: number | null
-  lineChartConfig: ChartConfig
-  lineData: LineDataPoint[]
-  lineChartTicks: number[]
-  resultTrendYAxis: AxisConfig
-  metricLabel: string
-  barData: Array<{ name: string; Min: number; Avg: number; Max: number }>
-  disciplineFilter: string
-  seriesChartConfig: ChartConfig
-  seriesYAxis: AxisConfig
-  seriesHasDecimals: boolean
+  resultTrend: {
+    effectiveDisplayMode: DisplayMode
+    selectedDiscipline: DisciplineForStats | null
+    totalDisciplineShots: number | null
+    lineChartConfig: ChartConfig
+    lineData: LineDataPoint[]
+    lineChartTicks: number[]
+    resultTrendYAxis: AxisConfig
+    metricLabel: string
+  }
+  seriesRatings: {
+    barData: Array<{ name: string; Min: number; Avg: number; Max: number }>
+    disciplineFilter: string
+    seriesChartConfig: ChartConfig
+    seriesYAxis: AxisConfig
+    seriesHasDecimals: boolean
+  }
 }
 
 export interface HitLocationCloudModel {
@@ -132,16 +136,20 @@ export interface WellbeingTabModel {
 }
 
 export interface QualityTabModel {
-  filteredQualityCount: number
-  qualityChartConfig: ChartConfig
-  qualityYAxis: AxisConfig
-  qualityScoreLabel: string
-  qualityDisplayData: QualityDisplayPoint[]
-  effectiveDisplayMode: DisplayMode
-  selectedDiscipline: DisciplineForStats | null
-  aggregatedShotDistribution: AggregatedShotDistributionPoint[]
-  shotDistributionChartConfig: ChartConfig
-  shotDistributionTicks: number[]
+  scatter: {
+    filteredQualityCount: number
+    qualityChartConfig: ChartConfig
+    qualityYAxis: AxisConfig
+    qualityScoreLabel: string
+    qualityDisplayData: QualityDisplayPoint[]
+    effectiveDisplayMode: DisplayMode
+    selectedDiscipline: DisciplineForStats | null
+  }
+  distribution: {
+    aggregatedShotDistribution: AggregatedShotDistributionPoint[]
+    shotDistributionChartConfig: ChartConfig
+    shotDistributionTicks: number[]
+  }
 }
 
 export interface StatisticsChartsTabsModel {

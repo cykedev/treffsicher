@@ -321,19 +321,23 @@ export function StatisticsCharts({ data, displayTimeZone }: Props) {
   const tabsModel: StatisticsChartsTabsModel = {
     trend: {
       hasData,
-      effectiveDisplayMode,
-      selectedDiscipline,
-      totalDisciplineShots,
-      lineChartConfig,
-      lineData,
-      lineChartTicks,
-      resultTrendYAxis,
-      metricLabel,
-      barData,
-      disciplineFilter,
-      seriesChartConfig,
-      seriesYAxis,
-      seriesHasDecimals,
+      resultTrend: {
+        effectiveDisplayMode,
+        selectedDiscipline,
+        totalDisciplineShots,
+        lineChartConfig,
+        lineData,
+        lineChartTicks,
+        resultTrendYAxis,
+        metricLabel,
+      },
+      seriesRatings: {
+        barData,
+        disciplineFilter,
+        seriesChartConfig,
+        seriesYAxis,
+        seriesHasDecimals,
+      },
     },
     hitLocation: {
       cloud: {
@@ -379,16 +383,20 @@ export function StatisticsCharts({ data, displayTimeZone }: Props) {
       selectedDiscipline,
     },
     quality: {
-      filteredQualityCount: filteredQuality.length,
-      qualityChartConfig,
-      qualityYAxis,
-      qualityScoreLabel,
-      qualityDisplayData,
-      effectiveDisplayMode,
-      selectedDiscipline,
-      aggregatedShotDistribution,
-      shotDistributionChartConfig,
-      shotDistributionTicks,
+      scatter: {
+        filteredQualityCount: filteredQuality.length,
+        qualityChartConfig,
+        qualityYAxis,
+        qualityScoreLabel,
+        qualityDisplayData,
+        effectiveDisplayMode,
+        selectedDiscipline,
+      },
+      distribution: {
+        aggregatedShotDistribution,
+        shotDistributionChartConfig,
+        shotDistributionTicks,
+      },
     },
   }
   const filtersModel: StatisticsFiltersCardModel = {
