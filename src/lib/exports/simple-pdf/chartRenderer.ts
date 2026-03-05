@@ -84,7 +84,9 @@ function drawBarsChart(
   const trackHeight = 7
   const trackWidth = Math.max(70, width - labelWidth - valueWidth - trackGap)
   const maxValue =
-    chart.maxValue && chart.maxValue > 0 ? chart.maxValue : Math.max(...items.map((item) => item.value), 1)
+    chart.maxValue && chart.maxValue > 0
+      ? chart.maxValue
+      : Math.max(...items.map((item) => item.value), 1)
 
   for (const item of items) {
     const clampedValue = clamp(item.value, 0, maxValue)
@@ -174,7 +176,9 @@ function drawHistogramChart(
     }
 
     const labelOffset = Math.max(0, barWidth / 2 - bucket.label.length * 2.1)
-    addCommand(textCommand(barX + labelOffset, plotBottomY - 10, bucket.label, 8, false, COLOR_TEXT_SOFT))
+    addCommand(
+      textCommand(barX + labelOffset, plotBottomY - 10, bucket.label, 8, false, COLOR_TEXT_SOFT)
+    )
   }
 
   cursorY = plotBottomY - labelHeight
@@ -223,10 +227,14 @@ function drawSeriesGridChart(
       addCommand(textCommand(x, rowBaseline - i * lineHeight, labelLines[i], 9, false, COLOR_TEXT))
     }
     for (let i = 0; i < scoreLines.length; i++) {
-      addCommand(textCommand(scoreX, rowBaseline - i * lineHeight, scoreLines[i], 9, true, COLOR_TEXT))
+      addCommand(
+        textCommand(scoreX, rowBaseline - i * lineHeight, scoreLines[i], 9, true, COLOR_TEXT)
+      )
     }
     for (let i = 0; i < shotsLines.length; i++) {
-      addCommand(textCommand(shotsX, rowBaseline - i * lineHeight, shotsLines[i], 9, false, COLOR_TEXT_SOFT))
+      addCommand(
+        textCommand(shotsX, rowBaseline - i * lineHeight, shotsLines[i], 9, false, COLOR_TEXT_SOFT)
+      )
     }
 
     cursorY -= rowHeight
@@ -264,7 +272,8 @@ function drawHitLocationChart(
 
   const signedX =
     (chart.horizontalDirection === "RIGHT" ? 1 : -1) * Math.max(0, Math.abs(chart.horizontalMm))
-  const signedY = (chart.verticalDirection === "HIGH" ? 1 : -1) * Math.max(0, Math.abs(chart.verticalMm))
+  const signedY =
+    (chart.verticalDirection === "HIGH" ? 1 : -1) * Math.max(0, Math.abs(chart.verticalMm))
   const maxMm = Math.max(1, chart.maxMm ?? Math.max(Math.abs(signedX), Math.abs(signedY), 5))
   const maxRadius = plotSize / 2 - 10
   const dx = clamp((signedX / maxMm) * maxRadius, -maxRadius, maxRadius)
@@ -302,7 +311,9 @@ function drawHitLocationChart(
     addCommand(textCommand(infoX, infoCursorY, `${row.label}:`, 8.8, false, COLOR_TEXT_SOFT))
     const valueLines = wrapText(row.value, Math.max(80, infoWidth - 64), 8.8)
     for (let i = 0; i < valueLines.length; i++) {
-      addCommand(textCommand(infoX + 64, infoCursorY - i * 11, valueLines[i], 8.8, false, COLOR_TEXT))
+      addCommand(
+        textCommand(infoX + 64, infoCursorY - i * 11, valueLines[i], 8.8, false, COLOR_TEXT)
+      )
     }
     infoCursorY -= Math.max(1, valueLines.length) * 11 + 5
   }

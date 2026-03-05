@@ -41,9 +41,7 @@ export async function getShotDistributionData(
   return getShotDistributionDataAction(filters)
 }
 
-export async function getQualityVsScoreData(
-  filters: StatsFilters
-): Promise<QualityVsScorePoint[]> {
+export async function getQualityVsScoreData(filters: StatsFilters): Promise<QualityVsScorePoint[]> {
   return getQualityVsScoreDataAction(filters)
 }
 

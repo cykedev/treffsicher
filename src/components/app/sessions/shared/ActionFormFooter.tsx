@@ -7,12 +7,7 @@ interface Props {
   onCancel?: () => void
 }
 
-export function ActionFormFooter({
-  pending,
-  submitLabel,
-  submitPendingLabel,
-  onCancel,
-}: Props) {
+export function ActionFormFooter({ pending, submitLabel, submitPendingLabel, onCancel }: Props) {
   return (
     <div className="flex gap-2">
       <Button type="submit" size="sm" disabled={pending}>

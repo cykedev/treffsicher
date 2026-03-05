@@ -62,7 +62,9 @@ export async function getStatsDataAction(filters: StatsFilters): Promise<StatsSe
       executionQuality: serie.executionQuality,
     }))
 
-    const scoredNonPractice = series.filter((serie) => !serie.isPractice && serie.scoreTotal !== null)
+    const scoredNonPractice = series.filter(
+      (serie) => !serie.isPractice && serie.scoreTotal !== null
+    )
     const totalScore = scoredNonPractice.reduce((sum, serie) => sum + (serie.scoreTotal ?? 0), 0)
     const totalNonPracticeShots = scoredNonPractice.reduce((sum, serie) => sum + serie.shotCount, 0)
 

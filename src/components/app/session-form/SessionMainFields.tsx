@@ -120,7 +120,9 @@ export function SessionMainFields({ model, actions }: Props) {
         </div>
       )}
 
-      {needsDiscipline && <HitLocationSection model={hitLocationModel} actions={actions.hitLocation} />}
+      {needsDiscipline && (
+        <HitLocationSection model={hitLocationModel} actions={actions.hitLocation} />
+      )}
 
       <input type="hidden" name="hitLocationHorizontalMm" value={hitLocation?.horizontalMm ?? ""} />
       <input
