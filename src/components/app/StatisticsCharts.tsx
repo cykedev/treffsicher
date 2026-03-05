@@ -112,9 +112,11 @@ const HIT_LOCATION_CLOUD_TRAIL_START_RADIUS = 1.8
 const HIT_LOCATION_CLOUD_TRAIL_END_RADIUS = 2.8
 const TREND_WINDOW_SIZE = 5
 const CHART_POINT_RADIUS = 6
-const CHART_POINT_ACTIVE_RADIUS = 7
 const CHART_POINT_OPACITY = 0.7
-const CHART_POINT_ACTIVE_OPACITY = 0.92
+const CHART_TREND_POINT_RADIUS = 3.8
+const CHART_TREND_POINT_ACTIVE_RADIUS = 4.8
+const CHART_TREND_POINT_OPACITY = 0.42
+const CHART_TREND_POINT_ACTIVE_OPACITY = 0.7
 const CHART_POINT_STROKE_WIDTH = 1
 const CHART_POINT_LINK_STROKE_WIDTH = 1.2
 const CHART_POINT_LINK_STROKE_OPACITY = 0.4
@@ -239,9 +241,9 @@ function formatLocalDate(date: Date): string {
   return `${year}-${month}-${day}`
 }
 
-function daysAgo(days: number): string {
+function monthsAgo(months: number): string {
   const d = new Date()
-  d.setDate(d.getDate() - days)
+  d.setMonth(d.getMonth() - months)
   return formatLocalDate(d)
 }
 
@@ -281,9 +283,9 @@ function calculateTrend(values: (number | null)[]): (number | null)[] {
 
 function createDotStyle(color: string) {
   return {
-    r: CHART_POINT_RADIUS,
+    r: CHART_TREND_POINT_RADIUS,
     fill: color,
-    fillOpacity: CHART_POINT_OPACITY,
+    fillOpacity: CHART_TREND_POINT_OPACITY,
     stroke: "var(--background)",
     strokeWidth: CHART_POINT_STROKE_WIDTH,
   }
@@ -291,9 +293,9 @@ function createDotStyle(color: string) {
 
 function createActiveDotStyle(color: string) {
   return {
-    r: CHART_POINT_ACTIVE_RADIUS,
+    r: CHART_TREND_POINT_ACTIVE_RADIUS,
     fill: color,
-    fillOpacity: CHART_POINT_ACTIVE_OPACITY,
+    fillOpacity: CHART_TREND_POINT_ACTIVE_OPACITY,
     stroke: "var(--background)",
     strokeWidth: CHART_POINT_STROKE_WIDTH,
   }
@@ -982,31 +984,41 @@ export function StatisticsCharts({
                   variant="outline"
                   className="h-9 text-sm"
                   onClick={() => {
-                    setFrom(daysAgo(28))
-                    setTo(today())
-                  }}
-                >
-                  4 Wochen
-                </Button>
-                <Button
-                  variant="outline"
-                  className="h-9 text-sm"
-                  onClick={() => {
-                    setFrom(daysAgo(30))
-                    setTo(today())
-                  }}
-                >
-                  Monat
-                </Button>
-                <Button
-                  variant="outline"
-                  className="h-9 text-sm"
-                  onClick={() => {
                     setFrom("")
                     setTo("")
                   }}
                 >
                   Alle
+                </Button>
+                <Button
+                  variant="outline"
+                  className="h-9 text-sm"
+                  onClick={() => {
+                    setFrom(monthsAgo(6))
+                    setTo(today())
+                  }}
+                >
+                  6 Monate
+                </Button>
+                <Button
+                  variant="outline"
+                  className="h-9 text-sm"
+                  onClick={() => {
+                    setFrom(monthsAgo(3))
+                    setTo(today())
+                  }}
+                >
+                  3 Monate
+                </Button>
+                <Button
+                  variant="outline"
+                  className="h-9 text-sm"
+                  onClick={() => {
+                    setFrom(monthsAgo(1))
+                    setTo(today())
+                  }}
+                >
+                  1 Monat
                 </Button>
               </div>
             </div>
