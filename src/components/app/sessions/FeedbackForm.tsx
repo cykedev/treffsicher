@@ -2,11 +2,12 @@
 
 import { useActionState, useState, useEffect } from "react"
 import { saveFeedback, type ActionResult } from "@/lib/sessions/actions"
-import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { SelectableRow } from "@/components/ui/selectable-row"
-import { Slider } from "@/components/ui/slider"
 import { Textarea } from "@/components/ui/textarea"
+import { ActionFormFooter } from "@/components/app/sessions/shared/ActionFormFooter"
+import { ActionFormMessages } from "@/components/app/sessions/shared/ActionFormMessages"
+import { ScoreSliderRows } from "@/components/app/sessions/shared/ScoreSliderRows"
 import type { Feedback } from "@/generated/prisma/client"
 
 interface Props {
@@ -17,13 +18,13 @@ interface Props {
 }
 
 const dimensions = [
-  { name: "fitness", label: "Kondition" },
-  { name: "nutrition", label: "Ernährung" },
-  { name: "technique", label: "Technik" },
-  { name: "tactics", label: "Taktik" },
-  { name: "mentalStrength", label: "Mentale Stärke" },
-  { name: "environment", label: "Umfeld" },
-  { name: "equipment", label: "Material" },
+  { id: "feedback-fitness", name: "fitness", label: "Kondition" },
+  { id: "feedback-nutrition", name: "nutrition", label: "Ernährung" },
+  { id: "feedback-technique", name: "technique", label: "Technik" },
+  { id: "feedback-tactics", name: "tactics", label: "Taktik" },
+  { id: "feedback-mentalStrength", name: "mentalStrength", label: "Mentale Stärke" },
+  { id: "feedback-environment", name: "environment", label: "Umfeld" },
+  { id: "feedback-equipment", name: "equipment", label: "Material" },
 ] as const
 
 type DimensionKey = (typeof dimensions)[number]["name"]
@@ -49,36 +50,25 @@ export function FeedbackForm({ sessionId, initialData, onCancel, onSuccess }: Pr
 
   return (
     <form action={formAction} className="space-y-4">
-      {state?.error && <p className="text-sm text-destructive">{state.error}</p>}
-      {state?.success && !onSuccess && (
-        <p className="text-sm text-green-600">Feedback gespeichert.</p>
-      )}
+      <ActionFormMessages
+        error={state?.error}
+        success={state?.success}
+        showInlineSuccess={!onSuccess}
+        successMessage="Feedback gespeichert."
+      />
 
-      <div className="space-y-3">
-        <p className="text-sm font-medium">Tatsächlicher Stand (0–100)</p>
-        {dimensions.map((dim) => (
-          // Gleiche Ausrichtung wie Lese-Ansicht: Label (w-32) | Slider (flex-1) | Wert (w-8)
-          <div key={dim.name} className="flex items-center gap-3">
-            <Label htmlFor={`feedback-${dim.name}`} className="w-32 shrink-0 truncate text-sm">
-              {dim.label}
-            </Label>
-            <input type="hidden" name={dim.name} value={values[dim.name]} />
-            <Slider
-              id={`feedback-${dim.name}`}
-              min={0}
-              max={100}
-              step={1}
-              value={[values[dim.name]]}
-              onValueChange={([v]) => setValues((prev) => ({ ...prev, [dim.name]: v }))}
-              disabled={pending}
-              className="flex-1"
-            />
-            <span className="w-8 shrink-0 text-right text-sm tabular-nums text-muted-foreground">
-              {values[dim.name]}
-            </span>
-          </div>
-        ))}
-      </div>
+      <ScoreSliderRows
+        title="Tatsächlicher Stand (0–100)"
+        rows={dimensions}
+        values={values}
+        pending={pending}
+        onValueChange={(name, value) => {
+          setValues((current) => ({
+            ...current,
+            [name]: value,
+          }))
+        }}
+      />
 
       <div className="space-y-2">
         <Label htmlFor="explanation">Erklärung / Abweichungen zur Prognose</Label>
@@ -164,16 +154,12 @@ export function FeedbackForm({ sessionId, initialData, onCancel, onSuccess }: Pr
         />
       </div>
 
-      <div className="flex gap-2">
-        <Button type="submit" size="sm" disabled={pending}>
-          {pending ? "Speichern..." : "Feedback speichern"}
-        </Button>
-        {onCancel && (
-          <Button type="button" variant="outline" size="sm" onClick={onCancel} disabled={pending}>
-            Abbrechen
-          </Button>
-        )}
-      </div>
+      <ActionFormFooter
+        pending={pending}
+        submitLabel="Feedback speichern"
+        submitPendingLabel="Speichern..."
+        onCancel={onCancel}
+      />
     </form>
   )
 }
