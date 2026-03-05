@@ -1,5 +1,10 @@
 export { calculateMean, computeCenteredAxis, computeStableAxis } from "./axis"
-export { createActiveDotStyle, createDotStyle, createTrendStroke, renderScatterPoint } from "./chartStyles"
+export {
+  createActiveDotStyle,
+  createDotStyle,
+  createTrendStroke,
+  renderScatterPoint,
+} from "./chartStyles"
 export { monthsAgo, parseDateInput, today } from "./date"
 export { computeDisplayValue, formatDisplayScore } from "./displayScore"
 export {

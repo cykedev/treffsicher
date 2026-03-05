@@ -7,7 +7,11 @@ import {
   TOP_NOISY_LIMIT,
   TOP_NOISY_WINDOW_HOURS,
 } from "@/lib/admin/actions/shared"
-import type { AdminActionResult, AdminLoginRateLimitBucket, AdminLoginRateLimitInsights } from "@/lib/admin/types"
+import type {
+  AdminActionResult,
+  AdminLoginRateLimitBucket,
+  AdminLoginRateLimitInsights,
+} from "@/lib/admin/types"
 
 const LOGIN_BUCKET_SELECT = {
   key: true,

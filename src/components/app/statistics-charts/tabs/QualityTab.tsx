@@ -10,7 +10,8 @@ interface Props {
 
 export function QualityTab({ model }: Props) {
   const hasAnyData =
-    model.scatter.filteredQualityCount > 1 || model.distribution.aggregatedShotDistribution.length > 0
+    model.scatter.filteredQualityCount > 1 ||
+    model.distribution.aggregatedShotDistribution.length > 0
 
   return (
     <TabsContent value="qualitaet" className="space-y-4">
