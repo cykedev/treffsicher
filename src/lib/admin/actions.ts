@@ -42,9 +42,7 @@ export async function getAdminSystemDisciplines(): Promise<AdminSystemDiscipline
   return getAdminSystemDisciplinesAction()
 }
 
-export async function getAdminBlockedLoginRateLimitBuckets(): Promise<
-  AdminLoginRateLimitBucket[]
-> {
+export async function getAdminBlockedLoginRateLimitBuckets(): Promise<AdminLoginRateLimitBucket[]> {
   return getAdminBlockedLoginRateLimitBucketsAction()
 }
 

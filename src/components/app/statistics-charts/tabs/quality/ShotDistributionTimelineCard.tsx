@@ -41,7 +41,10 @@ export function ShotDistributionTimelineCard({ model }: Props) {
       </CardHeader>
       <CardContent>
         <ChartContainer config={shotDistributionChartConfig} className="h-[300px] w-full">
-          <AreaChart data={aggregatedShotDistribution} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
+          <AreaChart
+            data={aggregatedShotDistribution}
+            margin={{ top: 5, right: 20, bottom: 5, left: 0 }}
+          >
             <CartesianGrid stroke="var(--border)" strokeOpacity={0.4} vertical={false} />
             <XAxis
               dataKey="i"
@@ -86,7 +89,8 @@ export function ShotDistributionTimelineCard({ model }: Props) {
             />
             <Legend
               content={(props) => {
-                const payload = (props as { payload?: Array<{ value: string; color: string }> }).payload
+                const payload = (props as { payload?: Array<{ value: string; color: string }> })
+                  .payload
                 const items = [...(payload ?? [])].sort((a, b) => {
                   return (RING_ORDER[b.value] ?? 0) - (RING_ORDER[a.value] ?? 0)
                 })
@@ -103,7 +107,10 @@ export function ShotDistributionTimelineCard({ model }: Props) {
                     }}
                   >
                     {items.map((entry) => (
-                      <div key={entry.value} style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                      <div
+                        key={entry.value}
+                        style={{ display: "flex", alignItems: "center", gap: 4 }}
+                      >
                         <div
                           style={{
                             width: 10,

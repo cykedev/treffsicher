@@ -68,7 +68,8 @@ export function parseGoalInput(
     dateTo: formData.get("dateTo"),
   })
   if (!parsed.success) {
-    const prefix = context === "update" ? "Goal update validation failed:" : "Goal validation failed:"
+    const prefix =
+      context === "update" ? "Goal update validation failed:" : "Goal validation failed:"
     console.error(prefix, parsed.error.flatten())
     return { error: "Bitte die Pflichtfelder prüfen." }
   }

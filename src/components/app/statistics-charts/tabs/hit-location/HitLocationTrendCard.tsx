@@ -1,12 +1,4 @@
-import {
-  Area,
-  CartesianGrid,
-  ComposedChart,
-  Line,
-  ReferenceLine,
-  XAxis,
-  YAxis,
-} from "recharts"
+import { Area, CartesianGrid, ComposedChart, Line, ReferenceLine, XAxis, YAxis } from "recharts"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
@@ -87,7 +79,10 @@ export function HitLocationTrendCard({ model }: Props) {
       </CardHeader>
       <CardContent>
         <ChartContainer config={hitLocationTrendChartConfig} className="h-[280px] w-full">
-          <ComposedChart data={hitLocationTrendData} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
+          <ComposedChart
+            data={hitLocationTrendData}
+            margin={{ top: 5, right: 20, bottom: 5, left: 0 }}
+          >
             <CartesianGrid stroke="var(--border)" strokeOpacity={0.4} vertical={false} />
             <XAxis
               dataKey="i"

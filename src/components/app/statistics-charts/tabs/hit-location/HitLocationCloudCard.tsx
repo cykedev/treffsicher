@@ -132,7 +132,9 @@ export function HitLocationCloudCard({ model }: Props) {
                       <div className="flex w-full items-center justify-between gap-6">
                         <span className="text-muted-foreground">{name === "x" ? "X" : "Y"}</span>
                         <span className="text-foreground font-mono font-medium tabular-nums">
-                          {formatSignedMillimeters(typeof value === "number" ? value : Number(value))}
+                          {formatSignedMillimeters(
+                            typeof value === "number" ? value : Number(value)
+                          )}
                         </span>
                       </div>
                     )}
@@ -204,13 +206,17 @@ export function HitLocationCloudCard({ model }: Props) {
 
         <div className="grid gap-2 sm:grid-cols-2">
           <div className="rounded-lg border border-border/60 bg-muted/10 p-3">
-            <p className="text-xs uppercase tracking-wide text-muted-foreground">Mittelwert X (→/←)</p>
+            <p className="text-xs uppercase tracking-wide text-muted-foreground">
+              Mittelwert X (→/←)
+            </p>
             <p className="text-lg font-semibold tabular-nums">
               {formatDirectionalMillimeters(hitLocationMetrics.meanX, "x")}
             </p>
           </div>
           <div className="rounded-lg border border-border/60 bg-muted/10 p-3">
-            <p className="text-xs uppercase tracking-wide text-muted-foreground">Mittelwert Y (↑/↓)</p>
+            <p className="text-xs uppercase tracking-wide text-muted-foreground">
+              Mittelwert Y (↑/↓)
+            </p>
             <p className="text-lg font-semibold tabular-nums">
               {formatDirectionalMillimeters(hitLocationMetrics.meanY, "y")}
             </p>

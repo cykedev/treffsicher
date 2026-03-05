@@ -3,7 +3,12 @@ import { redirect } from "next/navigation"
 import { getAuthSession } from "@/lib/auth-helpers"
 import { db } from "@/lib/db"
 import { type SessionTransactionClient } from "@/lib/sessions/actions/shared"
-import { buildSessionWriteData, createSessionSeries, prepareSessionWriteInput, syncSessionGoals } from "@/lib/sessions/actions/session/sessionWriteShared"
+import {
+  buildSessionWriteData,
+  createSessionSeries,
+  prepareSessionWriteInput,
+  syncSessionGoals,
+} from "@/lib/sessions/actions/session/sessionWriteShared"
 import type { ActionResult } from "@/lib/sessions/actions/types"
 
 export async function createSessionAction(formData: FormData): Promise<ActionResult> {

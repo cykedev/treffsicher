@@ -9,7 +9,10 @@ import {
 } from "@/lib/admin/actions/shared"
 import type { AdminActionResult } from "@/lib/admin/types"
 
-async function ensureUniqueEmail(email: string, userId?: string): Promise<AdminActionResult | null> {
+async function ensureUniqueEmail(
+  email: string,
+  userId?: string
+): Promise<AdminActionResult | null> {
   const existing = await db.user.findUnique({
     where: { email },
     select: { id: true },
