@@ -8,6 +8,7 @@ import {
   CHART_TREND_POINT_RADIUS,
 } from "@/components/app/statistics-charts/constants"
 
+// Style-Fabriken halten Recharts-Props zentral, damit Punkt-/Trendoptik konsistent bleibt.
 export function createDotStyle(color: string) {
   return {
     r: CHART_TREND_POINT_RADIUS,

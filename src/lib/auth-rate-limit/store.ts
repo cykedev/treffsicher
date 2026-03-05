@@ -11,6 +11,8 @@ function fromDate(value: Date): number {
 
 function createInMemoryStore(): LoginRateLimitStore {
   const loginBuckets = new Map<string, LoginBucket>()
+  // In Tests bewusst ohne DB:
+  // Tests bleiben deterministisch und schnell, ohne DB-Setup pro Testlauf.
 
   return {
     async get(key: string): Promise<LoginBucket | null> {
@@ -44,6 +46,9 @@ function createInMemoryStore(): LoginRateLimitStore {
       if (limit <= 0) return []
       return [...loginBuckets.entries()]
         .sort((a, b) => {
+          // Referenz auf "letzte Relevanz" statt nur Erstellzeit:
+          // wir entfernen zuerst Bucket-Eintraege mit der aeltesten Relevanz,
+          // unabhaengig davon ob sie nur alt oder bereits blockiert waren.
           const aRef = Math.max(a[1].blockedUntil, a[1].lastAttemptAt)
           const bRef = Math.max(b[1].blockedUntil, b[1].lastAttemptAt)
           return aRef - bRef
@@ -171,6 +176,9 @@ function createDbStore(): LoginRateLimitStore {
           lastAttemptAt: {
             lt: cutoff,
           },
+          // Aktive Sperren nicht vorzeitig wegraeumen:
+          // aktive Sperren muessen erhalten bleiben, auch wenn der letzte Versuch
+          // bereits laenger zurueckliegt.
           OR: [
             { blockedUntil: null },
             {
@@ -189,5 +197,8 @@ function createDbStore(): LoginRateLimitStore {
 }
 
 export function createRateLimitStoreForCurrentEnv(): LoginRateLimitStore {
+  // Umgebungsabhaengiger Store:
+  // Produktion braucht persistente Buckets (mehrere Requests/Instanzen),
+  // Tests brauchen isolierte und schnell resetbare Buckets.
   return process.env.NODE_ENV === "test" ? createInMemoryStore() : createDbStore()
 }

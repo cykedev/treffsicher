@@ -10,6 +10,7 @@ interface Props {
   model: SelfAssessmentTabModel
 }
 
+// Radar-Tab zeigt Prognose/Feedback als Paarvergleich über identische Dimensionen und Skalen.
 export function SelfAssessmentTab({ model }: Props) {
   const {
     radarChartData,
@@ -36,6 +37,7 @@ export function SelfAssessmentTab({ model }: Props) {
           <CardContent>
             <ChartContainer config={radarChartConfig} className="h-[340px] w-full">
               <RadarChart data={radarChartData} outerRadius="72%">
+                {/* Etwas kleinerer Radius lässt lange deutsche Labels ohne Überlappung lesbar. */}
                 <PolarGrid stroke="var(--border)" strokeOpacity={0.65} />
                 <PolarAngleAxis
                   dataKey="dimension"

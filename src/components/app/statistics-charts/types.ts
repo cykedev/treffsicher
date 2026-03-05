@@ -6,6 +6,7 @@ import type {
   WellbeingCorrelationPoint,
 } from "@/lib/stats/actions"
 
+// Gemeinsame Statistik-Typen sind absichtlich UI-nah benannt, damit Chart-Hooks lesbar bleiben.
 export type DisplayMode = "per_shot" | "projected"
 
 export type RadarSeriesKey = "prognosis" | "feedback"

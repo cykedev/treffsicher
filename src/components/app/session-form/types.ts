@@ -4,6 +4,7 @@ import type {
   ScoringType,
 } from "@/generated/prisma/client"
 
+// Zentrale Form-Typen reduzieren Prop-Kopplung zwischen Session-Form-Teilkomponenten.
 export type ImportSourceType = "URL" | "UPLOAD"
 
 export type SessionHitLocation = {

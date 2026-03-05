@@ -1,5 +1,6 @@
 import type { RadarSeriesKey } from "@/components/app/statistics-charts/types"
 
+// Farb-/Layoutkonstanten zentralisieren, damit alle Statistik-Karten dieselbe visuelle Sprache sprechen.
 export const radarDimensions = [
   { label: "Kondition", prognosisKey: "fitnessPrognosis", feedbackKey: "fitnessFeedback" },
   { label: "Ernährung", prognosisKey: "nutritionPrognosis", feedbackKey: "nutritionFeedback" },

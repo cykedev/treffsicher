@@ -81,6 +81,7 @@ export function useSessionFormImportController({
     defaultDropDisciplineId,
     hasSelectedDiscipline,
     onEnsureDropType: () => {
+      // Drag&Drop ohne Typ startet bewusst im Training-Modus, damit der Importpfad sofort gültig ist.
       setType("TRAINING")
     },
     onPrepareDropDefaults: (disciplineIdForDrop) => {
@@ -99,6 +100,7 @@ export function useSessionFormImportController({
     setType(value)
 
     if (!needsDisciplineForSessionType(value)) {
+      // Beim Wegfall der Disziplinpflicht abhängige Felder aktiv leeren, sonst bleiben versteckte Altwerte erhalten.
       clearForTypeWithoutDiscipline()
       handleClearHitLocation()
       return

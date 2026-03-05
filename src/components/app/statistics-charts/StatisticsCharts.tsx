@@ -30,6 +30,9 @@ export function StatisticsCharts({ data, displayTimeZone }: Props) {
   const [showHitLocationTrendY, setShowHitLocationTrendY] = useState(true)
 
   const availableDisciplines = useMemo<DisciplineForStats[]>(() => {
+    // Filterliste direkt aus vorhandenen Sessions ableiten:
+    // So bleibt die Filterliste exakt auf tatsaechlich vorhandene Daten
+    // begrenzt und verhindert leere Filter-Zustaende ohne Treffer.
     const seen = new Set<string>()
     const result: DisciplineForStats[] = []
     for (const session of sessions) {
@@ -83,6 +86,9 @@ export function StatisticsCharts({ data, displayTimeZone }: Props) {
     toDate,
   })
 
+  // Aggregation vor der Praesentation:
+  // Die Tabs brauchen bereits verdichtete Reihen, damit die Komponenten keine
+  // doppelte Transform-Logik enthalten.
   const aggregatedShotDistribution = useAggregatedShotDistribution({
     filteredShotDistribution,
     displayTimeZone,
@@ -224,6 +230,9 @@ export function StatisticsCharts({ data, displayTimeZone }: Props) {
     shotDistributionTicks,
   })
 
+  // Separates FiltersCard-Model:
+  // Filter-UI soll nur rendern, nicht Fachlogik kennen. Das reduziert
+  // Kopplung zwischen Formularzustand und Chartaufbereitung.
   const { filtersModel, filtersActions } = useStatisticsFiltersCardState({
     typeFilter,
     disciplineFilter,

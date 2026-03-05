@@ -34,6 +34,7 @@ export async function createSessionAction(formData: FormData): Promise<ActionRes
     return trainingSession
   })
 
+  // Revalidate vor Redirect, damit neue Einheit und Zielbezüge sofort in Folgeansichten auftauchen.
   revalidatePath("/sessions")
   revalidatePath("/goals")
   redirect(`/sessions/${created.id}`)

@@ -3,6 +3,7 @@ import type { SeriesDefaults } from "@/components/app/session-form/types"
 
 export function toDateTimeLocalValue(value: Date | string): string {
   const base = new Date(value)
+  // Offset manuell korrigieren, damit datetime-local den lokalen Zeitpunkt statt UTC-Shift zeigt.
   base.setMinutes(base.getMinutes() - base.getTimezoneOffset())
   return base.toISOString().slice(0, 16)
 }

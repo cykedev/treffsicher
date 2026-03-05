@@ -53,6 +53,7 @@ export function drawHistogramChart(
   for (let i = 0; i < buckets.length; i++) {
     const bucket = buckets[i]
     const ratio = maxCount > 0 ? bucket.value / maxCount : 0
+    // Balkenhöhe auf Plotfläche clampen, damit fehlerhafte Eingabedaten den Stream nicht sprengen.
     const barHeight = clamp((plotHeight - 2) * ratio, 0, plotHeight - 2)
     const barX = plotX + i * (barWidth + gap)
     const barTopY = plotBottomY + barHeight

@@ -9,6 +9,7 @@ interface Props {
   displayTimeZone: string
 }
 
+// Header bündelt Typ/Datum/Meta und hält Aktionen separat, damit Detailseiten oben stabil bleiben.
 function formatDate(date: Date, displayTimeZone: string): string {
   return new Intl.DateTimeFormat("de-CH", {
     weekday: "long",

@@ -28,6 +28,7 @@ export function useSessionSeriesValidation({
       return shots.map((seriesShots) => seriesShots.map(() => false))
     }
 
+    // Nur nicht-leere Felder validieren, damit unfertige Eingaben während des Tippens nicht sofort blocken.
     return shots.map((seriesShots) =>
       seriesShots.map((value) => value !== "" && !isValidShotValue(value, scoringType))
     )

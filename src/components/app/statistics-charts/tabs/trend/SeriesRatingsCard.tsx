@@ -13,6 +13,7 @@ interface Props {
   model: TrendTabModel["seriesRatings"]
 }
 
+// Serienkarte blendet sich ohne Daten aus, damit der Trend-Tab nicht mit leeren Charts überladen wird.
 export function SeriesRatingsCard({ model }: Props) {
   const { barData, disciplineFilter, seriesChartConfig, seriesYAxis, seriesHasDecimals } = model
 

@@ -136,6 +136,7 @@ export interface WellbeingTabModel {
 }
 
 export interface QualityTabModel {
+  // Scatter und Distribution bewusst getrennt halten: beide teilen Filter, aber nicht denselben Darstellungsmaßstab.
   scatter: {
     filteredQualityCount: number
     qualityChartConfig: ChartConfig

@@ -76,6 +76,7 @@ export async function getFavouriteDisciplineIdAction(): Promise<string | null> {
 
   if (favouriteDiscipline) return favouriteDiscipline.id
 
+  // Verwaisten Favoriten direkt bereinigen, damit Folgeabfragen keinen toten Verweis mitschleppen.
   await db.user.update({
     where: { id: session.user.id },
     data: { favouriteDisciplineId: null },

@@ -53,6 +53,8 @@ export function renderSection(context: LayoutContext, section: PdfSection): void
     chartBlockHeight +
     12
 
+  // Abschnitt wird als Karte komplett auf einer Seite gehalten.
+  // Das verhindert abgeschnittene Titel/Diagramme ohne Kontext.
   ensureSpace(context, sectionHeight + CARD_GAP)
 
   const sectionY = context.y
@@ -99,6 +101,8 @@ export function renderSection(context: LayoutContext, section: PdfSection): void
 
   if (chartBlockHeight > 0) {
     if (hasTextRows) cursorY -= 6
+    // Nur tatsaechlich zeichnbare Charts rendern, damit Reservehoehen und
+    // sichtbarer Inhalt konsistent bleiben.
     const drawableCharts = charts.filter((chart) => estimateChartHeight(chart) > 0)
 
     drawableCharts.forEach((chart, index) => {

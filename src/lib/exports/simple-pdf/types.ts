@@ -1,3 +1,4 @@
+// Typen bewusst als kleine Primitive gehalten, damit Chart-Renderer unabhängig voneinander erweitert werden können.
 export type PdfChartBarItem = {
   label: string
   value: number

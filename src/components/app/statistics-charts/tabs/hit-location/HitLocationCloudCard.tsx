@@ -119,6 +119,7 @@ export function HitLocationCloudCard({ model }: Props) {
                 content={
                   <ChartTooltipContent
                     labelFormatter={(_label, payload) => {
+                      // Tooltip-Datum immer im gleichen Zeitzonenbezug wie die übrigen Statistikachsen anzeigen.
                       const dateValue = payload?.[0]?.payload?.date
                       if (!dateValue) return ""
                       return new Intl.DateTimeFormat("de-CH", {
@@ -141,6 +142,7 @@ export function HitLocationCloudCard({ model }: Props) {
                   />
                 }
               />
+              {/* Verlaufslinien bleiben als Referenzlinien im gleichen Layer wie Grid/Achsen und skalieren sauber mit. */}
               {showCloudTrail &&
                 hitLocationCloudCurveSegments.map(([from, to], index) => (
                   <ReferenceLine
@@ -164,6 +166,7 @@ export function HitLocationCloudCard({ model }: Props) {
                   renderScatterPoint(props, "var(--chart-1)")
                 }
               />
+              {/* Start/End-Punkte bekommen eigene Marker, damit Richtung ohne Tooltip sofort lesbar bleibt. */}
               {showCloudTrail && hitLocationCloudPathStart && (
                 <Scatter
                   data={[hitLocationCloudPathStart]}

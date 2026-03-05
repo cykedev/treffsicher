@@ -22,6 +22,7 @@ export async function getRadarComparisonDataAction(
   if (filters.type && filters.type !== "all") {
     where.type = filters.type
   } else {
+    // Radar vergleicht nur Einheitentypen mit Prognose/Feedback-Zyklus.
     where.type = { in: ["TRAINING", "WETTKAMPF"] }
   }
 

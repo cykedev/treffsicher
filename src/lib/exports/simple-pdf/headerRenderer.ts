@@ -33,6 +33,8 @@ export function renderHeader(context: LayoutContext, document: StyledPdfDocument
   const metaBlockHeight = metaRows.totalHeight > 0 ? 12 + metaRows.totalHeight : 0
   const headerHeight = 18 + titleBlockHeight + metaBlockHeight + 14
 
+  // Header wird als zusammenhaengende Karte behandelt, damit Titel und Meta
+  // nie auf unterschiedliche Seiten umbrechen.
   ensureSpace(context, headerHeight + CARD_GAP)
 
   const headerY = context.y
@@ -66,6 +68,7 @@ export function renderHeader(context: LayoutContext, document: StyledPdfDocument
   }
 
   if (metaRows.totalHeight > 0) {
+    // Trennlinie nur bei vorhandenen Metadaten, damit leere Header kompakt bleiben.
     const titleBlockBottomY = headerY - 18 - titleBlockHeight
     const separatorY = titleBlockBottomY + 5
     addCommand(

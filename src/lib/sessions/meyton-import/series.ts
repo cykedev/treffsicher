@@ -44,6 +44,7 @@ export function parseMeytonSeriesFromText(rawText: string): MeytonSeriesResult {
       }
 
       if (!didStartShotBlock) {
+        // Erst ab der ersten validen Schusszeile starten, damit Kopf-/Metadaten ignoriert werden.
         if (valuesInLine.length === 0) continue
         shots.push(...valuesInLine)
         didStartShotBlock = true

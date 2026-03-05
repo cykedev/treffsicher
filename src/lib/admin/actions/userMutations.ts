@@ -29,6 +29,7 @@ async function ensureNotLastActiveAdmin(
   isActive: boolean,
   changesAdminState: boolean
 ): Promise<AdminActionResult | null> {
+  // Guard nur dann ausführen, wenn dieser Datensatz die aktive-Admin-Menge tatsächlich verändern würde.
   if (!(role === "ADMIN" && isActive && changesAdminState)) return null
 
   const activeAdminCount = await db.user.count({
@@ -177,6 +178,7 @@ export async function updateUserAction(
       role: parsed.data.role,
       isActive: parsed.data.isActive,
       ...(passwordHash ? { passwordHash } : {}),
+      // Session-Version bei Passwortwechsel erhöhen, damit alte Login-Cookies zuverlässig auslaufen.
       ...(passwordHash ? { sessionVersion: { increment: 1 } } : {}),
     },
   })

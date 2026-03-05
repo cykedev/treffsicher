@@ -45,6 +45,9 @@ export function useHitLocationChartState({
   }, [filtered])
 
   const hitLocationCloudAxes = useMemo(() => {
+    // Zentrierte Achsen:
+    // Trefferlage soll sofort als "rechts/links, hoch/tief um die Mitte"
+    // lesbar bleiben, unabhaengig von Ausreissern.
     const values = filteredHitLocations.flatMap((point) => [point.x, point.y])
     const centered = computeCenteredAxis(values, 1)
     return {
@@ -91,6 +94,9 @@ export function useHitLocationChartState({
     if (hitLocationCloudPathPoints.length <= 2) return hitLocationCloudPathPoints
 
     const MIN_VISUAL_DISTANCE_MM = 0.45
+    // Mindestabstand fuer den Pfad:
+    // Ohne Verdichtung liegen Trendpunkte oft fast deckungsgleich und erzeugen
+    // visuelles Rauschen statt lesbarer Bewegung.
     const result: HitLocationPathPoint[] = [hitLocationCloudPathPoints[0]]
 
     for (let i = 1; i < hitLocationCloudPathPoints.length - 1; i++) {
@@ -135,6 +141,9 @@ export function useHitLocationChartState({
 
     const xRange = xValues.length > 0 ? Math.max(...xValues) - Math.min(...xValues) : 0
     const yRange = yValues.length > 0 ? Math.max(...yValues) - Math.min(...yValues) : 0
+    // Quantilbasierte Trend-Baender:
+    // Standardabweichung reagiert stark auf Ausreisser. Quantile liefern
+    // in kleinen Sport-Datensaetzen stabilere Trend-Bandbreiten.
     const xBandValues = calculateTrendBandsByQuantile(
       xValues,
       xTrendValues,
@@ -211,6 +220,9 @@ export function useHitLocationChartState({
   const hitLocationTrendAxis = useMemo<{ domain: [number, number]; ticks: number[] }>(() => {
     const showXSeries = showHitLocationTrendX || !showHitLocationTrendY
     const showYSeries = showHitLocationTrendY || !showHitLocationTrendX
+    // Achse aus allen sichtbaren Serienwerten berechnen:
+    // Beim Umschalten einzelner Serien soll die Achse nicht springen oder
+    // Werte abschneiden.
     const values = hitLocationTrendData
       .flatMap((point) => {
         const result: Array<number | null> = []

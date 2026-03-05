@@ -146,6 +146,7 @@ export function DisciplineForm({ initialData, disciplineId, canCreateSystem = fa
             <div className="space-y-2">
               <Label htmlFor="isSystem">Sichtbarkeit</Label>
               <Select name="isSystem" defaultValue="true" disabled={pending}>
+                {/* Default auf System spart Admins bei Standarddisziplinen einen zusätzlichen Klick. */}
                 <SelectTrigger id="isSystem">
                   <SelectValue />
                 </SelectTrigger>

@@ -86,6 +86,7 @@ export function drawHitLocationChart(
     (chart.horizontalDirection === "RIGHT" ? 1 : -1) * Math.max(0, Math.abs(chart.horizontalMm))
   const signedY =
     (chart.verticalDirection === "HIGH" ? 1 : -1) * Math.max(0, Math.abs(chart.verticalMm))
+  // Immer auf denselben Radius normieren, damit Charts zwischen Exporten visuell vergleichbar bleiben.
   const maxMm = Math.max(1, chart.maxMm ?? Math.max(Math.abs(signedX), Math.abs(signedY), 5))
   const maxRadius = plotSize / 2 - 10
   const dx = clamp((signedX / maxMm) * maxRadius, -maxRadius, maxRadius)

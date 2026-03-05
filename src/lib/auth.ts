@@ -12,6 +12,9 @@ import { normalizeLoginEmail } from "@/lib/authValidation"
 
 const TRUST_PROXY_HEADERS_FOR_RATE_LIMIT = process.env.AUTH_TRUST_PROXY_HEADERS === "true"
 const MAX_IP_HEADER_LENGTH = 512
+// Konservativer Default:
+// Proxy-Header werden nur vertraut, wenn Deploy-Umgebung das explizit erlaubt.
+// Sonst koennte ein Client eigene IPs in Headern faken.
 
 function getHeaderValue(
   headers: Record<string, unknown> | undefined,
@@ -62,6 +65,9 @@ function extractTrustedIpFromHeader(rawHeader: string | null): string | null {
   if (rawHeader.length > MAX_IP_HEADER_LENGTH) return null
 
   for (const part of rawHeader.split(",")) {
+    // x-forwarded-for kann mehrere Eintraege enthalten.
+    // In x-forwarded-for kann eine Kette stehen; wir nutzen den ersten
+    // parsbaren Kandidaten statt blind den kompletten Header zu vertrauen.
     const parsed = parseClientIpCandidate(part)
     if (parsed) return parsed
   }
@@ -74,6 +80,9 @@ function extractClientIpHeader(req: { headers?: Record<string, unknown> }): stri
     return null
   }
 
+  // x-real-ip zuerst:
+  // x-real-ip ist in vielen Reverse-Proxy-Setups die bereits kanonische
+  // Einzel-IP und reduziert Parsing-Mehrdeutigkeit.
   const realIp = getHeaderValue(req.headers, "x-real-ip")
   const parsedRealIp = extractTrustedIpFromHeader(realIp)
   if (parsedRealIp) return parsedRealIp
@@ -109,6 +118,9 @@ export const authOptions: NextAuthOptions = {
         const ipHeaderValue = extractClientIpHeader(req)
         const rateLimitState = await checkLoginAllowed(email, ipHeaderValue)
         if (!rateLimitState.allowed) {
+          // Einheitliches Fehlerverhalten:
+          // Gleiches Verhalten bei allen Login-Fehlern erschwert User-Enumeration
+          // und gibt keine Information ueber Sperr- oder Nutzerstatus preis.
           return null
         }
 

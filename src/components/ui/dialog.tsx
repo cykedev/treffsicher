@@ -47,6 +47,7 @@ function DialogContent({
   showCloseButton?: boolean
 }) {
   return (
+    // Portal nutzen, damit Dialoge nicht von Eltern-Overflow oder z-index-Ketten abgeschnitten werden.
     <DialogPortal>
       <DialogOverlay />
       <DialogPrimitive.Content

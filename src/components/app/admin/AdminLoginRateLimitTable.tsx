@@ -98,6 +98,7 @@ export function AdminLoginRateLimitTable({ buckets, displayTimeZone }: Props) {
                 size="sm"
                 variant="outline"
                 disabled={pending}
+                // Kandidat zuerst puffern, damit wirklich der angezeigte Bucket bestätigt wird.
                 onClick={() => setClearCandidate(bucket)}
               >
                 Entsperren
@@ -179,6 +180,7 @@ export function AdminLoginRateLimitTable({ buckets, displayTimeZone }: Props) {
               disabled={pending}
               onClick={() => {
                 if (!clearCandidate) return
+                // Schlüssel vor dem Schließen sichern, damit asynchroner Refresh keinen Null-Zugriff erzeugt.
                 const key = clearCandidate.key
                 setClearCandidate(null)
                 performClear(key)

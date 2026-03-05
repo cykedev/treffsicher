@@ -100,6 +100,7 @@ export function SessionSeriesSection({ model, actions }: Props) {
           const isPractice = seriesIsPractice[index] ?? false
           const practicesBefore = seriesIsPractice.slice(0, index).filter(Boolean).length
           const regularsBefore = index - practicesBefore
+          // Zwei Zähler halten Probe- und Wertungsseriennummern stabil, auch wenn Serien umsortiert werden.
           const seriesLabel = isPractice
             ? `Probe-Serie ${practicesBefore + 1}`
             : `Serie ${regularsBefore + 1}`

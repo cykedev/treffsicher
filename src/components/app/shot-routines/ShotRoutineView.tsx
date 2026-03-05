@@ -8,6 +8,7 @@ interface Props {
   updatedAt: Date
 }
 
+// View sortiert Schritte defensiv, damit Alt-/Importdaten ohne stabile Reihenfolge korrekt erscheinen.
 function formatDateTime(date: Date): string {
   return new Intl.DateTimeFormat("de-CH", {
     day: "2-digit",

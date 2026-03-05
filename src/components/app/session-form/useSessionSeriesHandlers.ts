@@ -61,6 +61,8 @@ export function useSessionSeriesHandlers({
   setSeriesIsPractice,
   setSeriesKeys,
 }: Params): ReturnValue {
+  // Snapshot + setter-Bundle stabilisieren die Schnittstelle zwischen
+  // State-Hook und Handler-Hooks. So bleiben beide Seiten austauschbar.
   const collections: SeriesCollectionsSnapshot = {
     seriesIsPractice,
     seriesKeys,

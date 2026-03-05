@@ -43,6 +43,7 @@ export function PrognosisForm({ sessionId, initialData, onSuccess, onCancel }: P
   })
 
   useEffect(() => {
+    // Gleiches Erfolgsverhalten wie Feedback/Reflection für einheitliche Section-UX.
     if (state?.success) onSuccess?.()
   }, [state?.success, onSuccess])
 

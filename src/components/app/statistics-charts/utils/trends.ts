@@ -37,6 +37,7 @@ function calculateRollingQuantileBand(
   if (values.length === 0 || windowSize <= 0) return []
 
   return values.map((_, i) => {
+    // Trailing-Window verhindert einen Look-Ahead-Effekt in historischen Trenddarstellungen.
     const start = Math.max(0, i - windowSize + 1)
     const end = i
     const windowValues = values.slice(start, end + 1)
@@ -77,6 +78,7 @@ export function calculateTrendBandsByQuantile(
   if (values.length === 0 || trends.length === 0) return []
 
   const bandWindowSize = Math.max(TREND_BAND_WINDOW_SIZE, TREND_WINDOW_SIZE + 1)
+  // Bänder werden über Residuen (Messwert - Trend) gebaut, damit sie sich um die Trendlinie statt um Rohwerte legen.
   const residualValues = values.map((value, i) => {
     const trend = trends[i]
     if (trend === null) return 0
@@ -114,6 +116,7 @@ export function calculateTrendBandsByQuantile(
 
     const rawLowerDistance = Math.abs(Math.min(0, low - trend))
     const rawUpperDistance = Math.abs(Math.max(0, high - trend))
+    // Mindest-/Maximalabstände halten das Band visuell stabil über ruhige und volatile Phasen hinweg.
     const lowerDistance = Math.min(
       options.maxLowerDistance,
       Math.max(options.minLowerDistance, rawLowerDistance)

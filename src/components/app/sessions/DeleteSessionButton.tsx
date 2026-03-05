@@ -22,7 +22,7 @@ interface Props {
 }
 
 // Löscht eine Einheit nach expliziter Bestätigung in einem Dialog.
-// Warum Dialog statt Browser-confirm: einheitliches Verhalten auf Desktop/Mobil
+// Dialog statt Browser-confirm für konsistentes Verhalten auf Desktop und Mobil.
 // und konsistente Gestaltung mit den restlichen shadcn-Komponenten.
 export function DeleteSessionButton({ sessionId }: Props) {
   const router = useRouter()

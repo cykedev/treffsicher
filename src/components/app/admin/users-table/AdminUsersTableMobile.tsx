@@ -18,6 +18,7 @@ interface Props {
   onToggleActive: (user: AdminUserListItem, nextIsActive: boolean) => void
 }
 
+// Mobile-Ansicht komprimiert die gleiche Admin-Info in Karten, damit Aktionen mit Daumenreichweite bleiben.
 export function AdminUsersTableMobile({
   users,
   currentAdminId,

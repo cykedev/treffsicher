@@ -23,6 +23,7 @@ export function AdminCreateUserForm() {
   const [showPassword, setShowPassword] = useState(false)
 
   useEffect(() => {
+    // Nach Erfolg Formular resetten, damit ein zweiter Create nicht versehentlich alte Werte recycelt.
     if (!state?.success || !formRef.current) return
     formRef.current.reset()
   }, [state?.success])

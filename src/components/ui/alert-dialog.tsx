@@ -39,6 +39,7 @@ function AlertDialogContent({
   ...props
 }: React.ComponentProps<typeof AlertDialogPrimitive.Content>) {
   return (
+    // Portal + Overlay bilden einen einheitlichen Fokus-/Layer-Stack für alle Bestätigungsdialoge.
     <AlertDialogPortal>
       <AlertDialogOverlay />
       <AlertDialogPrimitive.Content

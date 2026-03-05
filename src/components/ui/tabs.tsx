@@ -16,6 +16,7 @@ function Tabs({
       data-slot="tabs"
       data-orientation={orientation}
       orientation={orientation}
+      // Orientation als Data-Attribut durchreichen, damit Trigger/List dieselbe Layout-Variante ableiten.
       className={cn("group/tabs flex gap-2 data-[orientation=horizontal]:flex-col", className)}
       {...props}
     />

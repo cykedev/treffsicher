@@ -12,7 +12,7 @@ type Props = {
 }
 
 // Einheitlicher "Neu/Anlegen"-Button für Listen-Seiten.
-// Warum zentralisieren: gleiche Position, Icon-Abstand und mobile Breite
+// Zentralisiert, damit Position, Icon-Abstand und mobile Breite über alle Bereiche gleich bleiben.
 // sorgen für ein konsistentes Bedienmuster über alle Bereiche.
 export function CreateItemLinkButton({ href, label, className }: Props) {
   return (

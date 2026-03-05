@@ -9,6 +9,7 @@ interface Params {
   availableDisciplines: DisciplineForStats[]
 }
 
+// Filter-State lebt zentral, damit alle Statistik-Hooks auf denselben Grenzwerten arbeiten.
 export function useStatisticsFilterState({ availableDisciplines }: Params) {
   const [typeFilter, setTypeFilter] = useState<TypeFilter>("all")
   const [from, setFrom] = useState<string>(() => monthsAgo(3))
@@ -22,6 +23,7 @@ export function useStatisticsFilterState({ availableDisciplines }: Params) {
   )
 
   const effectiveDisplayMode: DisplayMode =
+    // Hochrechnung nur mit expliziter Disziplin erlauben, sonst fehlt der Referenz-Schussumfang.
     disciplineFilter === "all" || !selectedDiscipline ? "per_shot" : displayMode
 
   const fromDate = useMemo(() => (from ? parseDateInput(from, false) : null), [from])

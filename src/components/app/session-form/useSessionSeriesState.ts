@@ -15,6 +15,7 @@ interface Params {
 }
 
 export function useSessionSeriesState({ initialData, disciplines, initialDisciplineId }: Params) {
+  // Snapshot nur einmal erzeugen, damit initiale Serien bei Re-Renders nicht neu "einschnappen".
   const initialSnapshot: InitialSeriesSnapshot = buildInitialSeriesSnapshot({
     initialData,
     disciplines,
@@ -51,6 +52,7 @@ export function useSessionSeriesState({ initialData, disciplines, initialDiscipl
     defaultShotsPerSeries: selectedDiscipline?.shotsPerSeries ?? 10,
   })
 
+  // Mutationslogik in Handler-Hooks kapseln, damit diese State-Hook nur Datenfluss orchestriert.
   const {
     handleDisciplineChange,
     clearForTypeWithoutDiscipline,

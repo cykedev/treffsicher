@@ -27,6 +27,7 @@ function SessionResult({ result, mobile }: SessionResultProps) {
     <div className={wrapperClass}>
       <span className={`text-xl font-bold tabular-nums ${scoreValueClass}`}>
         {result.formattedScore}
+        {/* Probe-only Kennzeichnung direkt am Wert spart zusätzlichen Erklärtext in der Liste. */}
         {result.isPracticeOnly && <span className="ml-1 text-sm font-semibold">(P)</span>}
       </span>
       {result.formattedMaxScore && <p className={scoreMetaClass}>von {result.formattedMaxScore}</p>}
@@ -40,6 +41,7 @@ interface Props {
   displayTimeZone: string
 }
 
+// Karte konsumiert nur ein fertiges View-Model, damit Renderlogik und Berechnung sauber getrennt bleiben.
 export function SessionListItemCard({ session, displayTimeZone }: Props) {
   const model = buildSessionListItemModel(session, displayTimeZone)
 

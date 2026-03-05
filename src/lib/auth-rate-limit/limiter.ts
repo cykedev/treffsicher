@@ -22,6 +22,9 @@ async function registerFailedAttempt(
   existing: LoginBucket | null
 ): Promise<void> {
   if (!existing || nowMs - existing.windowStartedAt > windowMs) {
+    // Fensterreset statt weiterzaehlen:
+    // Rate-Limits sollen Bursts im aktuellen Zeitraum bestrafen, nicht
+    // historische Einzelversuche dauerhaft mitschleppen.
     await store.set(key, {
       attempts: 1,
       windowStartedAt: nowMs,
@@ -83,6 +86,9 @@ export function createLoginRateLimitService(
       return
     }
 
+    // Cleanup bewusst gedrosselt:
+    // Login-Checks sind Hot-Path. Aufraeumen wird zeitlich gebuendelt, damit
+    // normale Login-Versuche nicht jedes Mal zusaetzliche DB-Last erzeugen.
     lastCleanupAtMs = nowMs
     await cleanupExpiredBuckets(nowMs)
     await trimBucketsToLimit(config.maxBuckets)
@@ -90,6 +96,8 @@ export function createLoginRateLimitService(
 
   async function ensureBucketCapacityForIncomingBuckets(incomingBuckets: number): Promise<void> {
     if (incomingBuckets <= 0) return
+    // Vorab Platz schaffen fuer neue Buckets:
+    // Neue Buckets duerfen die globale Speichergrenze nicht ueberschreiten.
     const targetLimit = Math.max(0, config.maxBuckets - incomingBuckets)
     await trimBucketsToLimit(targetLimit)
   }
@@ -114,6 +122,9 @@ export function createLoginRateLimitService(
     const blockedByEmail = (emailBucket?.blockedUntil ?? 0) > nowMs
     const blockedByIp = (ipBucket?.blockedUntil ?? 0) > nowMs
 
+    // ODER-Verknuepfung:
+    // E-Mail-Limit schuetzt einzelne Accounts, IP-Limit bremst breite
+    // Passwort-Sprays ueber viele Accounts.
     return {
       allowed: !blockedByEmail && !blockedByIp,
       normalizedEmail,
@@ -165,6 +176,9 @@ export function createLoginRateLimitService(
   }
 
   async function clearSuccessfulLoginAttempts(normalizedEmail: string): Promise<void> {
+    // Nur E-Mail-Bucket loeschen:
+    // IP-Buckets bleiben bewusst bestehen, damit eine auffaellige Quelle nicht
+    // durch einen einzelnen erfolgreichen Login sofort entlastet wird.
     await store.delete(emailKey(normalizedEmail))
   }
 

@@ -2,6 +2,7 @@ import { getAuthSession } from "@/lib/auth-helpers"
 import { db } from "@/lib/db"
 import type { SessionDetail } from "@/lib/sessions/actions/types"
 
+// Detailabfrage lädt alle abhängigen Bereiche in einer Query, damit die Detailseite ohne Folge-Requests rendern kann.
 export async function getSessionByIdAction(id: string): Promise<SessionDetail | null> {
   const session = await getAuthSession()
   if (!session) return null

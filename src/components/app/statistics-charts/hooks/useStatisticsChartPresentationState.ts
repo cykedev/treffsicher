@@ -87,6 +87,9 @@ export function useStatisticsChartPresentationState({
   }, [barData])
 
   const seriesYAxis = useMemo<{ domain: [number, number]; ticks: number[] }>(() => {
+    // Stabile Achse:
+    // Vergleich zwischen Zeitraeumen bleibt nur sinnvoll, wenn die Skala nicht
+    // bei kleinen Datenaenderungen springt.
     return computeStableAxis(seriesValues)
   }, [seriesValues])
 
@@ -98,6 +101,9 @@ export function useStatisticsChartPresentationState({
     if (filteredRadarSessions.length === 0) return []
     const count = filteredRadarSessions.length
 
+    // Mittelwert pro Dimension:
+    // Einzelwerte schwanken stark je Einheit; fuer den Prognose-vs-Feedback-
+    // Vergleich brauchen wir ein robustes Gesamtbild.
     return radarDimensions.map((dimension) => {
       const prognosisSum = filteredRadarSessions.reduce(
         (sum, entry) => sum + entry[dimension.prognosisKey],
@@ -145,6 +151,9 @@ export function useStatisticsChartPresentationState({
 
   const lineChartConfig = useMemo<ChartConfig>(
     () => ({
+      // Dynamisches Label:
+      // Gleicher Chart wird fuer Ringe/Schuss und Hochrechnung genutzt;
+      // das Label muss den gewaehlten Modus transparent machen.
       wert: { label: `${metricLabel} (Punkte)`, color: "var(--chart-1)" },
       trend: { label: "Trend", color: createTrendStroke("var(--chart-1)") },
     }),

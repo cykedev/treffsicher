@@ -23,9 +23,11 @@ interface Props {
   onDelete: () => void
 }
 
+// Aktionsleiste bündelt Bearbeiten/Zuweisen/Löschen, damit Card-Header aufgeräumt bleibt.
 export function GoalActions({ pending, backHref, onEditGoal, onEditAssignments, onDelete }: Props) {
   return (
     <div className="flex items-start justify-end">
+      {/* Mobile bekommt dieselben Aktionen als Icon/kurze Labels, damit nichts aus dem Header herausbricht. */}
       <div className="flex w-full flex-wrap items-center justify-end gap-0.5 sm:w-auto sm:shrink-0 sm:gap-1">
         <Button
           size="icon"

@@ -70,6 +70,7 @@ export function ShotDistributionTimelineCard({ model }: Props) {
                     const tooltipLabel = payload?.[0]?.payload?.tooltipLabel
                     return typeof tooltipLabel === "string" ? tooltipLabel : ""
                   }}
+                  // Null-/0-Werte ausblenden, damit das Tooltip nur die aktuell relevanten Ringe zeigt.
                   payloadFilter={(item) =>
                     typeof item.value === "number" && Number.isFinite(item.value) && item.value > 0
                   }
@@ -91,6 +92,7 @@ export function ShotDistributionTimelineCard({ model }: Props) {
               content={(props) => {
                 const payload = (props as { payload?: Array<{ value: string; color: string }> })
                   .payload
+                // Legende in derselben Rangfolge wie Tooltip halten (10er zuerst), sonst wirkt die Lesereihenfolge inkonsistent.
                 const items = [...(payload ?? [])].sort((a, b) => {
                   return (RING_ORDER[b.value] ?? 0) - (RING_ORDER[a.value] ?? 0)
                 })

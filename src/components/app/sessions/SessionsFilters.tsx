@@ -53,6 +53,7 @@ export function SessionsFilters({
 
     const query = params.toString()
     startTransition(() => {
+      // replace statt push: Filterwechsel soll keine neue Browser-History pro Klick erzeugen.
       router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false })
     })
   }

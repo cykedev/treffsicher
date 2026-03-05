@@ -15,6 +15,7 @@ type SelectableRowProps = {
   indicatorClassName?: string
 }
 
+// Wiederverwendbare "checked row" reduziert duplizierte Toggle-UI in Goals/Session-Forms.
 export function SelectableRow({
   selected,
   onToggle,

@@ -41,6 +41,7 @@ export function AdminUsersTable({ users, currentAdminId, displayTimeZone }: Prop
   }
 
   function handleSetActive(user: AdminUserListItem, nextIsActive: boolean) {
+    // Deaktivierung immer bestätigen lassen; Aktivierung darf direkt erfolgen.
     if (!nextIsActive) {
       setDeactivationCandidate(user)
       return

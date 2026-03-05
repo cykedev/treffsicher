@@ -30,6 +30,9 @@ export const MAX_SERIES_PER_SESSION = 120
 export const MAX_SHOTS_PER_SERIES = 120
 export const MAX_SHOTS_JSON_LENGTH = 16 * 1024
 export const MAX_GOAL_IDS_PER_REQUEST = 100
+// FormData ist untrusted Input.
+// FormData kommt untrusted vom Client. Die Limits verhindern, dass einzelne
+// Requests Speicher und CPU unverhaeltnismaessig binden.
 
 const HORIZONTAL_DIRECTION_VALUES = ["LEFT", "RIGHT"] as const
 const VERTICAL_DIRECTION_VALUES = ["HIGH", "LOW"] as const
@@ -87,6 +90,10 @@ export function parseHitLocationFromFormData(
 
   if (!hasAnyValue) return null
 
+  // Drei Zustaende sind noetig:
+  // null = bewusst nicht gesetzt, INVALID = teilweise/ungueltig gesetzt.
+  // So kann der aufrufende Code praezise zwischen "optional leer" und
+  // "muss als Fehler behandelt werden" unterscheiden.
   const horizontalMm = parseHitLocationMillimeters(horizontalMmRaw)
   const verticalMm = parseHitLocationMillimeters(verticalMmRaw)
   if (horizontalMm === null || verticalMm === null) return "INVALID"
@@ -122,6 +129,9 @@ export async function resolveAccessibleDisciplineId(
 ): Promise<string | null> {
   if (!disciplineId) return null
 
+  // Disziplinzugriff ist zweigleisig:
+  // Disziplinen koennen global (System) oder nutzerspezifisch sein.
+  // Wir akzeptieren beides, aber niemals archivierte Eintraege.
   const discipline = await db.discipline.findFirst({
     where: {
       id: disciplineId,
@@ -136,6 +146,9 @@ export async function resolveAccessibleDisciplineId(
 
 export function mapShotToScoringType(value: number, scoringType: ScoringType): string {
   if (scoringType === "WHOLE") {
+    // Meyton liefert Zehntelwerte.
+    // Meyton liefert Zehntelwerte; fuer Ganzring-Disziplinen muss der Schuss
+    // pro Wert auf einen gueltigen Ganzringwert zurueckgefuehrt werden.
     return String(Math.floor(value))
   }
 
@@ -146,6 +159,9 @@ export function calculateSeriesTotal(shots: string[], scoringType: ScoringType):
   const sum = shots.reduce((total, shot) => total + Number(shot), 0)
 
   if (scoringType === "WHOLE") {
+    // Gesamtsumme muss zum ScoringType passen.
+    // Seriengesamtwert muss zum gewaehlten ScoringType passen und darf keine
+    // versteckten Zehntel behalten.
     return String(Math.floor(sum))
   }
 
@@ -215,7 +231,8 @@ export function parseSeriesFromFormData(formData: FormData): ParsedSeriesInput[]
     })
 
     if (!seriesParsed.success) {
-      // Warum harter Abbruch: Teilimporte fuehren zu schwer nachvollziehbaren Abweichungen
+      // Kein Teilimport:
+      // Teilimporte fuehren zu schwer nachvollziehbaren Abweichungen
       // zwischen sichtbarer Eingabe und gespeicherten Werten.
       console.warn("Session-Import abgebrochen: ungueltige Serien-Daten", {
         index: i,
@@ -223,6 +240,9 @@ export function parseSeriesFromFormData(formData: FormData): ParsedSeriesInput[]
       })
       return null
     }
+    // Downstream bekommt nur validierte Daten.
+    // downstream (DB write, score calc) arbeitet ausschliesslich mit diesem
+    // Array und kann dadurch auf erneute Strukturpruefungen verzichten.
     seriesData.push(seriesParsed.data)
     i++
   }

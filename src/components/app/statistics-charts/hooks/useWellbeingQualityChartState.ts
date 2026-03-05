@@ -15,6 +15,7 @@ interface Params {
   totalDisciplineShots: number | null
 }
 
+// Wellbeing- und Quality-Daten teilen dieselbe Anzeige-Transformation, um Projektion/Per-Shot konsistent zu halten.
 export function useWellbeingQualityChartState({
   filteredWellbeing,
   filteredQuality,

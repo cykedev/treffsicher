@@ -35,6 +35,7 @@ export async function getAdminUsersAction(): Promise<AdminUserListItem[]> {
     lastSessionUpdates.map((row) => [row.userId, row._max.updatedAt ?? null])
   )
 
+  // Last-Edit separat per groupBy laden, damit die Haupt-User-Query schlank bleibt.
   return users.map((user) => ({
     id: user.id,
     name: user.name,

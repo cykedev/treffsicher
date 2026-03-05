@@ -129,6 +129,7 @@ export function ResultTrendCard({ model }: Props) {
               type="linear"
               dataKey="wert"
               name="wert"
+              // Messpunkte als eigene unsichtbare Linie rendern, damit Dot/ActiveDot unabhängig vom Trend steuerbar sind.
               stroke="transparent"
               strokeWidth={0}
               dot={createDotStyle("var(--chart-1)")}

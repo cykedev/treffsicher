@@ -10,6 +10,7 @@ interface HitLocationVisualizationProps {
   verticalDirection: HitLocationVerticalDirection
 }
 
+// Visualisierung ergänzt Textwerte mit Richtungssymbolen, damit Treffpunktlage ohne Chart schnell erfassbar ist.
 function formatDirection(
   horizontalDirection: HitLocationHorizontalDirection,
   verticalDirection: HitLocationVerticalDirection

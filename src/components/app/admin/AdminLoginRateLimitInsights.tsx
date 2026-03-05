@@ -41,6 +41,7 @@ function BucketTable({
 
   return (
     <div className="overflow-x-auto">
+      {/* Eine gemeinsame Tabellenkomponente hält "blocked" und "noisy" Darstellung deckungsgleich. */}
       <table className="min-w-[880px] w-full text-sm">
         <thead>
           <tr className="border-b text-left text-muted-foreground">
@@ -81,6 +82,7 @@ function BucketTable({
   )
 }
 
+// Insights-Panel priorisiert Verlaufstransparenz ("noisy"), nicht nur den aktuellen Sperrzustand.
 export function AdminLoginRateLimitInsightsPanel({ insights }: Props) {
   return (
     <div className="space-y-5">

@@ -10,6 +10,7 @@ export type AccountActionResult = {
   success?: boolean
 }
 
+// Passwortwechsel bleibt serverseitig, damit Hash- und Session-Invaliderung atomar erfolgen.
 export async function changeOwnPassword(
   _prevState: AccountActionResult | null,
   formData: FormData

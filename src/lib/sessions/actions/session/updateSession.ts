@@ -37,6 +37,7 @@ export async function updateSessionAction(id: string, formData: FormData): Promi
     await syncSessionGoals(tx, id, session.user.id, prepared.selectedGoalIds, true)
   })
 
+  // Revalidierung vor Redirect sorgt für konsistente Listen/Detailansichten nach dem Speichern.
   revalidatePath("/sessions")
   revalidatePath(`/sessions/${id}`)
   revalidatePath("/goals")

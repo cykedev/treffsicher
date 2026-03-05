@@ -75,6 +75,7 @@ const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
   return (
     <style
       dangerouslySetInnerHTML={{
+        // CSS-Variablen pro Chart-ID isolieren, damit mehrere Charts mit unterschiedlichen Paletten koexistieren.
         __html: Object.entries(THEMES)
           .map(
             ([theme, prefix]) => `
@@ -133,6 +134,7 @@ function ChartTooltipContent({
     }
 
     const visiblePayload = payload.filter((item) => item.type !== "none")
+    // Reihenfolge/Filter im Tooltip zentralisieren, damit alle Charts konsistente Hover-Ausgaben liefern.
     const filteredPayload = payloadFilter ? visiblePayload.filter(payloadFilter) : visiblePayload
 
     if (!payloadSorter) {

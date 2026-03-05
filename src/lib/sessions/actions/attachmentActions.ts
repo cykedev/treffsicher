@@ -22,7 +22,7 @@ export async function uploadAttachmentAction(
   })
   if (!trainingSession) return { error: "Einheit nicht gefunden" }
   if (!isScoringSessionType(trainingSession.type)) {
-    // Warum serverseitig: UI-Regeln sind kein Schutz gegen manipulierte Requests.
+    // Prüfung serverseitig erzwingen, weil UI-Regeln manipulierte Requests nicht verhindern.
     return { error: "Anhaenge sind nur bei Training und Wettkampf verfuegbar." }
   }
 

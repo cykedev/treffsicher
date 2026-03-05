@@ -51,6 +51,7 @@ export async function getQualityVsScoreDataAction(
       const score = parseFloat(String(entry.scoreTotal))
       const fallback = entry.session.discipline?.shotsPerSeries ?? 10
       const shotCount = resolveSeriesShotCount(entry.shots, fallback)
+      // Score auf Schussbasis normieren, damit Serien mit unterschiedlicher Länge vergleichbar bleiben.
       return {
         sessionId: entry.session.id,
         quality: entry.executionQuality!,

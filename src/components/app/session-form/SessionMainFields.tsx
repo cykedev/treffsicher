@@ -41,6 +41,7 @@ interface Props {
   actions: Actions
 }
 
+// Schlüsselfelder bleiben in einem eigenen Block, damit Typ-/Disziplinwechsel zentral gesteuert werden können.
 export function SessionMainFields({ model, actions }: Props) {
   const {
     type,
@@ -124,6 +125,7 @@ export function SessionMainFields({ model, actions }: Props) {
         <HitLocationSection model={hitLocationModel} actions={actions.hitLocation} />
       )}
 
+      {/* Hidden-Inputs halten das Hit-Location-Objekt kompatibel zur bestehenden FormData-Server-Action. */}
       <input type="hidden" name="hitLocationHorizontalMm" value={hitLocation?.horizontalMm ?? ""} />
       <input
         type="hidden"

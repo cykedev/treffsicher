@@ -18,6 +18,7 @@ export function getShotDistributionGranularity(
 
   if (!Number.isFinite(min) || !Number.isFinite(max)) return "day"
   const spanDays = (max - min) / (24 * 60 * 60 * 1000)
+  // Granularität dynamisch wählen, damit Timeline bei langen Zeiträumen nicht unlesbar wird.
   if (points.length <= 45 || spanDays <= 140) return "day"
   if (spanDays <= 500) return "week"
   return "month"

@@ -14,6 +14,7 @@ import {
 } from "@/lib/exports/simple-pdf/charts/hitLocationChart"
 import type { AddPdfCommand, PdfChart } from "@/lib/exports/simple-pdf/types"
 
+// Zentrale Dispatch-Funktionen halten neue Charttypen auf einen Integrationspunkt begrenzt.
 export function estimateChartHeight(chart: PdfChart): number {
   if (chart.type === "bars") {
     return estimateBarsChartHeight(chart)

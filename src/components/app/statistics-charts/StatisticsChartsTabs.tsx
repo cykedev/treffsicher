@@ -6,6 +6,7 @@ import { TrendTab } from "@/components/app/statistics-charts/tabs/TrendTab"
 import type { StatisticsChartsTabsProps } from "@/components/app/statistics-charts/tabs/types"
 import { WellbeingTab } from "@/components/app/statistics-charts/tabs/WellbeingTab"
 
+// Tabs bleiben horizontal scrollbar, damit alle Statistikbereiche auch mobil direkt erreichbar bleiben.
 export function StatisticsChartsTabs({ model }: StatisticsChartsTabsProps) {
   return (
     <Tabs defaultValue="verlauf">

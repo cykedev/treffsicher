@@ -32,6 +32,7 @@ export function WellbeingTab({ model }: Props) {
               { key: "motivation" as const, label: "Motivation" },
             ] as const
           ).map(({ key, label }) => (
+            // Je Dimension ein eigenes Panel hält die X-Achse semantisch eindeutig und besser vergleichbar.
             <Card key={key} className="min-w-0 overflow-hidden">
               <CardHeader className="pb-2">
                 <CardTitle className="flex items-baseline gap-2 text-base">

@@ -62,6 +62,7 @@ export function useStatisticsFiltersCardState(params: FiltersParams): Statistics
       disciplineFilterChange: setDisciplineFilter,
       fromChange: setFrom,
       toChange: setTo,
+      // Preset-Aktionen schreiben immer beide Grenzen, damit "aktive Preset"-Erkennung deterministisch bleibt.
       selectAllTime: () => {
         setFrom("")
         setTo("")
