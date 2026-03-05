@@ -1,6 +1,9 @@
 import { useMemo } from "react"
 import type { HitLocationTrendDataPoint } from "@/components/app/statistics-charts/tabs/types"
-import type { HitLocationPathPoint, HitLocationPoint } from "@/components/app/statistics-charts/types"
+import type {
+  HitLocationPathPoint,
+  HitLocationPoint,
+} from "@/components/app/statistics-charts/types"
 import {
   buildCatmullRomCurvePoints,
   calculateMean,

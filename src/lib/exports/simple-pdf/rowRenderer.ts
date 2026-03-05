@@ -99,7 +99,14 @@ export function drawRows(
     if (row.kind === "field") {
       for (let i = 0; i < row.labelLines.length; i++) {
         addCommand(
-          textCommand(rowX, cursorY - i * LINE_HEIGHT, row.labelLines[i], 10, false, COLOR_TEXT_SOFT)
+          textCommand(
+            rowX,
+            cursorY - i * LINE_HEIGHT,
+            row.labelLines[i],
+            10,
+            false,
+            COLOR_TEXT_SOFT
+          )
         )
       }
 
@@ -115,7 +122,9 @@ export function drawRows(
     }
 
     for (let i = 0; i < row.textLines.length; i++) {
-      addCommand(textCommand(rowX, cursorY - i * LINE_HEIGHT, row.textLines[i], 10, false, COLOR_TEXT))
+      addCommand(
+        textCommand(rowX, cursorY - i * LINE_HEIGHT, row.textLines[i], 10, false, COLOR_TEXT)
+      )
     }
     cursorY -= row.height
   }

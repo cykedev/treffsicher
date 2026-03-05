@@ -163,7 +163,11 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
 
       {/* Ergebnis + Serien */}
       {hasScoring && sessionRecord.series.length > 0 && (
-        <SessionSeriesResultCard session={sessionRecord} totalScore={totalScore} isDecimal={isDecimal} />
+        <SessionSeriesResultCard
+          session={sessionRecord}
+          totalScore={totalScore}
+          isDecimal={isDecimal}
+        />
       )}
 
       {/* Schussverteilung — nur wenn Einzelschüsse erfasst wurden */}

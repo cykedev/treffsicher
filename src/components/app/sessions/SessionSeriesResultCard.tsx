@@ -54,7 +54,9 @@ function buildSeriesRows(session: SessionDetail): { rows: SeriesRow[]; hasAnySho
     const shotsArray = parseShotsJson(serie.shots)
     const practicesBefore = sortedSeries.slice(0, idx).filter((entry) => entry.isPractice).length
     const regularsBefore = idx - practicesBefore
-    const seriesLabel = serie.isPractice ? `Probe ${practicesBefore + 1}` : `Serie ${regularsBefore + 1}`
+    const seriesLabel = serie.isPractice
+      ? `Probe ${practicesBefore + 1}`
+      : `Serie ${regularsBefore + 1}`
 
     return {
       id: serie.id,
@@ -107,7 +109,11 @@ export function SessionSeriesResultCard({ session, totalScore, isDecimal }: Prop
                   {row.isPractice && <span className="ml-1 text-xs">(P)</span>}
                 </p>
                 <p className="text-sm font-semibold tabular-nums">
-                  {row.scoreValue !== null ? (isDecimal ? row.scoreValue.toFixed(1) : row.scoreValue) : "–"}
+                  {row.scoreValue !== null
+                    ? isDecimal
+                      ? row.scoreValue.toFixed(1)
+                      : row.scoreValue
+                    : "–"}
                 </p>
               </div>
               <div className="flex items-center justify-between gap-3">
@@ -148,7 +154,11 @@ export function SessionSeriesResultCard({ session, totalScore, isDecimal }: Prop
                     {row.isPractice && <span className="ml-1 text-xs">(P)</span>}
                   </td>
                   <td className="py-2 pr-4 font-medium tabular-nums">
-                    {row.scoreValue !== null ? (isDecimal ? row.scoreValue.toFixed(1) : row.scoreValue) : "–"}
+                    {row.scoreValue !== null
+                      ? isDecimal
+                        ? row.scoreValue.toFixed(1)
+                        : row.scoreValue
+                      : "–"}
                   </td>
                   <td className="py-2 pr-4">
                     <QualityDots quality={row.executionQuality} />

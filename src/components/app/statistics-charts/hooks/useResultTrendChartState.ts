@@ -67,7 +67,10 @@ export function useResultTrendChartState({
   )
 
   const movingAvgBySessionId = useMemo(
-    () => new Map<string, number | null>(withScoreForTrend.map((session, i) => [session.id, movingAvgForTrend[i]])),
+    () =>
+      new Map<string, number | null>(
+        withScoreForTrend.map((session, i) => [session.id, movingAvgForTrend[i]])
+      ),
     [movingAvgForTrend, withScoreForTrend]
   )
 
@@ -128,7 +131,10 @@ export function useResultTrendChartState({
     return computeStableAxis(values)
   }, [lineData])
 
-  const lineChartTicks = useMemo(() => buildIndexTicks(lineData.length, maxTicks), [lineData.length, maxTicks])
+  const lineChartTicks = useMemo(
+    () => buildIndexTicks(lineData.length, maxTicks),
+    [lineData.length, maxTicks]
+  )
 
   const totalDisciplineShots = selectedDiscipline
     ? selectedDiscipline.shotsPerSeries * selectedDiscipline.seriesCount
