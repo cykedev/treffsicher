@@ -25,36 +25,13 @@ import { WellbeingSection } from "@/components/app/sessions/WellbeingSection"
 import { ReflectionSection } from "@/components/app/sessions/ReflectionSection"
 import { PrognosisSection } from "@/components/app/sessions/PrognosisSection"
 import { FeedbackSection } from "@/components/app/sessions/FeedbackSection"
+import { SessionPrognosisFeedbackComparisonCard } from "@/components/app/sessions/SessionPrognosisFeedbackComparisonCard"
+import { SessionSeriesResultCard } from "@/components/app/sessions/SessionSeriesResultCard"
 import { ShotHistogram } from "@/components/app/sessions/ShotHistogram"
-import { HitLocationVisualization } from "@/components/app/sessions/HitLocationVisualization"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-
-// Ausführungsqualität als 5 Kreise — immer gerendert für konstante Spaltenbreite.
-// Gefüllte Kreise: bg-primary (hell im Dark Mode).
-// Leere Slots: subtil (bg-muted/40) damit Abstufung sichtbar bleibt.
-// quality=null → alle 5 Kreise leer (konsistente Breite, kein Sprung im Layout).
-function QualityDots({ quality }: { quality: number | null }) {
-  const q = quality ?? 0
-  const labels = ["", "Schlecht", "Mässig", "Mittel", "Gut", "Sehr gut"]
-  return (
-    <span
-      className="flex items-center gap-1"
-      title={quality ? (labels[quality] ?? String(quality)) : undefined}
-    >
-      {Array.from({ length: 5 }, (_, i) => (
-        <span
-          key={i}
-          className={`inline-block h-2 w-2 rounded-full transition-colors ${
-            i < q ? "bg-primary" : "bg-muted/40"
-          }`}
-        />
-      ))}
-    </span>
-  )
-}
 
 function formatDate(date: Date, displayTimeZone: string): string {
   return new Intl.DateTimeFormat("de-CH", {
@@ -67,17 +44,6 @@ function formatDate(date: Date, displayTimeZone: string): string {
     timeZone: displayTimeZone,
   }).format(date)
 }
-
-// Dimensionen für den Prognose-/Feedback-Vergleich
-const comparisonDimensions = [
-  { key: "fitness", label: "Kondition" },
-  { key: "nutrition", label: "Ernährung" },
-  { key: "technique", label: "Technik" },
-  { key: "tactics", label: "Taktik" },
-  { key: "mentalStrength", label: "Mentale Stärke" },
-  { key: "environment", label: "Umfeld" },
-  { key: "equipment", label: "Material" },
-] as const
 
 export default async function SessionDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const displayTimeZone = getDisplayTimeZone()
@@ -105,36 +71,16 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
   // Prognose und Feedback nur bei TRAINING und WETTKAMPF anzeigen
   const hasPrognosisFeedback = hasScoring
 
-  // Serien für die Anzeige sortiert: Probeschüsse zuerst, dann Wertungsserien.
-  // Relative Reihenfolge innerhalb jeder Gruppe bleibt erhalten.
-  const sortedSeries = [...sessionRecord.series].sort((a, b) => {
-    if (a.isPractice === b.isPractice) return 0
-    return a.isPractice ? -1 : 1
-  })
-
   // Nur Wertungsschüsse für das Histogramm — Probeschüsse sind nicht Teil der Auswertung
   const allShots = sessionRecord.series
     .filter((serie) => !serie.isPractice)
     .flatMap((serie) => parseShotsJson(serie.shots))
   const hasShots = allShots.length > 0
 
-  // Schüsse-Spalte nur anzeigen wenn mindestens eine Serie Einzelschüsse enthält —
-  // verhindert Layout-Unterschiede zwischen Einheiten mit und ohne Einzelschuss-Erfassung
-  const hasAnyShots = sessionRecord.series.some((serie) => {
-    const shots = parseShotsJson(serie.shots)
-    return shots.length > 0
-  })
-
   // Anhänge nur bei TRAINING und WETTKAMPF sinnvoll
   const hasAttachmentSection =
     sessionRecord.type === "TRAINING" || sessionRecord.type === "WETTKAMPF"
-  const hasHitLocation =
-    sessionRecord.hitLocationHorizontalMm !== null &&
-    sessionRecord.hitLocationHorizontalDirection !== null &&
-    sessionRecord.hitLocationVerticalMm !== null &&
-    sessionRecord.hitLocationVerticalDirection !== null
   const showShotDistribution = hasScoring && hasShots
-  const showHitLocation = hasScoring && hasHitLocation
 
   return (
     <div className="space-y-6">
@@ -217,153 +163,7 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
 
       {/* Ergebnis + Serien */}
       {hasScoring && sessionRecord.series.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between">
-              <span>Ergebnis</span>
-              <span className="text-3xl font-bold tabular-nums">
-                {isDecimal ? totalScore.toFixed(1) : totalScore}
-                <span className="ml-1 text-base font-normal text-muted-foreground">Ringe</span>
-              </span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2 md:hidden">
-              {sortedSeries.map((serie, idx) => {
-                const shotsArray = parseShotsJson(serie.shots)
-                const scoreValue =
-                  serie.scoreTotal !== null && serie.scoreTotal !== undefined
-                    ? parseFloat(String(serie.scoreTotal))
-                    : null
-
-                const practicesBefore = sortedSeries
-                  .slice(0, idx)
-                  .filter((s) => s.isPractice).length
-                const regularsBefore = idx - practicesBefore
-                const seriesLabel = serie.isPractice
-                  ? `Probe ${practicesBefore + 1}`
-                  : `Serie ${regularsBefore + 1}`
-
-                return (
-                  <div
-                    key={serie.id}
-                    className={`space-y-2 rounded-lg border border-border/50 p-3 ${
-                      serie.isPractice ? "text-muted-foreground/80" : ""
-                    }`}
-                  >
-                    <div className="flex items-center justify-between gap-3">
-                      <p className="text-sm font-medium">
-                        {seriesLabel}
-                        {serie.isPractice && <span className="ml-1 text-xs">(P)</span>}
-                      </p>
-                      <p className="text-sm font-semibold tabular-nums">
-                        {scoreValue !== null
-                          ? isDecimal
-                            ? scoreValue.toFixed(1)
-                            : scoreValue
-                          : "–"}
-                      </p>
-                    </div>
-                    <div className="flex items-center justify-between gap-3">
-                      <span className="text-xs text-muted-foreground">Ausführung</span>
-                      <QualityDots quality={serie.executionQuality ?? null} />
-                    </div>
-                    {hasAnyShots && (
-                      <div className="space-y-1">
-                        <p className="text-xs text-muted-foreground">Schüsse</p>
-                        {shotsArray.length > 0 ? (
-                          <p className="break-words font-mono text-xs text-muted-foreground">
-                            {shotsArray.join(" · ")}
-                          </p>
-                        ) : (
-                          <p className="text-xs text-muted-foreground">–</p>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                )
-              })}
-            </div>
-
-            <div className="hidden overflow-x-auto md:block">
-              <table className="min-w-[740px] w-full text-sm">
-                <thead>
-                  <tr className="border-b text-left text-muted-foreground">
-                    <th className="pb-2 pr-4 font-medium">Serie</th>
-                    <th className="pb-2 pr-4 font-medium">Ringe</th>
-                    <th className="pb-2 pr-4 font-medium">Ausführung</th>
-                    {hasAnyShots && <th className="pb-2 font-medium">Schüsse</th>}
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border/50">
-                  {sortedSeries.map((serie, idx) => {
-                    const shotsArray = parseShotsJson(serie.shots)
-                    const scoreValue =
-                      serie.scoreTotal !== null && serie.scoreTotal !== undefined
-                        ? parseFloat(String(serie.scoreTotal))
-                        : null
-
-                    // Laufende Nummerierung je Serientyp — unabhängig von der Position
-                    const practicesBefore = sortedSeries
-                      .slice(0, idx)
-                      .filter((s) => s.isPractice).length
-                    const regularsBefore = idx - practicesBefore
-                    const seriesLabel = serie.isPractice
-                      ? `Probe ${practicesBefore + 1}`
-                      : `Serie ${regularsBefore + 1}`
-
-                    return (
-                      <tr
-                        key={serie.id}
-                        className={serie.isPractice ? "text-muted-foreground/40" : ""}
-                      >
-                        <td className="py-2 pr-4">
-                          {seriesLabel}
-                          {serie.isPractice && <span className="ml-1 text-xs">(P)</span>}
-                        </td>
-                        <td className="py-2 pr-4 font-medium tabular-nums">
-                          {scoreValue !== null
-                            ? isDecimal
-                              ? scoreValue.toFixed(1)
-                              : scoreValue
-                            : "–"}
-                        </td>
-                        <td className="py-2 pr-4">
-                          {/* Immer 5 Kreise — gleiche Breite in jeder Zeile */}
-                          <QualityDots quality={serie.executionQuality ?? null} />
-                        </td>
-                        {hasAnyShots && (
-                          <td className="py-2">
-                            {shotsArray.length > 0 ? (
-                              // whitespace-nowrap: Schüsse bleiben in einer Zeile;
-                              // die Tabelle hat overflow-x-auto — kein Umbruch nötig
-                              <span className="whitespace-nowrap font-mono text-xs text-muted-foreground">
-                                {shotsArray.join(" · ")}
-                              </span>
-                            ) : (
-                              <span className="text-xs text-muted-foreground">–</span>
-                            )}
-                          </td>
-                        )}
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
-            </div>
-
-            {showHitLocation && (
-              <div className="mt-5 border-t border-border/40 pt-4">
-                <HitLocationVisualization
-                  horizontalMm={sessionRecord.hitLocationHorizontalMm!}
-                  horizontalDirection={sessionRecord.hitLocationHorizontalDirection!}
-                  verticalMm={sessionRecord.hitLocationVerticalMm!}
-                  verticalDirection={sessionRecord.hitLocationVerticalDirection!}
-                />
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        <SessionSeriesResultCard session={sessionRecord} totalScore={totalScore} isDecimal={isDecimal} />
       )}
 
       {/* Schussverteilung — nur wenn Einzelschüsse erfasst wurden */}
@@ -452,87 +252,10 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
 
       {/* Vergleich Prognose vs. Feedback — eigene Card, nur wenn beide erfasst */}
       {hasPrognosisFeedback && sessionRecord.prognosis && sessionRecord.feedback && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Vergleich Prognose vs. Feedback</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2 md:hidden">
-              {comparisonDimensions.map(({ key, label }) => {
-                const prog = sessionRecord.prognosis![key]
-                const feed = sessionRecord.feedback![key]
-                const diff = feed - prog
-                return (
-                  <div key={key} className="space-y-2 rounded-lg border border-border/50 p-3">
-                    <p className="font-medium">{label}</p>
-                    <div className="grid grid-cols-3 gap-2 text-sm">
-                      <div>
-                        <p className="text-xs text-muted-foreground">Prognose</p>
-                        <p className="tabular-nums">{prog}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-muted-foreground">Tatsächlich</p>
-                        <p className="tabular-nums">{feed}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-muted-foreground">Differenz</p>
-                        <p
-                          className={`font-medium tabular-nums ${
-                            diff > 0
-                              ? "text-emerald-400"
-                              : diff < 0
-                                ? "text-destructive"
-                                : "text-muted-foreground"
-                          }`}
-                        >
-                          {diff > 0 ? `+${diff}` : diff}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-
-            <div className="hidden overflow-x-auto md:block">
-              <table className="min-w-[640px] w-full text-sm">
-                <thead>
-                  <tr className="border-b text-left text-muted-foreground">
-                    <th className="pb-2 pr-4 font-medium">Dimension</th>
-                    <th className="pb-2 pr-4 font-medium">Prognose</th>
-                    <th className="pb-2 pr-4 font-medium">Tatsächlich</th>
-                    <th className="pb-2 font-medium">Differenz</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border/50">
-                  {comparisonDimensions.map(({ key, label }) => {
-                    const prog = sessionRecord.prognosis![key]
-                    const feed = sessionRecord.feedback![key]
-                    const diff = feed - prog
-                    return (
-                      <tr key={key}>
-                        <td className="py-1.5 pr-4">{label}</td>
-                        <td className="py-1.5 pr-4 tabular-nums">{prog}</td>
-                        <td className="py-1.5 pr-4 tabular-nums">{feed}</td>
-                        <td
-                          className={`py-1.5 font-medium tabular-nums ${
-                            diff > 0
-                              ? "text-emerald-400"
-                              : diff < 0
-                                ? "text-destructive"
-                                : "text-muted-foreground"
-                          }`}
-                        >
-                          {diff > 0 ? `+${diff}` : diff}
-                        </td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </CardContent>
-        </Card>
+        <SessionPrognosisFeedbackComparisonCard
+          prognosis={sessionRecord.prognosis}
+          feedback={sessionRecord.feedback}
+        />
       )}
 
       {/* Reflexion — immer anzeigen */}

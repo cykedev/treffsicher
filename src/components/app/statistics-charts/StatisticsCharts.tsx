@@ -16,30 +16,21 @@ import type {
 import { StatisticsFiltersCard } from "@/components/app/statistics-charts/StatisticsFiltersCard"
 import { StatisticsChartsTabs } from "@/components/app/statistics-charts/StatisticsChartsTabs"
 import type { StatisticsChartsTabsModel } from "@/components/app/statistics-charts/tabs/types"
+import { useAggregatedShotDistribution } from "@/components/app/statistics-charts/useAggregatedShotDistribution"
+import { useResultTrendChartState } from "@/components/app/statistics-charts/useResultTrendChartState"
 import { useStatisticsFilterState } from "@/components/app/statistics-charts/useStatisticsFilterState"
 import { useStatisticsFilteredData } from "@/components/app/statistics-charts/useStatisticsFilteredData"
+import { useHitLocationChartState } from "@/components/app/statistics-charts/useHitLocationChartState"
+import { useWellbeingQualityChartState } from "@/components/app/statistics-charts/useWellbeingQualityChartState"
 import type {
-  AggregatedShotDistributionPoint,
-  HitLocationPathPoint,
-  HitLocationPoint,
   RadarLegendItem,
   RadarSeriesKey,
   StatisticsChartsDataBundle,
 } from "@/components/app/statistics-charts/types"
 import {
-  buildCatmullRomCurvePoints,
   buildIndexTicks,
-  calculateMean,
-  calculateTrend,
-  calculateTrendBandsByQuantile,
-  computeCenteredAxis,
-  computeDisplayValue,
   computeStableAxis,
-  createTrendBandDistanceOptions,
   createTrendStroke,
-  getShotDistributionBucketStart,
-  getShotDistributionGranularity,
-  mapSessionToHitLocationPoint,
 } from "@/components/app/statistics-charts/utils"
 import type { DisciplineForStats } from "@/lib/stats/actions"
 
@@ -109,432 +100,63 @@ export function StatisticsCharts({ data, displayTimeZone }: Props) {
     toDate,
   })
 
-  const aggregatedShotDistribution = useMemo<AggregatedShotDistributionPoint[]>(() => {
-    if (filteredShotDistribution.length === 0) return []
-
-    const granularity = getShotDistributionGranularity(filteredShotDistribution)
-    const byBucket = new Map<
-      string,
-      {
-        date: Date
-        totalShots: number
-        weightedR0to6: number
-        weightedR7: number
-        weightedR8: number
-        weightedR9: number
-        weightedR10: number
-      }
-    >()
-
-    for (const point of filteredShotDistribution) {
-      const totalShots = Math.max(0, point.totalShots)
-      if (totalShots <= 0) continue
-
-      const bucketDate = getShotDistributionBucketStart(new Date(point.date), granularity)
-      const bucketKey = bucketDate.toISOString()
-      const current = byBucket.get(bucketKey) ?? {
-        date: bucketDate,
-        totalShots: 0,
-        weightedR0to6: 0,
-        weightedR7: 0,
-        weightedR8: 0,
-        weightedR9: 0,
-        weightedR10: 0,
-      }
-      const r0to6 = point.r0 + point.r1 + point.r2 + point.r3 + point.r4 + point.r5 + point.r6
-
-      current.totalShots += totalShots
-      current.weightedR0to6 += r0to6 * totalShots
-      current.weightedR7 += point.r7 * totalShots
-      current.weightedR8 += point.r8 * totalShots
-      current.weightedR9 += point.r9 * totalShots
-      current.weightedR10 += point.r10 * totalShots
-      byBucket.set(bucketKey, current)
-    }
-
-    const shortDayFormatter = new Intl.DateTimeFormat("de-CH", {
-      day: "2-digit",
-      month: "2-digit",
-      timeZone: DISPLAY_TIME_ZONE,
-    })
-    const monthFormatter = new Intl.DateTimeFormat("de-CH", {
-      month: "2-digit",
-      year: "2-digit",
-      timeZone: DISPLAY_TIME_ZONE,
-    })
-    const fullDateFormatter = new Intl.DateTimeFormat("de-CH", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-      timeZone: DISPLAY_TIME_ZONE,
-    })
-
-    return [...byBucket.values()]
-      .sort((a, b) => a.date.getTime() - b.date.getTime())
-      .map((bucket, index) => {
-        const round1 = (value: number) => Math.round(value * 10) / 10
-        const r7 = round1(bucket.weightedR7 / bucket.totalShots)
-        const r8 = round1(bucket.weightedR8 / bucket.totalShots)
-        const r9 = round1(bucket.weightedR9 / bucket.totalShots)
-        const r10 = round1(bucket.weightedR10 / bucket.totalShots)
-        const r0to6 = round1(Math.max(0, 100 - r7 - r8 - r9 - r10))
-
-        const dateLabel =
-          granularity === "month"
-            ? monthFormatter.format(bucket.date)
-            : shortDayFormatter.format(bucket.date)
-        const tooltipLabel =
-          granularity === "day"
-            ? fullDateFormatter.format(bucket.date)
-            : granularity === "week"
-              ? `Woche ab ${fullDateFormatter.format(bucket.date)}`
-              : `Monat ${monthFormatter.format(bucket.date)}`
-
-        return {
-          i: index,
-          date: bucket.date,
-          dateLabel,
-          tooltipLabel,
-          totalShots: bucket.totalShots,
-          r0to6,
-          r7,
-          r8,
-          r9,
-          r10,
-        }
-      })
-  }, [filteredShotDistribution, DISPLAY_TIME_ZONE])
-
-  const filteredHitLocationsForTrend = useMemo<HitLocationPoint[]>(() => {
-    return filteredForTrend
-      .map(mapSessionToHitLocationPoint)
-      .filter((point): point is HitLocationPoint => point !== null)
-  }, [filteredForTrend])
-
-  const filteredHitLocations = useMemo<HitLocationPoint[]>(() => {
-    return filtered
-      .map(mapSessionToHitLocationPoint)
-      .filter((point): point is HitLocationPoint => point !== null)
-  }, [filtered])
-
-  const hitLocationCloudAxes = useMemo(() => {
-    const values = filteredHitLocations.flatMap((point) => [point.x, point.y])
-    const centered = computeCenteredAxis(values, 1)
-    return {
-      xDomain: centered.domain,
-      xTicks: centered.ticks,
-      yDomain: centered.domain,
-      yTicks: centered.ticks,
-    }
-  }, [filteredHitLocations])
-
-  const hitLocationMetrics = useMemo(() => {
-    const xs = filteredHitLocations.map((point) => point.x)
-    const ys = filteredHitLocations.map((point) => point.y)
-
-    return {
-      meanX: calculateMean(xs),
-      meanY: calculateMean(ys),
-    }
-  }, [filteredHitLocations])
-
-  // Dezente Verlaufsspur in der Cloud: gleitender Schwerpunkt (X/Y) über die Zeit.
-  const hitLocationCloudPathPoints = useMemo<HitLocationPathPoint[]>(() => {
-    if (!showCloudTrail || filteredHitLocations.length === 0) return []
-
-    const xTrendValues = calculateTrend(filteredHitLocations.map((point) => point.x))
-    const yTrendValues = calculateTrend(filteredHitLocations.map((point) => point.y))
-
-    return filteredHitLocations
-      .map((point, i) => ({
-        sessionId: point.sessionId,
-        date: point.date,
-        x: xTrendValues[i],
-        y: yTrendValues[i],
-      }))
-      .filter(
-        (point): point is HitLocationPathPoint =>
-          typeof point.x === "number" &&
-          Number.isFinite(point.x) &&
-          typeof point.y === "number" &&
-          Number.isFinite(point.y)
-      )
-  }, [filteredHitLocations, showCloudTrail])
-
-  const hitLocationCloudPathVisualPoints = useMemo(() => {
-    if (hitLocationCloudPathPoints.length <= 2) return hitLocationCloudPathPoints
-
-    const MIN_VISUAL_DISTANCE_MM = 0.45
-    const result: HitLocationPathPoint[] = [hitLocationCloudPathPoints[0]]
-
-    for (let i = 1; i < hitLocationCloudPathPoints.length - 1; i++) {
-      const point = hitLocationCloudPathPoints[i]
-      const previous = result[result.length - 1]
-      const dx = point.x - previous.x
-      const dy = point.y - previous.y
-      const distance = Math.hypot(dx, dy)
-      if (distance >= MIN_VISUAL_DISTANCE_MM) result.push(point)
-    }
-
-    const last = hitLocationCloudPathPoints[hitLocationCloudPathPoints.length - 1]
-    const tail = result[result.length - 1]
-    if (last.sessionId !== tail.sessionId) result.push(last)
-
-    return result
-  }, [hitLocationCloudPathPoints])
-
-  const hitLocationCloudPathStart = hitLocationCloudPathVisualPoints[0] ?? null
-  const hitLocationCloudPathEnd =
-    hitLocationCloudPathVisualPoints.length > 0
-      ? hitLocationCloudPathVisualPoints[hitLocationCloudPathVisualPoints.length - 1]
-      : null
-  const hitLocationCloudCurvePoints = useMemo(
-    () => buildCatmullRomCurvePoints(hitLocationCloudPathVisualPoints),
-    [hitLocationCloudPathVisualPoints]
-  )
-  const hitLocationCloudCurveSegments = useMemo(() => {
-    if (hitLocationCloudCurvePoints.length < 2) return []
-    return hitLocationCloudCurvePoints
-      .slice(1)
-      .map((point, i) => [hitLocationCloudCurvePoints[i], point] as const)
-  }, [hitLocationCloudCurvePoints])
-
-  const hitLocationTrendBySessionId = useMemo(() => {
-    const xValues = filteredHitLocationsForTrend.map((point) => point.x)
-    const yValues = filteredHitLocationsForTrend.map((point) => point.y)
-    const xTrendValues = calculateTrend(xValues)
-    const yTrendValues = calculateTrend(yValues)
-
-    const xRange = xValues.length > 0 ? Math.max(...xValues) - Math.min(...xValues) : 0
-    const yRange = yValues.length > 0 ? Math.max(...yValues) - Math.min(...yValues) : 0
-    const xBandValues = calculateTrendBandsByQuantile(
-      xValues,
-      xTrendValues,
-      createTrendBandDistanceOptions(xRange, 0.12, 1.8)
-    )
-    const yBandValues = calculateTrendBandsByQuantile(
-      yValues,
-      yTrendValues,
-      createTrendBandDistanceOptions(yRange, 0.12, 1.8)
-    )
-
-    const trendById = new Map<
-      string,
-      {
-        xTrend: number | null
-        yTrend: number | null
-        xTrendLow: number | null
-        xTrendHigh: number | null
-        yTrendLow: number | null
-        yTrendHigh: number | null
-      }
-    >()
-    filteredHitLocationsForTrend.forEach((point, i) => {
-      const xBand = xBandValues[i]
-      const yBand = yBandValues[i]
-      trendById.set(point.sessionId, {
-        xTrend: xTrendValues[i],
-        yTrend: yTrendValues[i],
-        xTrendLow: xBand?.low ?? null,
-        xTrendHigh: xBand?.high ?? null,
-        yTrendLow: yBand?.low ?? null,
-        yTrendHigh: yBand?.high ?? null,
-      })
-    })
-    return trendById
-  }, [filteredHitLocationsForTrend])
-
-  const hitLocationTrendData = useMemo(() => {
-    if (filteredHitLocations.length === 0) return []
-
-    return filteredHitLocations.map((point, i) => {
-      const trendEntry = hitLocationTrendBySessionId.get(point.sessionId)
-      const xTrendLow = trendEntry?.xTrendLow ?? null
-      const xTrendHigh = trendEntry?.xTrendHigh ?? null
-      const yTrendLow = trendEntry?.yTrendLow ?? null
-      const yTrendHigh = trendEntry?.yTrendHigh ?? null
-
-      return {
-        i,
-        date: point.date,
-        dateLabel: new Intl.DateTimeFormat("de-CH", {
-          day: "2-digit",
-          month: "2-digit",
-          timeZone: DISPLAY_TIME_ZONE,
-        }).format(new Date(point.date)),
-        x: point.x,
-        y: point.y,
-        xTrend: trendEntry?.xTrend ?? null,
-        yTrend: trendEntry?.yTrend ?? null,
-        xTrendLow,
-        xTrendHigh,
-        yTrendLow,
-        yTrendHigh,
-        xTrendBand:
-          xTrendLow !== null && xTrendHigh !== null ? ([xTrendLow, xTrendHigh] as const) : null,
-        yTrendBand:
-          yTrendLow !== null && yTrendHigh !== null ? ([yTrendLow, yTrendHigh] as const) : null,
-      }
-    })
-  }, [filteredHitLocations, hitLocationTrendBySessionId, DISPLAY_TIME_ZONE])
-
-  const hitLocationTrendAxis = useMemo<{ domain: [number, number]; ticks: number[] }>(() => {
-    const showXSeries = showHitLocationTrendX || !showHitLocationTrendY
-    const showYSeries = showHitLocationTrendY || !showHitLocationTrendX
-    const values = hitLocationTrendData
-      .flatMap((point) => {
-        const result: Array<number | null> = []
-        if (showXSeries) {
-          result.push(point.x, point.xTrend, point.xTrendLow, point.xTrendHigh)
-        }
-        if (showYSeries) {
-          result.push(point.y, point.yTrend, point.yTrendLow, point.yTrendHigh)
-        }
-        return result
-      })
-      .filter((value): value is number => typeof value === "number" && Number.isFinite(value))
-    return computeCenteredAxis(values, 1)
-  }, [hitLocationTrendData, showHitLocationTrendX, showHitLocationTrendY])
-
-  const showHitLocationTrendXSeries = showHitLocationTrendX || !showHitLocationTrendY
-  const showHitLocationTrendYSeries = showHitLocationTrendY || !showHitLocationTrendX
-
-  // Befinden-Anzeigedaten: bei Hochrechnung auf Gesamtschusszahl der Disziplin projizieren
-  const wellbeingDisplayData = useMemo(() => {
-    return filteredWellbeing.map((p) => ({
-      ...p,
-      displayScore:
-        effectiveDisplayMode === "projected" && selectedDiscipline
-          ? computeDisplayValue(p.avgPerShot, "projected", selectedDiscipline)
-          : p.avgPerShot,
-    }))
-  }, [filteredWellbeing, effectiveDisplayMode, selectedDiscipline])
-
-  // Ausführungsqualität-Anzeigedaten: bei Hochrechnung auf Ringe/Serie (shotsPerSeries) projizieren,
-  // nicht auf den Gesamtschuss — Serienergebnis ist der sinnvolle Vergleichswert hier
-  const qualityDisplayData = useMemo(() => {
-    return filteredQuality.map((p) => ({
-      ...p,
-      displayScore:
-        effectiveDisplayMode === "projected" && selectedDiscipline
-          ? selectedDiscipline.scoringType === "TENTH"
-            ? Math.round(p.scorePerShot * selectedDiscipline.shotsPerSeries * 10) / 10
-            : Math.round(p.scorePerShot * selectedDiscipline.shotsPerSeries)
-          : p.scorePerShot,
-    }))
-  }, [filteredQuality, effectiveDisplayMode, selectedDiscipline])
-
-  const wellbeingYAxis = useMemo<{ domain: [number, number]; ticks: number[] }>(() => {
-    const values = wellbeingDisplayData
-      .map((p) => p.displayScore)
-      .filter((v): v is number => Number.isFinite(v))
-    return computeStableAxis(values)
-  }, [wellbeingDisplayData])
-
-  const qualityYAxis = useMemo<{ domain: [number, number]; ticks: number[] }>(() => {
-    const values = qualityDisplayData
-      .map((p) => p.displayScore)
-      .filter((v): v is number => Number.isFinite(v))
-    return computeStableAxis(values)
-  }, [qualityDisplayData])
-
-  // Nur Einheiten mit normalisiertem Ergebnis (avgPerShot) für den Verlaufschart.
-  // Trend-Basis nutzt dabei ältere passende Werte (filteredForTrend), Sichtbarkeit bleibt bei filtered.
-  const withScoreForTrend = filteredForTrend.filter((s) => s.avgPerShot !== null)
-  const withScore = filtered.filter((s) => s.avgPerShot !== null)
-
-  // Anzeigewerte je nach effektivem Modus berechnen
-  const displayValuesForTrend = withScoreForTrend.map((s) =>
-    computeDisplayValue(s.avgPerShot as number, effectiveDisplayMode, selectedDiscipline)
-  )
-  const displayValues = withScore.map((s) =>
-    computeDisplayValue(s.avgPerShot as number, effectiveDisplayMode, selectedDiscipline)
-  )
-
-  // Gleitender Durchschnitt über die Trend-Basiswerte
-  const movingAvgForTrend = calculateTrend(displayValuesForTrend)
-  const movingAvgBySessionId = new Map<string, number | null>(
-    withScoreForTrend.map((session, i) => [session.id, movingAvgForTrend[i]])
-  )
-  const trendBandBySessionId = (() => {
-    if (withScoreForTrend.length === 0) return new Map<string, { low: number; high: number }>()
-
-    const minValue = Math.min(...displayValuesForTrend)
-    const maxValue = Math.max(...displayValuesForTrend)
-    const range = Number.isFinite(maxValue - minValue) ? maxValue - minValue : 0
-    const minBandWidth = Math.max(range * 0.035, effectiveDisplayMode === "projected" ? 0.35 : 0.03)
-    const maxBandWidth = Math.max(range * 0.45, effectiveDisplayMode === "projected" ? 3.2 : 0.3)
-    const bands = calculateTrendBandsByQuantile(
-      displayValuesForTrend,
-      movingAvgForTrend,
-      createTrendBandDistanceOptions(range, minBandWidth / 2, maxBandWidth)
-    )
-
-    return new Map<string, { low: number; high: number }>(
-      withScoreForTrend.flatMap((session, i) => {
-        const band = bands[i]
-        if (!band) return []
-        return [[session.id, band] as const]
-      })
-    )
-  })()
-
-  // Gesamtschusszahl der gewählten Disziplin (für Hochrechnung-Label)
-  const totalDisciplineShots = selectedDiscipline
-    ? selectedDiscipline.shotsPerSeries * selectedDiscipline.seriesCount
-    : null
-
-  // Label für Legende und Y-Achsen-Beschriftung (Ergebnisverlauf)
-  const metricLabel =
-    effectiveDisplayMode === "projected" && selectedDiscipline
-      ? `Hochrechnung (${totalDisciplineShots} Sch.)`
-      : "Ringe/Sch."
-
-  // Y-Achsen-Labels für Befinden- und Qualitätscharts
-  const wellbeingScoreLabel =
-    effectiveDisplayMode === "projected" && selectedDiscipline
-      ? `Ringe (${totalDisciplineShots} Sch.)`
-      : "Ringe/Sch."
-  const qualityScoreLabel =
-    effectiveDisplayMode === "projected" && selectedDiscipline
-      ? `Ringe/Serie (${selectedDiscipline.shotsPerSeries} Sch.)`
-      : "Ringe/Sch."
-
-  // Daten für den Verlaufschart
-  const lineData = withScore.map((s, i) => {
-    const trend = movingAvgBySessionId.get(s.id) ?? null
-    const band = trendBandBySessionId.get(s.id)
-
-    const trendLow = trend !== null && band ? band.low : null
-    const trendHigh = trend !== null && band ? band.high : null
-
-    return {
-      i,
-      datum: new Intl.DateTimeFormat("de-CH", {
-        day: "2-digit",
-        month: "2-digit",
-        year: "2-digit",
-        timeZone: DISPLAY_TIME_ZONE,
-      }).format(new Date(s.date)),
-      // Feste Keys statt dynamischer — Recharts braucht stabile dataKey-Referenzen
-      wert: displayValues[i],
-      trend,
-      trendLow,
-      trendHigh,
-      trendBand: trendLow !== null && trendHigh !== null ? [trendLow, trendHigh] : null,
-    }
+  const aggregatedShotDistribution = useAggregatedShotDistribution({
+    filteredShotDistribution,
+    displayTimeZone: DISPLAY_TIME_ZONE,
   })
-  const resultTrendYAxis = useMemo<{ domain: [number, number]; ticks: number[] }>(() => {
-    const values = lineData
-      .flatMap((point) => [point.wert, point.trend, point.trendLow, point.trendHigh])
-      .filter((value): value is number => typeof value === "number" && Number.isFinite(value))
-    return computeStableAxis(values)
-  }, [lineData])
 
-  const lineChartTicks = useMemo(
-    () => buildIndexTicks(lineData.length, CHART_TIME_AXIS_MAX_TICKS),
-    [lineData.length]
-  )
+  const {
+    filteredHitLocations,
+    hitLocationCloudAxes,
+    hitLocationMetrics,
+    hitLocationCloudCurveSegments,
+    hitLocationCloudPathStart,
+    hitLocationCloudPathEnd,
+    hitLocationTrendData,
+    hitLocationTrendAxis,
+    showHitLocationTrendXSeries,
+    showHitLocationTrendYSeries,
+  } = useHitLocationChartState({
+    filteredForTrend,
+    filtered,
+    displayTimeZone: DISPLAY_TIME_ZONE,
+    showCloudTrail,
+    showHitLocationTrendX,
+    showHitLocationTrendY,
+  })
+
+  const {
+    withScoreCount,
+    hasData,
+    totalDisciplineShots,
+    metricLabel,
+    lineData,
+    resultTrendYAxis,
+    lineChartTicks,
+  } = useResultTrendChartState({
+    filteredForTrend,
+    filtered,
+    effectiveDisplayMode,
+    selectedDiscipline,
+    displayTimeZone: DISPLAY_TIME_ZONE,
+    maxTicks: CHART_TIME_AXIS_MAX_TICKS,
+  })
+
+  const {
+    wellbeingDisplayData,
+    qualityDisplayData,
+    wellbeingYAxis,
+    qualityYAxis,
+    wellbeingScoreLabel,
+    qualityScoreLabel,
+  } = useWellbeingQualityChartState({
+    filteredWellbeing,
+    filteredQuality,
+    effectiveDisplayMode,
+    selectedDiscipline,
+    totalDisciplineShots,
+  })
+
   const hitLocationTrendTicks = useMemo(
     () => buildIndexTicks(hitLocationTrendData.length, CHART_TIME_AXIS_MAX_TICKS),
     [hitLocationTrendData.length]
@@ -565,8 +187,6 @@ export function StatisticsCharts({ data, displayTimeZone }: Props) {
   const seriesHasDecimals = useMemo(() => {
     return seriesValues.some((v) => Math.abs(v - Math.round(v)) > 1e-6)
   }, [seriesValues])
-
-  const hasData = withScore.length > 0
 
   const radarChartData = useMemo(() => {
     if (filteredRadarSessions.length === 0) return []
@@ -775,7 +395,7 @@ export function StatisticsCharts({ data, displayTimeZone }: Props) {
     effectiveDisplayMode,
     totalDisciplineShots,
     filteredCount: filtered.length,
-    withScoreCount: withScore.length,
+    withScoreCount,
   }
   const filtersActions: StatisticsFiltersCardActions = {
     typeFilterChange: setTypeFilter,
