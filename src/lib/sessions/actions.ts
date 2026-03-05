@@ -1,8 +1,18 @@
 "use server"
 
-import { createSessionAction, deleteSessionAction, getSessionByIdAction, getSessionsAction, toggleFavouriteAction, updateSessionAction } from "@/lib/sessions/actions/sessionActions"
+import {
+  createSessionAction,
+  deleteSessionAction,
+  getSessionByIdAction,
+  getSessionsAction,
+  toggleFavouriteAction,
+  updateSessionAction,
+} from "@/lib/sessions/actions/sessionActions"
 import { previewMeytonImportAction } from "@/lib/sessions/actions/meytonActions"
-import { uploadAttachmentAction, deleteAttachmentAction } from "@/lib/sessions/actions/attachmentActions"
+import {
+  uploadAttachmentAction,
+  deleteAttachmentAction,
+} from "@/lib/sessions/actions/attachmentActions"
 import {
   saveFeedbackAction,
   savePrognosisAction,
@@ -33,9 +43,7 @@ export async function createSession(formData: FormData): Promise<ActionResult> {
   return createSessionAction(formData)
 }
 
-export async function previewMeytonImport(
-  formData: FormData
-): Promise<MeytonImportPreviewResult> {
+export async function previewMeytonImport(formData: FormData): Promise<MeytonImportPreviewResult> {
   return previewMeytonImportAction(formData)
 }
 

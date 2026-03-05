@@ -36,19 +36,13 @@ import {
   type GoalSessionOption,
   type GoalWithAssignments,
 } from "@/lib/goals/actions"
+import { SESSION_TYPE_LABELS } from "@/lib/sessions/presentation"
 
 interface Props {
   goal: GoalWithAssignments
   sessions: GoalSessionOption[]
   backHref?: string
   displayTimeZone: string
-}
-
-const sessionTypeLabels: Record<string, string> = {
-  TRAINING: "Training",
-  WETTKAMPF: "Wettkampf",
-  TROCKENTRAINING: "Trockentraining",
-  MENTAL: "Mentaltraining",
 }
 
 const goalTypeLabels: Record<string, string> = {
@@ -249,7 +243,9 @@ export function GoalCardSection({ goal, sessions, backHref, displayTimeZone }: P
                       : "w-full rounded-none"
                   }
                 >
-                  <span className="font-medium">{sessionTypeLabels[entry.type] ?? entry.type}</span>
+                  <span className="font-medium">
+                    {SESSION_TYPE_LABELS[entry.type] ?? entry.type}
+                  </span>
                   <span className="text-muted-foreground">
                     {" "}
                     · {formatDateTime(entry.date, displayTimeZone)}

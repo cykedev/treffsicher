@@ -6,25 +6,11 @@ import { getSessions } from "@/lib/sessions/actions"
 import { calculateTotalScore } from "@/lib/sessions/calculateScore"
 import { getSeriesMax, type ScoringType } from "@/lib/sessions/validation"
 import { getDisplayTimeZone } from "@/lib/dateTime"
+import { SESSION_TYPE_BADGE_CLASS, SESSION_TYPE_LABELS } from "@/lib/sessions/presentation"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import { SessionsFilters } from "@/components/app/SessionsFilters"
 import { CreateItemLinkButton } from "@/components/app/CreateItemLinkButton"
-
-// Farbige Badges je Einheitentyp (dark-mode-optimiert)
-const typeBadgeClass: Record<string, string> = {
-  TRAINING: "border-blue-800   bg-blue-950   text-blue-300",
-  WETTKAMPF: "border-amber-800  bg-amber-950  text-amber-300",
-  TROCKENTRAINING: "border-emerald-800 bg-emerald-950 text-emerald-300",
-  MENTAL: "border-purple-800  bg-purple-950  text-purple-300",
-}
-
-const sessionTypeLabels: Record<string, string> = {
-  TRAINING: "Training",
-  WETTKAMPF: "Wettkampf",
-  TROCKENTRAINING: "Trockentraining",
-  MENTAL: "Mentaltraining",
-}
 
 type SessionsSearchParams = Promise<{
   type?: string | string[]
@@ -64,7 +50,10 @@ export default async function SessionsPage({
 
   const resolvedSearchParams = await searchParams
   const sessions = await getSessions()
-  const typeOptions = Object.entries(sessionTypeLabels).map(([value, label]) => ({ value, label }))
+  const typeOptions = Object.entries(SESSION_TYPE_LABELS).map(([value, label]) => ({
+    value,
+    label,
+  }))
   const availableTypes = typeOptions.map((option) => option.value)
 
   const disciplineMap = new Map<string, string>()
@@ -230,8 +219,11 @@ export default async function SessionsPage({
                             {s.isFavourite && (
                               <Heart className="h-3.5 w-3.5 fill-red-500 text-red-500 shrink-0" />
                             )}
-                            <Badge variant="outline" className={typeBadgeClass[s.type] ?? ""}>
-                              {sessionTypeLabels[s.type] ?? s.type}
+                            <Badge
+                              variant="outline"
+                              className={SESSION_TYPE_BADGE_CLASS[s.type] ?? ""}
+                            >
+                              {SESSION_TYPE_LABELS[s.type] ?? s.type}
                             </Badge>
                             {s.discipline && (
                               <span className="break-words text-sm text-muted-foreground">

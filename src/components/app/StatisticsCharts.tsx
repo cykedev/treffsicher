@@ -461,7 +461,9 @@ function buildIndexTicks(length: number, maxTicks: number): number[] {
   return [...ticks].sort((a, b) => a - b)
 }
 
-function getShotDistributionGranularity(points: ShotDistributionPoint[]): ShotDistributionGranularity {
+function getShotDistributionGranularity(
+  points: ShotDistributionPoint[]
+): ShotDistributionGranularity {
   if (points.length <= 1) return "day"
 
   let min = Number.POSITIVE_INFINITY
@@ -483,7 +485,10 @@ function getShotDistributionGranularity(points: ShotDistributionPoint[]): ShotDi
   return "month"
 }
 
-function getShotDistributionBucketStart(dateValue: Date, granularity: ShotDistributionGranularity): Date {
+function getShotDistributionBucketStart(
+  dateValue: Date,
+  granularity: ShotDistributionGranularity
+): Date {
   const date = new Date(dateValue)
   date.setHours(0, 0, 0, 0)
 
@@ -750,8 +755,7 @@ export function StatisticsCharts({
         weightedR9: 0,
         weightedR10: 0,
       }
-      const r0to6 =
-        point.r0 + point.r1 + point.r2 + point.r3 + point.r4 + point.r5 + point.r6
+      const r0to6 = point.r0 + point.r1 + point.r2 + point.r3 + point.r4 + point.r5 + point.r6
 
       current.totalShots += totalShots
       current.weightedR0to6 += r0to6 * totalShots
@@ -920,10 +924,8 @@ export function StatisticsCharts({
     const xTrendValues = calculateTrend(xValues)
     const yTrendValues = calculateTrend(yValues)
 
-    const xRange =
-      xValues.length > 0 ? Math.max(...xValues) - Math.min(...xValues) : 0
-    const yRange =
-      yValues.length > 0 ? Math.max(...yValues) - Math.min(...yValues) : 0
+    const xRange = xValues.length > 0 ? Math.max(...xValues) - Math.min(...xValues) : 0
+    const yRange = yValues.length > 0 ? Math.max(...yValues) - Math.min(...yValues) : 0
     const xBandValues = calculateTrendBandsByQuantile(
       xValues,
       xTrendValues,
@@ -1079,22 +1081,12 @@ export function StatisticsCharts({
     const minValue = Math.min(...displayValuesForTrend)
     const maxValue = Math.max(...displayValuesForTrend)
     const range = Number.isFinite(maxValue - minValue) ? maxValue - minValue : 0
-    const minBandWidth = Math.max(
-      range * 0.035,
-      effectiveDisplayMode === "projected" ? 0.35 : 0.03
-    )
-    const maxBandWidth = Math.max(
-      range * 0.45,
-      effectiveDisplayMode === "projected" ? 3.2 : 0.3
-    )
+    const minBandWidth = Math.max(range * 0.035, effectiveDisplayMode === "projected" ? 0.35 : 0.03)
+    const maxBandWidth = Math.max(range * 0.45, effectiveDisplayMode === "projected" ? 3.2 : 0.3)
     const bands = calculateTrendBandsByQuantile(
       displayValuesForTrend,
       movingAvgForTrend,
-      createTrendBandDistanceOptions(
-        range,
-        minBandWidth / 2,
-        maxBandWidth
-      )
+      createTrendBandDistanceOptions(range, minBandWidth / 2, maxBandWidth)
     )
 
     return new Map<string, { low: number; high: number }>(
@@ -1554,7 +1546,10 @@ export function StatisticsCharts({
                 </CardHeader>
                 <CardContent>
                   <ChartContainer config={lineChartConfig} className="h-[280px] w-full">
-                    <ComposedChart data={lineData} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
+                    <ComposedChart
+                      data={lineData}
+                      margin={{ top: 5, right: 20, bottom: 5, left: 0 }}
+                    >
                       <CartesianGrid stroke="var(--border)" strokeOpacity={0.4} vertical={false} />
                       {/* dataKey="i" statt "datum" — verhindert Kollision wenn zwei Einheiten
                       am selben Tag existieren (gleicher Datumsstring → gleicher x-Slot) */}
@@ -1573,7 +1568,10 @@ export function StatisticsCharts({
                         tickFormatter={(v: number) =>
                           effectiveDisplayMode === "projected" && selectedDiscipline
                             ? formatDisplayValue(v)
-                            : v.toFixed(2).replace(/\.00$/, "").replace(/(\.\d)0$/, "$1")
+                            : v
+                                .toFixed(2)
+                                .replace(/\.00$/, "")
+                                .replace(/(\.\d)0$/, "$1")
                         }
                         tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
                         axisLine={false}

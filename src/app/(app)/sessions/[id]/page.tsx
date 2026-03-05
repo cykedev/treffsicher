@@ -16,6 +16,7 @@ import { getAuthSession } from "@/lib/auth-helpers"
 import { getSessionById } from "@/lib/sessions/actions"
 import { calculateTotalScore } from "@/lib/sessions/calculateScore"
 import { getDisplayTimeZone } from "@/lib/dateTime"
+import { SESSION_TYPE_BADGE_CLASS, SESSION_TYPE_LABELS } from "@/lib/sessions/presentation"
 import { AttachmentSection } from "@/components/app/AttachmentSection"
 import { DeleteSessionButton } from "@/components/app/DeleteSessionButton"
 import { FavouriteButton } from "@/components/app/FavouriteButton"
@@ -29,21 +30,6 @@ import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-
-// Farbige Badges je Einheitentyp — gleiche Konstante wie im Tagebuch
-const typeBadgeClass: Record<string, string> = {
-  TRAINING: "border-blue-800   bg-blue-950   text-blue-300",
-  WETTKAMPF: "border-amber-800  bg-amber-950  text-amber-300",
-  TROCKENTRAINING: "border-emerald-800 bg-emerald-950 text-emerald-300",
-  MENTAL: "border-purple-800  bg-purple-950  text-purple-300",
-}
-
-const sessionTypeLabels: Record<string, string> = {
-  TRAINING: "Training",
-  WETTKAMPF: "Wettkampf",
-  TROCKENTRAINING: "Trockentraining",
-  MENTAL: "Mentaltraining",
-}
 
 // Ausführungsqualität als 5 Kreise — immer gerendert für konstante Spaltenbreite.
 // Gefüllte Kreise: bg-primary (hell im Dark Mode).
@@ -162,8 +148,8 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
         {/* Badge + Aktionen bewusst in einer eigenen oberen Zeile:
             so bleibt die Icon-Leiste auf Mobil immer oben sichtbar. */}
         <div className="flex items-start justify-between gap-2">
-          <Badge variant="outline" className={typeBadgeClass[sessionRecord.type] ?? ""}>
-            {sessionTypeLabels[sessionRecord.type] ?? sessionRecord.type}
+          <Badge variant="outline" className={SESSION_TYPE_BADGE_CLASS[sessionRecord.type] ?? ""}>
+            {SESSION_TYPE_LABELS[sessionRecord.type] ?? sessionRecord.type}
           </Badge>
           <div className="flex flex-wrap items-center justify-end gap-0.5 sm:gap-1">
             <FavouriteButton
