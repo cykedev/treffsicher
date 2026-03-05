@@ -1,7 +1,7 @@
 import { notFound, redirect } from "next/navigation"
 import { getAuthSession } from "@/lib/auth-helpers"
 import { getAdminUserById } from "@/lib/admin/actions"
-import { AdminEditUserForm } from "@/components/app/AdminEditUserForm"
+import { AdminEditUserForm } from "@/components/app/admin/AdminEditUserForm"
 
 export default async function AdminUserEditPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await getAuthSession()

@@ -3,7 +3,7 @@ import Link from "next/link"
 import { getAuthSession } from "@/lib/auth-helpers"
 import { getShotRoutines } from "@/lib/shot-routines/actions"
 import type { RoutineStep } from "@/lib/shot-routines/actions"
-import { CreateItemLinkButton } from "@/components/app/CreateItemLinkButton"
+import { CreateItemLinkButton } from "@/components/app/sessions/CreateItemLinkButton"
 import { Card, CardContent } from "@/components/ui/card"
 
 function formatDate(date: Date): string {

@@ -1,4 +1,4 @@
-import { Navigation } from "@/components/app/Navigation"
+import { Navigation } from "@/components/app/shell/Navigation"
 import { redirect } from "next/navigation"
 import { getAuthSession } from "@/lib/auth-helpers"
 

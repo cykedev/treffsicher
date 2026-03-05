@@ -8,7 +8,7 @@ import {
   getShotDistributionData,
   getRadarComparisonData,
 } from "@/lib/stats/actions"
-import { StatisticsChartsWrapper } from "@/components/app/StatisticsChartsWrapper"
+import { StatisticsChartsWrapper } from "@/components/app/statistics-charts/StatisticsChartsWrapper"
 
 export default async function StatisticsPage() {
   const displayTimeZone = getDisplayTimeZone()
@@ -37,11 +37,13 @@ export default async function StatisticsPage() {
       </div>
 
       <StatisticsChartsWrapper
-        sessions={sessions}
-        wellbeingData={wellbeingData}
-        qualityData={qualityData}
-        shotDistributionData={shotDistributionData}
-        radarData={radarData}
+        data={{
+          sessions,
+          wellbeingData,
+          qualityData,
+          shotDistributionData,
+          radarData,
+        }}
         displayTimeZone={displayTimeZone}
       />
     </div>

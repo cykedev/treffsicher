@@ -1,13 +1,7 @@
 "use client"
 
 import dynamic from "next/dynamic"
-import type {
-  StatsSession,
-  WellbeingCorrelationPoint,
-  QualityVsScorePoint,
-  ShotDistributionPoint,
-  RadarComparisonSession,
-} from "@/lib/stats/actions"
+import type { StatisticsChartsDataBundle } from "@/components/app/statistics-charts/types"
 
 // StatisticsCharts enthält Radix UI (Select), das aria-controls IDs via useId() generiert.
 // SSR führt zu Hydration-Mismatch (Server vs. Client IDs differ).
@@ -18,30 +12,10 @@ const StatisticsChartsInner = dynamic(
 )
 
 interface Props {
-  sessions: StatsSession[]
-  wellbeingData: WellbeingCorrelationPoint[]
-  qualityData: QualityVsScorePoint[]
-  shotDistributionData: ShotDistributionPoint[]
-  radarData: RadarComparisonSession[]
+  data: StatisticsChartsDataBundle
   displayTimeZone: string
 }
 
-export function StatisticsChartsWrapper({
-  sessions,
-  wellbeingData,
-  qualityData,
-  shotDistributionData,
-  radarData,
-  displayTimeZone,
-}: Props) {
-  return (
-    <StatisticsChartsInner
-      sessions={sessions}
-      wellbeingData={wellbeingData}
-      qualityData={qualityData}
-      shotDistributionData={shotDistributionData}
-      radarData={radarData}
-      displayTimeZone={displayTimeZone}
-    />
-  )
+export function StatisticsChartsWrapper({ data, displayTimeZone }: Props) {
+  return <StatisticsChartsInner data={data} displayTimeZone={displayTimeZone} />
 }

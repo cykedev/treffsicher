@@ -1,7 +1,7 @@
 import { notFound, redirect } from "next/navigation"
 import { getAuthSession } from "@/lib/auth-helpers"
 import { getDisciplineById } from "@/lib/disciplines/actions"
-import { DisciplineForm } from "@/components/app/DisciplineForm"
+import { DisciplineForm } from "@/components/app/disciplines/DisciplineForm"
 
 export default async function EditDisciplinePage({ params }: { params: Promise<{ id: string }> }) {
   const session = await getAuthSession()

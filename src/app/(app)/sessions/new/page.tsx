@@ -2,7 +2,7 @@ import { getAuthSession } from "@/lib/auth-helpers"
 import { redirect } from "next/navigation"
 import { getDisciplines, getFavouriteDisciplineId } from "@/lib/disciplines/actions"
 import { getGoalsForSelection } from "@/lib/goals/actions"
-import { SessionForm } from "@/components/app/SessionForm"
+import { SessionForm } from "@/components/app/session-form/SessionForm"
 
 export default async function NewSessionPage() {
   const session = await getAuthSession()

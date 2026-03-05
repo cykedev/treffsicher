@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { ReflectionForm } from "@/components/app/ReflectionForm"
+import { ReflectionForm } from "@/components/app/sessions/ReflectionForm"
 import { Button } from "@/components/ui/button"
 import type { Reflection } from "@/generated/prisma/client"
 

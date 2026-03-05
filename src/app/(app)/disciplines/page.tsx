@@ -5,7 +5,7 @@ import { Star } from "lucide-react"
 import { getDisciplinesForManagement, getFavouriteDisciplineId } from "@/lib/disciplines/actions"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
-import { CreateItemLinkButton } from "@/components/app/CreateItemLinkButton"
+import { CreateItemLinkButton } from "@/components/app/sessions/CreateItemLinkButton"
 
 const scoringTypeLabel: Record<string, string> = {
   WHOLE: "Ganzringe",

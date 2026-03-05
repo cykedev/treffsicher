@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation"
 import { getAuthSession } from "@/lib/auth-helpers"
-import { AdminCreateUserForm } from "@/components/app/AdminCreateUserForm"
+import { AdminCreateUserForm } from "@/components/app/admin/AdminCreateUserForm"
 
 export default async function AdminUserCreatePage() {
   const session = await getAuthSession()
