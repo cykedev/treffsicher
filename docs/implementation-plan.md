@@ -1026,6 +1026,13 @@ npm run format:check # Muss fehlerfrei sein
 npm run test         # Muss grün sein
 ```
 
+Zusätzlich verbindlich (siehe `docs/technical-constraints.md`, Abschnitt "Modularität & Wartbarkeit"):
+
+1. Geänderte Dateien auf Modularität prüfen (Orchestrator dünn halten, Duplikate vermeiden).
+2. Bei stark gewachsenen Dateien (>220 Zeilen) Split im selben PR einplanen (ausser kritischer Hotfix).
+3. Komponenten-Kopplung prüfen (Props-Budget, bei Bedarf `model`/`actions` oder Hook-Split).
+4. UI-Refactors kurz manuell auf Layout/Alignment prüfen.
+
 ### Beim Feststellen von Widersprüchen
 
 Wenn Code oder Entscheidungen den Anforderungen (`docs/requirements.md`) oder den

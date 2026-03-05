@@ -24,6 +24,15 @@ Eine digitale Trainingsunterstützungs-App für Schiesssportler, die Trainingsta
 
 ---
 
+## Nicht-funktionale Qualitätsziele
+
+- **Wartbarkeit vor Feature-Dichte**: Neue Funktionen sollen bevorzugt in klar abgegrenzten Modulen entstehen statt in bestehenden Großdateien.
+- **Verständlichkeit**: Fachlogik und UI-Komposition sind getrennt; Seiten und Routen bleiben möglichst dünne Orchestratoren.
+- **Wiederverwendung statt Duplikation**: Wiederkehrende Logik wird in gemeinsame Helfer/Hooks ausgelagert.
+- **Lose Kopplung**: Komponenten-Schnittstellen bleiben klein; bei wachsender Komplexität werden Datenmodelle und Aktionen gebündelt.
+
+---
+
 ## Disziplinen
 
 Disziplinen sind frei durch den Nutzer konfigurierbar. Folgende Eigenschaften werden je Disziplin definiert:
