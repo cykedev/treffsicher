@@ -26,6 +26,7 @@ interface Props {
 }
 
 function diffClassName(diff: number): string {
+  // Farbsemantik entspricht "besser/schlechter als Prognose" und nicht "hoch/niedrig".
   if (diff > 0) return "text-emerald-400"
   if (diff < 0) return "text-destructive"
   return "text-muted-foreground"

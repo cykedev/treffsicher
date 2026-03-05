@@ -26,6 +26,7 @@ export function extractMeytonHitLocation(rawText: string): MeytonHitLocation | n
   const horizontalLabel = (match[2] ?? "").toLowerCase()
   const verticalLabel = (match[4] ?? "").toLowerCase()
 
+  // Richtungslabels strikt mappen, damit nur bekannte Meyton-Begriffe akzeptiert werden.
   let horizontalDirection: MeytonHorizontalDirection
   if (horizontalLabel === "links") {
     horizontalDirection = "LEFT"

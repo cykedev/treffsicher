@@ -53,6 +53,7 @@ export async function getWellbeingCorrelationDataAction(
     }
 
     const avgPerShot = totalShots > 0 ? totalScore / totalShots : null
+    // Ohne belastbaren Ergebniswert keine Korrelation ableiten, sonst dominieren Ausreißer.
     if (avgPerShot === null || avgPerShot <= 0) continue
 
     result.push({

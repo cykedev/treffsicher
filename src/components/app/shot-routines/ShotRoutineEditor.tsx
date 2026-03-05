@@ -59,6 +59,7 @@ export function ShotRoutineEditor({ initialName, initialSteps, routineId }: Prop
       const targetIndex = direction === "up" ? index - 1 : index + 1
       if (targetIndex < 0 || targetIndex >= next.length) return prev
       ;[next[index], next[targetIndex]] = [next[targetIndex], next[index]]
+      // Reihenfolge nach jedem Move neu nummerieren, damit Server und UI dieselbe Ordnung persistieren.
       return next.map((s, i) => ({ ...s, order: i + 1 }))
     })
   }

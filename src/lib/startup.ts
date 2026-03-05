@@ -6,7 +6,7 @@ import { ensureSystemDisciplines } from "@/lib/disciplines/systemDisciplines"
 // Legt den ersten Admin-Account an, wenn noch kein Admin in der Datenbank existiert.
 // Zugangsdaten kommen aus den Umgebungsvariablen ADMIN_EMAIL und ADMIN_PASSWORD.
 //
-// Warum beim Start und nicht als separates Script?
+// Seed beim Start ausführen, damit neue Umgebungen ohne manuelle Zusatzschritte lauffähig sind.
 // So funktioniert die Initialisierung automatisch beim ersten Docker-Start,
 // ohne dass ein manueller Schritt nötig ist.
 let hasRun = false

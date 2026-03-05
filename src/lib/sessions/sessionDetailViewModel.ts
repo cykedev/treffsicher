@@ -13,6 +13,7 @@ export interface SessionDetailViewModel {
   showShotDistribution: boolean
 }
 
+// ViewModel hält Seitenlogik von Rohdatenformaten getrennt und reduziert Bedingungen in JSX.
 function toSeriesScoreTotal(value: unknown): number | null {
   if (typeof value === "number") return value
   if (value === null || value === undefined) return null

@@ -45,6 +45,7 @@ const useFormField = () => {
   const itemContext = React.useContext(FormItemContext)
   const { getFieldState } = useFormContext()
   const formState = useFormState({ name: fieldContext.name })
+  // useFormState scoped by name reduziert unnötige Re-Renders bei großen Formularen.
   const fieldState = getFieldState(fieldContext.name, formState)
 
   if (!fieldContext) {
@@ -100,6 +101,7 @@ function FormControl({ ...props }: React.ComponentProps<typeof Slot.Root>) {
     <Slot.Root
       data-slot="form-control"
       id={formItemId}
+      // Beschreibung bleibt immer verknüpft; Fehlermeldung wird bei Bedarf ergänzt.
       aria-describedby={!error ? `${formDescriptionId}` : `${formDescriptionId} ${formMessageId}`}
       aria-invalid={!!error}
       {...props}

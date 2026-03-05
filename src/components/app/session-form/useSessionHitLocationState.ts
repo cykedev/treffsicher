@@ -54,6 +54,7 @@ export function useSessionHitLocationState({ initialData }: Params) {
     )
   }, [hitLocation])
 
+  // Fehler wird erst nach sichtbarer Eingabe signalisiert, damit leere optionale Felder nicht als invalid gelten.
   const hasHitLocationValidationError = hasAnyHitLocationInput && !isHitLocationComplete
 
   const handleEnableHitLocation = useCallback(() => {

@@ -76,6 +76,7 @@ export function parseGoalInput(
 
   const dateFrom = parseDateFromInput(parsed.data.dateFrom)
   const dateTo = parseDateFromInput(parsed.data.dateTo)
+  // Datumsguard zentralisieren, damit Create/Update dieselbe Chronologie-Regel verwenden.
   if (dateFrom > dateTo) {
     const prefix =
       context === "update"

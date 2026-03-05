@@ -93,6 +93,8 @@ export function SessionForm({
     hasHitLocationValidationError,
   })
 
+  // Import-Controller kapselt den Querbezug zwischen Typ/Disziplin/Serien/Datum,
+  // damit SessionForm ein reiner Kompositions-Container bleibt.
   const {
     isMeytonButtonVisible,
     canRenderImportDialog,

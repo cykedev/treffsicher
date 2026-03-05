@@ -44,6 +44,8 @@ export function serializePdfPages(pages: string[][]): Uint8Array {
 
   push("%PDF-1.4\n")
 
+  // Offsets werden waehrend des Schreibens gesammelt, weil xref exakte
+  // Byte-Positionen jedes Objekts benoetigt.
   for (let objectId = 1; objectId <= maxObjectId; objectId++) {
     offsets[objectId] = offset
     push(`${objectId} 0 obj\n${objects.get(objectId) ?? ""}\nendobj\n`)

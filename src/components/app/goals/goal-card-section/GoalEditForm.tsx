@@ -23,12 +23,14 @@ interface Props {
   onCancel: () => void
 }
 
+// Inline-Edit nutzt eine normale Form, damit dieselbe Server-Validation wie beim Erstellen greift.
 export function GoalEditForm({ goal, message, pending, onSubmit, onCancel }: Props) {
   return (
     <form onSubmit={onSubmit} className="space-y-4 rounded-md border p-3">
       {message && <p className="text-sm text-destructive">{message}</p>}
       <p className="text-sm font-medium">Zieldaten bearbeiten</p>
       <div className="grid gap-3 md:grid-cols-2 [&>*]:min-w-0">
+        {/* Typ bleibt editierbar, damit Ergebnis-/Prozessziel ohne Neuanlage umklassifiziert werden kann. */}
         <div className="space-y-1.5">
           <Label htmlFor={`goal-title-${goal.id}`}>Titel</Label>
           <Input id={`goal-title-${goal.id}`} name="title" required defaultValue={goal.title} />

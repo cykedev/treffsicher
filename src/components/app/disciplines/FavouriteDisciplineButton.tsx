@@ -11,6 +11,7 @@ interface Props {
   initialFavourite: boolean
 }
 
+// Optimistischer Toggle hält die Interaktion direkt responsiv; Fehlerfall rollt auf den alten Zustand zurück.
 export function FavouriteDisciplineButton({ disciplineId, initialFavourite }: Props) {
   const [isFavourite, setIsFavourite] = useState(initialFavourite)
   const [isPending, startTransition] = useTransition()

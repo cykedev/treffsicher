@@ -30,6 +30,7 @@ function parseDateMatch(match: RegExpMatchArray): string | null {
     date.getHours() !== hour ||
     date.getMinutes() !== minute
   ) {
+    // Roundtrip-Check verhindert stilles "Überlaufen" bei ungültigen Datumsteilen (z. B. 32. Tag).
     return null
   }
 

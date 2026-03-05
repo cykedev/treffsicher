@@ -11,6 +11,7 @@ import type {
 import type { DisciplineForStats } from "@/lib/stats/actions"
 
 export interface TabsParams {
+  // Breite, explizite Struktur hält Mapping-Hooks von konkreten Tab-Komponenten entkoppelt.
   hasData: boolean
   effectiveDisplayMode: "per_shot" | "projected"
   selectedDiscipline: DisciplineForStats | null

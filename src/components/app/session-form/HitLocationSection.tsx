@@ -65,6 +65,7 @@ export function HitLocationSection({ model, actions }: Props) {
                 value={hitLocation.horizontalMm}
                 onChange={(event) => actions.change("horizontalMm", event.target.value)}
                 disabled={pending}
+                // Validierungsstil erst bei Gesamtfehler setzen, damit das Feld nicht schon beim Tippen "rot flackert".
                 className={
                   hasValidationError && !isValidHitLocationMillimeter(hitLocation.horizontalMm)
                     ? "border-destructive focus-visible:ring-destructive"
@@ -100,6 +101,7 @@ export function HitLocationSection({ model, actions }: Props) {
                 value={hitLocation.verticalMm}
                 onChange={(event) => actions.change("verticalMm", event.target.value)}
                 disabled={pending}
+                // Gleiches Verhalten wie horizontal: nur im Fehlerzustand visuell markieren.
                 className={
                   hasValidationError && !isValidHitLocationMillimeter(hitLocation.verticalMm)
                     ? "border-destructive focus-visible:ring-destructive"

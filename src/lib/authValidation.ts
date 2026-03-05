@@ -2,6 +2,7 @@ export const MAX_USER_EMAIL_LENGTH = 320
 export const MIN_PASSWORD_LENGTH = 12
 export const MAX_PASSWORD_LENGTH = 200
 
+// Validation zentralisiert, damit Login, Admin und Account denselben Regelkatalog verwenden.
 export function normalizeLoginEmail(email: string): string | null {
   const normalized = email.trim().toLowerCase()
   if (!normalized) return null

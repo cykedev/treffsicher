@@ -110,6 +110,7 @@ export async function updateGoalAssignmentsAction(
   }
 
   await db.$transaction(async (tx) => {
+    // Zuweisungen bewusst als "replace set" behandeln, damit UI und DB exakt denselben Zustand sehen.
     await tx.sessionGoal.deleteMany({ where: { goalId } })
 
     if (validSessionIds.length > 0) {

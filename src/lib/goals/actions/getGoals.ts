@@ -2,6 +2,7 @@ import { db } from "@/lib/db"
 import { mapGoalWithAssignments, requireGoalSession } from "@/lib/goals/actions/shared"
 import type { GoalForSelection, GoalSessionOption, GoalWithAssignments } from "@/lib/goals/types"
 
+// Leseaktionen bewusst getrennt von Mutationen halten, damit Goal-Queries leicht cachebar bleiben.
 export async function getGoalsWithAssignmentsAction(): Promise<GoalWithAssignments[]> {
   const session = await requireGoalSession()
   if (!session) return []

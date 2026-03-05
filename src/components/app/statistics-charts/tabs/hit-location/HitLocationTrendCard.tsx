@@ -59,6 +59,7 @@ export function HitLocationTrendCard({ model }: Props) {
               size="sm"
               variant={showHitLocationTrendX ? "default" : "outline"}
               className="h-8 px-3 text-xs"
+              // Mindestens eine Achse aktiv lassen, sonst wirkt das Chart "leer" trotz vorhandener Daten.
               disabled={showHitLocationTrendX && !showHitLocationTrendY}
               onClick={onToggleHitLocationTrendX}
             >
@@ -111,6 +112,7 @@ export function HitLocationTrendCard({ model }: Props) {
               content={
                 <ChartTooltipContent
                   labelFormatter={(_label, payload) => {
+                    // Index-gestützte Zuordnung vermeidet Datumsdrift, falls Recharts intern sortiert/filtert.
                     const index = Number(payload?.[0]?.payload?.i)
                     const dateValue = hitLocationTrendData[index]?.date
                     if (!dateValue) return ""
@@ -173,6 +175,7 @@ export function HitLocationTrendCard({ model }: Props) {
                 type="linear"
                 dataKey="x"
                 name="x"
+                // Eigene Punktserie hält Trendlinie und Messpunkte getrennt steuerbar.
                 stroke="transparent"
                 strokeWidth={0}
                 dot={createDotStyle("var(--chart-1)")}

@@ -9,6 +9,7 @@ interface Props {
   isFavourite: boolean
 }
 
+// Header-Aktionen bleiben icon-first, damit auf kleinen Breiten alle Kernaktionen sichtbar bleiben.
 export function SessionDetailHeaderActions({ sessionId, isFavourite }: Props) {
   return (
     <div className="flex flex-wrap items-center justify-end gap-0.5 sm:gap-1">

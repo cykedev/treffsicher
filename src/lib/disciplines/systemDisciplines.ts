@@ -47,6 +47,7 @@ const systemDisciplines: SystemDiscipline[] = [
 ]
 
 function buildSystemDisciplineId(name: string): string {
+  // Deterministische IDs verhindern doppelte Seeds bei geänderten Umgebungen/Deploy-Reihenfolgen.
   return `system-${name.toLowerCase().replace(/\s+/g, "-").replace(/[()]/g, "")}`
 }
 

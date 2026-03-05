@@ -79,6 +79,8 @@ export function useMeytonImportState({
 
       const pdfFile = files.find((file) => isPdfFile(file))
       if (pdfFile && canAutoSelectDropDefaults) {
+        // Beim Datei-Drop soll der Nutzer nicht am fehlenden Typ/Disziplin-Setup
+        // scheitern, damit der "schnelle Import" auch im Neu-Formular funktioniert.
         onEnsureDropType()
         if (!hasSelectedDiscipline && defaultDropDisciplineId) {
           onPrepareDropDefaults(defaultDropDisciplineId)
@@ -115,6 +117,8 @@ export function useMeytonImportState({
       onEnsureDropType()
     }
 
+    // Die Server-Action braucht zwingend disciplineId, weil die Schuesse bereits
+    // beim Import auf WHOLE/TENTH konvertiert werden.
     const resolvedDisciplineId =
       disciplineId || (canAutoSelectDropDefaults ? (defaultDropDisciplineId ?? "") : "")
 

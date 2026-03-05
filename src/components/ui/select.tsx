@@ -52,6 +52,7 @@ function SelectContent({
   ...props
 }: React.ComponentProps<typeof SelectPrimitive.Content>) {
   return (
+    // Portal verhindert Clipping in scrollenden Containern und hält Dropdowns über Panels sichtbar.
     <SelectPrimitive.Portal>
       <SelectPrimitive.Content
         data-slot="select-content"
@@ -70,6 +71,7 @@ function SelectContent({
           className={cn(
             "p-1",
             position === "popper" &&
+              // Viewport an Trigger koppeln, damit Breite/Höhe bei "popper" nicht springen.
               "h-[var(--radix-select-trigger-height)] w-full min-w-[var(--radix-select-trigger-width)] scroll-my-1"
           )}
         >

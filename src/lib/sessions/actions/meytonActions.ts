@@ -33,6 +33,8 @@ async function loadPdfFromUrl(urlValue: string): Promise<Buffer> {
     throw new Error("Nur http(s)-URLs sind erlaubt.")
   }
 
+  // Vorab-SSRF-Schutz vor dem eigentlichen Download.
+  // verhindert SSRF gegen interne Netze, selbst wenn die URL formal gueltig ist.
   await assertPublicImportTarget(parsedUrl.hostname)
 
   const controller = new AbortController()
@@ -75,6 +77,9 @@ async function loadPdfFromUrl(urlValue: string): Promise<Buffer> {
     const chunks: Uint8Array[] = []
     let totalSize = 0
 
+    // Streaming mit Hard-Cap statt Vollpufferung.
+    // so koennen wir die 10-MB-Grenze waehrend des Downloads erzwingen
+    // und grosse Antworten fruehzeitig abbrechen.
     while (true) {
       const { done, value } = await reader.read()
       if (done) break
@@ -132,7 +137,9 @@ async function loadPdfFromUpload(file: File): Promise<Buffer> {
   }
 
   const arrayBuffer = await file.arrayBuffer()
-  return Buffer.from(arrayBuffer)
+  const buffer = Buffer.from(arrayBuffer)
+  validatePdfBuffer(buffer)
+  return buffer
 }
 
 /**
@@ -205,6 +212,9 @@ export async function previewMeytonImportAction(
     return { error: "Keine Meyton-Serien im PDF gefunden." }
   }
 
+  // Vorschau zeigt bereits disziplinspezifisch konvertierte Werte.
+  // Nutzer sollen vor dem Speichern exakt die Werte sehen, die spaeter auch
+  // in dieser Disziplin persistiert werden.
   const importedSeries: MeytonImportPreviewSeries[] = parsedSeries.serien.map((serie) => {
     const convertedShots = serie.shots.map((value) =>
       mapShotToScoringType(value, discipline.scoringType)

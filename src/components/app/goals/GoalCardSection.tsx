@@ -31,6 +31,7 @@ export function GoalCardSection({ goal, sessions, backHref, displayTimeZone }: P
   const [pending, startTransition] = useTransition()
 
   function openAssignmentsEditor(): void {
+    // Immer vom persistierten Zustand starten, damit abgebrochene Edits keine "Geisterauswahl" hinterlassen.
     setSelectedSessionIds(goal.sessionIds)
     setEditingAssignments(true)
   }

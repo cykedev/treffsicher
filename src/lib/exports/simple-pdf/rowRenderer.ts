@@ -25,6 +25,7 @@ function getFieldWidths(
 
 function parseFieldLine(rawLine: string): { label: string; value: string; indent: number } | null {
   const sanitized = sanitizeText(rawLine).replace(/\s+$/g, "")
+  // Nur das erste ":" als Trenner verwenden, damit Werte mit ":" erhalten bleiben.
   const match = sanitized.match(/^(\s*)([^:]{1,90}):(.*)$/)
   if (!match) return null
 
@@ -44,6 +45,7 @@ export function buildRows(
   labelWidth: number,
   fallbackIfEmpty = true
 ): { rows: RenderRow[]; totalHeight: number } {
+  // Bei leeren Abschnitten einen Platzhalter erzeugen, damit Kartenhöhe im PDF-Layout stabil bleibt.
   const sourceLines = lines.length > 0 ? lines : fallbackIfEmpty ? ["-"] : []
   const rows: RenderRow[] = []
   let totalHeight = 0

@@ -20,6 +20,7 @@ interface Params {
   toDate: Date | null
 }
 
+// Alle Statistik-Quellen in einem Hook filtern, damit Datum/Typ/Disziplin-Logik überall identisch bleibt.
 export function useStatisticsFilteredData({
   sessions,
   wellbeingData,

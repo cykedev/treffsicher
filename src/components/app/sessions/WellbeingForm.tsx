@@ -33,6 +33,7 @@ export function WellbeingForm({ sessionId, initialData, onSuccess, onCancel }: P
   })
 
   useEffect(() => {
+    // Section-Wrapper soll nur nach persistiertem Save schließen.
     if (state?.success) onSuccess?.()
   }, [state?.success, onSuccess])
 

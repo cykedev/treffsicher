@@ -53,6 +53,7 @@ export function togglePracticeCollections(
     return newIsPractice[a] ? -1 : 1
   })
 
+  // Eine gemeinsame Permutation für alle Arrays verhindert, dass Serien-Metadaten auseinanderlaufen.
   return {
     seriesIsPractice: permutation.map((seriesIndex) => newIsPractice[seriesIndex]),
     seriesKeys: permutation.map((seriesIndex) => collections.seriesKeys[seriesIndex]),

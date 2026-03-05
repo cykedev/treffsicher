@@ -82,6 +82,7 @@ export function GoalAssignmentsForm({
         </p>
       )}
       {selectedSessionIds.map((sessionId) => (
+        // Hidden-Inputs liefern die Mehrfachauswahl als klassisches FormData-Array an die Server-Action.
         <input key={sessionId} type="hidden" name="sessionIds" value={sessionId} />
       ))}
       <div className="flex flex-wrap gap-2">

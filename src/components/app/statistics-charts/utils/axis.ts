@@ -43,6 +43,7 @@ export function computeStableAxis(
   }
 
   const niceRange = niceNumber(max - min, false)
+  // "Nice numbers" halten Tick-Abstände lesbar und reduzieren visuelles Springen zwischen Filterzuständen.
   const step = niceNumber(niceRange / Math.max(targetTickCount - 1, 1), true)
   const niceMin = Math.floor(min / step) * step
   const niceMax = Math.ceil(max / step) * step

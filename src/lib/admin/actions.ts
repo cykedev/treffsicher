@@ -30,6 +30,7 @@ export type {
   AdminUserSummary,
 } from "@/lib/admin/types"
 
+// Öffentliche Admin-Fassade: UI ruft nur dieses Modul auf und bleibt von internen Action-Pfaden entkoppelt.
 export async function getAdminUsers(): Promise<AdminUserListItem[]> {
   return getAdminUsersAction()
 }

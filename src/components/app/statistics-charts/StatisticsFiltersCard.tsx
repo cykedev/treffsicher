@@ -20,6 +20,7 @@ interface Props {
   actions: StatisticsFiltersCardActions
 }
 
+// Filterkarte hält alle Eingriffspunkte an einer Stelle, damit URL-/State-Sync konsistent bleibt.
 export function StatisticsFiltersCard({ model, actions }: Props) {
   const {
     typeFilter,
@@ -132,6 +133,7 @@ export function StatisticsFiltersCard({ model, actions }: Props) {
             <div className="space-y-2">
               <Label>Anzeige</Label>
               <div className="flex flex-wrap gap-1">
+                {/* Anzeige-Modus nur mit Disziplin anbieten, weil die Hochrechnung ohne Schusszahl irreführend wäre. */}
                 <Button
                   variant={effectiveDisplayMode === "per_shot" ? "default" : "outline"}
                   onClick={() => actions.displayModeChange("per_shot")}

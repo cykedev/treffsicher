@@ -50,6 +50,7 @@ export function canManageDiscipline(
   session: Session,
   discipline: { ownerId: string | null; isSystem: boolean }
 ): boolean {
+  // System-Disziplinen nur für Admins, private Disziplinen nur für den Besitzer.
   const canManageSystem = discipline.isSystem && session.user.role === "ADMIN"
   const canManageOwn = !discipline.isSystem && discipline.ownerId === session.user.id
   return canManageSystem || canManageOwn

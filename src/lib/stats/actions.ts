@@ -25,6 +25,7 @@ export type {
   WellbeingCorrelationPoint,
 } from "@/lib/stats/types"
 
+// Öffentliche Statistik-Fassade entkoppelt UI von einzelnen Query-Modulen.
 export async function getStatsData(filters: StatsFilters): Promise<StatsSession[]> {
   return getStatsDataAction(filters)
 }

@@ -96,6 +96,7 @@ function buildResultModel(
   const shouldShowResult = hasSeries && (hasScoringResult || hasPracticeOnlyResult)
   if (!shouldShowResult) return null
 
+  // Für reine Probe-Einheiten trotzdem ein Ergebnis anzeigen, damit Listenkarten nicht "leer" wirken.
   const displayScore = hasPracticeOnlyResult ? totalPracticeScore : totalScore
   const displayShots = hasPracticeOnlyResult ? totalPracticeShots : totalScoringShots
   const displayMaxScore =
@@ -110,7 +111,8 @@ function buildResultModel(
 
   const shotsLabel = hasPracticeOnlyResult
     ? `${totalPracticeShots} Sch.`
-    : totalScoringShots > 0
+    : // Probe-Schüsse separat ausweisen, damit Wettkampfschüsse vergleichbar bleiben.
+      totalScoringShots > 0
       ? `${totalScoringShots} Sch.${totalPracticeShots > 0 ? ` + ${totalPracticeShots} Probe` : ""}`
       : ""
 

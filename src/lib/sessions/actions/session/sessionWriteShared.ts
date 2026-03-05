@@ -54,6 +54,7 @@ export async function prepareSessionWriteInput(
   userId: string,
   context: PrepareContext
 ): Promise<PreparedSessionWriteInput | ActionResult> {
+  // Parsing und Guarding an einer Stelle halten, damit Create/Update identische Regeln erzwingen.
   const parsed = parseBaseSessionInput(formData, context)
   if ("error" in parsed) return parsed
 
@@ -150,6 +151,7 @@ export async function syncSessionGoals(
   clearExisting: boolean
 ): Promise<void> {
   if (clearExisting) {
+    // Beim Update zuerst leeren, damit nachfolgend nur der neue, validierte Zustand persistiert bleibt.
     await tx.sessionGoal.deleteMany({ where: { sessionId } })
   }
   if (selectedGoalIds.length === 0) return

@@ -57,6 +57,8 @@ export function useSessionSeriesBasicHandlers({
       const discipline = disciplines.find((entry) => entry.id === id)
       const defaults = createSeriesDefaults(discipline)
 
+      // Beim Disziplinwechsel wird der Serienzustand bewusst komplett
+      // zurueckgesetzt, damit keine Werte in eine fachlich andere Struktur leaken.
       setTotalSeries(defaults.totalSeries)
       setShotCounts(defaults.shotCounts)
       setSeriesIsPractice(defaults.seriesIsPractice)
@@ -102,9 +104,12 @@ export function useSessionSeriesBasicHandlers({
     (enabled: boolean) => {
       setShowShots(enabled)
       if (enabled) {
+        // Wechsel auf Einzelschuesse startet mit leeren Feldern, damit keine
+        // aus Summen abgeleiteten Pseudo-Schuesse erzeugt werden.
         setShots(createBlankShots(shotCounts))
         return
       }
+      // Beim Zurueckwechsel auf Summen wird der aktuelle Schussstand konserviert.
       setSeriesTotals(createTotalsFromShots(shots))
     },
     [setShots, setShowShots, setSeriesTotals, shotCounts, shots]
@@ -138,6 +143,8 @@ export function useSessionSeriesBasicHandlers({
   const applyImportedSeries = useCallback(
     (importedSeries: MeytonImportPreviewSeries[]) => {
       const nextCollections = createImportedSeriesCollections(importedSeries, Date.now())
+      // Import ist ein explizites "Replace all", damit die Vorschau und der
+      // Formularzustand identisch bleiben.
       setTotalSeries(importedSeries.length)
       setShowShots(true)
       setShots(nextCollections.shots)

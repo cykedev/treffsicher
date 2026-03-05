@@ -55,6 +55,7 @@ export async function updateDisciplineAction(
   }
 
   if (parsed.data.scoringType !== discipline.scoringType) {
+    // Wertungsartwechsel nur vor erster Nutzung erlauben, sonst werden historische Ergebnisse inkonsistent.
     const usedInSessions = await db.trainingSession.count({ where: { disciplineId: id } })
     if (usedInSessions > 0) {
       return {
@@ -103,6 +104,7 @@ export async function setDisciplineArchivedAction(
       db.user.updateMany({
         where: {
           favouriteDisciplineId: id,
+          // Bei nicht-Systemdisziplinen nur den eigenen Favorit bereinigen.
           ...(discipline.isSystem ? {} : { id: session.user.id }),
         },
         data: { favouriteDisciplineId: null },

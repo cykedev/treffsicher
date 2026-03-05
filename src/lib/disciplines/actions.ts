@@ -19,6 +19,7 @@ import type { ActionResult } from "@/lib/disciplines/types"
 
 export type { ActionResult } from "@/lib/disciplines/types"
 
+// Öffentliche Disziplin-Fassade hält Seiten/Komponenten frei von internen Action-Dateipfaden.
 export async function getDisciplines(): Promise<Discipline[]> {
   return getDisciplinesAction()
 }

@@ -45,6 +45,7 @@ export function mapSessionToHitLocationPoint(session: StatsSession): HitLocation
       ? session.hitLocationVerticalMm
       : -session.hitLocationVerticalMm
 
+  // Vorzeichen hier vereinheitlichen, damit alle Diagramme dieselbe Achsenlogik teilen.
   return {
     sessionId: session.id,
     date: session.date,
@@ -71,6 +72,7 @@ export function buildCatmullRomCurvePoints(
     const p3 = points[Math.min(points.length - 1, i + 2)]
 
     for (let step = 1; step <= samplesPerSegment; step++) {
+      // Catmull-Rom liefert eine glatte Verlaufskurve, ohne dass zusätzliche Kontrollpunkte gepflegt werden müssen.
       const t = step / samplesPerSegment
       const t2 = t * t
       const t3 = t2 * t

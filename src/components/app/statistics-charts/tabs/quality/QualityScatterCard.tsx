@@ -19,6 +19,7 @@ export function QualityScatterCard({ model }: Props) {
     selectedDiscipline,
   } = model
 
+  // Unter zwei Punkten wäre der Scatter optisch irreführend und liefert keinen Zusammenhang.
   if (filteredQualityCount <= 1) return null
 
   return (

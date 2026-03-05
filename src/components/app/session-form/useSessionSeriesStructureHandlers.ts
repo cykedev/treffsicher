@@ -38,6 +38,8 @@ export function useSessionSeriesStructureHandlers({
 }: Params): ReturnValue {
   const handleTogglePractice = useCallback(
     (index: number) => {
+      // Probe-Serien stehen im UI immer vor Wertungsserien.
+      // Der Transform sortiert deshalb nach jedem Toggle neu.
       const nextCollections = togglePracticeCollections(collections, index)
       applyCollectionsState(nextCollections, showShots, setters)
     },
@@ -54,6 +56,8 @@ export function useSessionSeriesStructureHandlers({
 
   const handleAddPracticeSeries = useCallback(() => {
     const defaultCount = selectedDiscipline?.shotsPerSeries ?? 10
+    // Neue Probe-Serie wird vor der ersten Wertungsserie eingefuegt,
+    // damit die fachliche Reihenfolge (Probe -> Wertung) erhalten bleibt.
     const nextCollections = createPracticeSeriesCollections(collections, defaultCount, Date.now())
 
     setTotalSeries((value) => value + 1)

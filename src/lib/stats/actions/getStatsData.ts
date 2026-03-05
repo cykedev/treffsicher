@@ -65,6 +65,7 @@ export async function getStatsDataAction(filters: StatsFilters): Promise<StatsSe
     const scoredNonPractice = series.filter(
       (serie) => !serie.isPractice && serie.scoreTotal !== null
     )
+    // Aggregation ohne Probeschüsse hält den Kennwert über Training/Wettkampf vergleichbar.
     const totalScore = scoredNonPractice.reduce((sum, serie) => sum + (serie.scoreTotal ?? 0), 0)
     const totalNonPracticeShots = scoredNonPractice.reduce((sum, serie) => sum + serie.shotCount, 0)
 

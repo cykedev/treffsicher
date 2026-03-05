@@ -21,6 +21,7 @@ export function drawSeriesGridChart(
   const colLabelWidth = Math.min(116, Math.max(86, width * 0.22))
   const colScoreWidth = Math.min(88, Math.max(68, width * 0.16))
   const colGap = 8
+  // Schussspalte flexibel halten, weil diese Zeilen in der Praxis am stärksten variieren.
   const shotsWidth = Math.max(90, width - colLabelWidth - colScoreWidth - colGap * 2)
   const scoreX = x + colLabelWidth + colGap
   const shotsX = scoreX + colScoreWidth + colGap

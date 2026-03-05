@@ -17,6 +17,7 @@ interface Props {
   actions: Actions
 }
 
+// Zielauswahl ist absichtlich optional und entkoppelt von Session-Validierung, damit Erfassen nicht blockiert wird.
 export function SessionGoalsSection({ model, actions }: Props) {
   const { goals, selectedGoalIds, pending } = model
 

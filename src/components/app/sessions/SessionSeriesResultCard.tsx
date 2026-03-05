@@ -54,6 +54,7 @@ function buildSeriesRows(session: SessionDetail): { rows: SeriesRow[]; hasAnySho
     const shotsArray = parseShotsJson(serie.shots)
     const practicesBefore = sortedSeries.slice(0, idx).filter((entry) => entry.isPractice).length
     const regularsBefore = idx - practicesBefore
+    // Labels folgen der UI-Logik aus dem Editor, damit "Probe 1" und "Serie 1" überall gleich bedeuten.
     const seriesLabel = serie.isPractice
       ? `Probe ${practicesBefore + 1}`
       : `Serie ${regularsBefore + 1}`

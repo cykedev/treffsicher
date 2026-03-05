@@ -30,6 +30,7 @@ export function AdminEditUserForm({ user }: Props) {
   )
 
   useEffect(() => {
+    // Nach erfolgreichem Save zurück zur Übersicht, damit Tabelle und Detailzustand sofort konsistent sind.
     if (!state?.success) return
     router.push("/admin")
   }, [state?.success, router])

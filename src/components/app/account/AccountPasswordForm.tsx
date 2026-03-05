@@ -24,6 +24,7 @@ export function AccountPasswordForm() {
     async function finishPasswordChange() {
       setSigningOut(true)
       if (canceled) return
+      // Nach Passwortwechsel hart abmelden, damit alle bestehenden Sessions invalidiert werden.
       await signOut({ callbackUrl: "/login?passwordChanged=1" })
     }
 

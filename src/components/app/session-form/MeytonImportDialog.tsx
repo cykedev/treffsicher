@@ -82,6 +82,7 @@ export function MeytonImportDialog({ model, actions }: Props) {
                 accept="application/pdf,.pdf"
                 className="sr-only"
                 onClick={(event) => {
+                  // Gleiches File erneut wählbar halten, damit "Importieren" nach Korrekturen nicht stumm ausfällt.
                   event.currentTarget.value = ""
                 }}
                 onChange={(event) => actions.fileChange(event.target.files?.[0] ?? null)}

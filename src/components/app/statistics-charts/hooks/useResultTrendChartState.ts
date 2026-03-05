@@ -68,6 +68,7 @@ export function useResultTrendChartState({
 
   const movingAvgBySessionId = useMemo(
     () =>
+      // Trends werden über Session-IDs gemappt, damit unterschiedliche Filterfenster stabil zusammenpassen.
       new Map<string, number | null>(
         withScoreForTrend.map((session, i) => [session.id, movingAvgForTrend[i]])
       ),
@@ -82,6 +83,7 @@ export function useResultTrendChartState({
     const range = Number.isFinite(maxValue - minValue) ? maxValue - minValue : 0
     const minBandWidth = Math.max(range * 0.035, effectiveDisplayMode === "projected" ? 0.35 : 0.03)
     const maxBandWidth = Math.max(range * 0.45, effectiveDisplayMode === "projected" ? 3.2 : 0.3)
+    // Bandbreiten werden je Modus unterschiedlich gefloort, damit Hochrechnungs-Charts nicht künstlich "nervös" wirken.
     const bands = calculateTrendBandsByQuantile(
       displayValuesForTrend,
       movingAvgForTrend,
@@ -106,6 +108,7 @@ export function useResultTrendChartState({
     })
 
     return withScore.map((session, i) => {
+      // Für Anzeige nehmen wir den aktuellen Filter, Trend/Band aber weiterhin über IDs aus dem Trend-Fenster.
       const trend = movingAvgBySessionId.get(session.id) ?? null
       const band = trendBandBySessionId.get(session.id)
 

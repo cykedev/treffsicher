@@ -55,6 +55,7 @@ export function buildInitialSeriesSnapshot({
   }
 
   const sortedInitialSeries = sortSeriesWithPracticeFirst(initialData.series)
+  // ShowShots nur aktivieren, wenn echte Schusswerte vorliegen; sonst bleibt das Edit-Formular kompakter.
   const hasRecordedShots = sortedInitialSeries.some(
     (series) => toShotArray(series.shots).length > 0
   )

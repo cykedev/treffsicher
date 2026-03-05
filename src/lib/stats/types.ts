@@ -33,6 +33,7 @@ export type StatsSession = {
   hitLocationVerticalDirection: "HIGH" | "LOW" | null
   totalScore: number | null
   avgPerShot: number | null
+  // Diese Zahl wird getrennt gehalten, damit UI/Charts keine Shot-Counts aus Serien erneut ableiten müssen.
   totalNonPracticeShots: number
   series: SeriesForStats[]
 }

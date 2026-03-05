@@ -94,6 +94,7 @@ export async function getAdminLoginRateLimitInsightsAction(): Promise<AdminLogin
     const mapped = mapLoginRateLimitRowToAdminBucket(row)
     return mapped ? [mapped] : []
   })
+  // "Noisy" und "blocked" werden getrennt abgebildet, damit aktive Sperren die Trendanalyse nicht verdrängen.
   const topNoisyBuckets = noisyRows.flatMap((row) => {
     const mapped = mapLoginRateLimitRowToAdminBucket(row)
     return mapped ? [mapped] : []

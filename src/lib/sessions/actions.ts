@@ -39,6 +39,7 @@ export type {
   SessionWithDiscipline,
 } from "@/lib/sessions/actions/types"
 
+// Öffentliche Fassade für Session-Server-Actions: UI importiert nur dieses Modul statt Unterpfaden.
 export async function createSession(formData: FormData): Promise<ActionResult> {
   return createSessionAction(formData)
 }

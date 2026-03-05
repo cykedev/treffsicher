@@ -27,6 +27,7 @@ export type {
   GoalWithAssignments,
 } from "@/lib/goals/types"
 
+// Öffentliche Goal-Fassade bündelt Query- und Mutationspfade für UI und Server Components.
 export async function getGoalsWithAssignments(): Promise<GoalWithAssignments[]> {
   return getGoalsWithAssignmentsAction()
 }

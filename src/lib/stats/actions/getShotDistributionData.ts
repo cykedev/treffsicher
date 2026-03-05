@@ -61,6 +61,7 @@ export async function getShotDistributionDataAction(
 
     const counts = new Array(11).fill(0)
     for (const value of allShots) {
+      // Zehntelwerte bewusst in den unteren Ganzring bündeln, damit die 11 Buckets konsistent bleiben.
       const bucket = isDecimal ? Math.floor(value) : Math.round(value)
       const clamped = Math.max(0, Math.min(10, bucket))
       counts[clamped]++

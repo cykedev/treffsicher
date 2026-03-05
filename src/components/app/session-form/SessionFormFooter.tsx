@@ -12,6 +12,7 @@ interface Props {
   hasHitLocationValidationError: boolean
 }
 
+// Footer bündelt Submit/Cancel/Fehlermeldungen, damit die Formularstruktur in Create/Edit identisch bleibt.
 export function SessionFormFooter({
   sessionId,
   pending,

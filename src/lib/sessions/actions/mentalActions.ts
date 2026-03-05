@@ -6,6 +6,9 @@ import { isScoringSessionType } from "@/lib/sessions/actions/shared"
 import type { ActionResult } from "@/lib/sessions/actions/types"
 
 async function hasOwnedSession(sessionId: string, userId: string): Promise<boolean> {
+  // Gemeinsame Besitzpruefung fuer alle Mental-Subformulare.
+  // Alle Mental-Subformulare teilen dieselbe Besitzpruefung, damit die
+  // Sicherheitsregel (nur eigene Einheit) nicht pro Action neu implementiert wird.
   const trainingSession = await db.trainingSession.findFirst({
     where: { id: sessionId, userId },
     select: { id: true },
@@ -45,6 +48,9 @@ export async function saveWellbeingAction(
 
   if (!parsed.success) return { error: "Ungültige Werte" }
 
+  // Idempotenter Save-Pfad fuer erstes Speichern und spaeteres Editieren.
+  // Befinden wird im UI mehrfach nachgetragen/editiert; Upsert haelt den Flow
+  // idempotent und vermeidet race-anfaellige "exists -> create/update"-Zweige.
   await db.wellbeing.upsert({
     where: { sessionId },
     create: { sessionId, ...parsed.data },
@@ -76,10 +82,15 @@ export async function saveReflectionAction(
     insight: (formData.get("insight") as string) || null,
     learningQuestion: (formData.get("learningQuestion") as string) || null,
     routineFollowed,
-    // Abweichung nur speichern wenn Ablauf nicht eingehalten wurde
+    // Alte Abweichung aktiv loeschen, wenn der Ablauf wieder eingehalten wurde.
+    // Alte Abweichungstexte duerfen bei "wieder eingehalten" nicht stehen bleiben,
+    // sonst zeigt die Detailansicht widerspruechliche Informationen.
     routineDeviation: routineFollowed ? null : (formData.get("routineDeviation") as string) || null,
   }
 
+  // Identischer Save-Pfad fuer Create und Edit.
+  // Reflexion ist optional und kann erst spaeter erfasst werden; Upsert spart
+  // separaten Create/Edit-Code bei identischem fachlichem Verhalten.
   await db.reflection.upsert({
     where: { sessionId },
     create: { sessionId, ...data },
@@ -109,6 +120,9 @@ export async function savePrognosisAction(
   })
   if (!trainingSession) return { error: "Einheit nicht gefunden" }
   if (!isScoringSessionType(trainingSession.type)) {
+    // Fachregel serverseitig absichern.
+    // Die Regel darf nicht nur im UI leben, sonst koennen direkte Requests
+    // fachlich ungueltige Prognosen fuer nicht-wertende Typen speichern.
     return { error: "Prognose ist nur bei Training und Wettkampf verfügbar." }
   }
 
@@ -153,6 +167,9 @@ export async function savePrognosisAction(
 
   if (!parsed.success) return { error: "Ungültige Werte" }
 
+  // Prognose wird vor Start oft mehrfach angepasst.
+  // Prognose ist ein "lebendes" Vorab-Statement und wird typischerweise vor
+  // dem Start mehrfach angepasst.
   await db.prognosis.upsert({
     where: { sessionId },
     create: { sessionId, ...parsed.data },
@@ -179,6 +196,9 @@ export async function saveFeedbackAction(
   })
   if (!trainingSession) return { error: "Einheit nicht gefunden" }
   if (!isScoringSessionType(trainingSession.type)) {
+    // Fachregel serverseitig absichern.
+    // Feedback ist an Prognose/Wertung gekoppelt und soll fuer reine Mental-
+    // oder Trockeneinheiten nie persisted werden.
     return { error: "Feedback ist nur bei Training und Wettkampf verfügbar." }
   }
 
@@ -227,7 +247,9 @@ export async function saveFeedbackAction(
     equipment: Number(formData.get("equipment")),
     explanation: formData.get("explanation") as string,
     goalAchieved: formData.get("goalAchieved") === "on",
-    // goalAchievedNote ist nur im DOM wenn goalAchieved gesetzt — null → undefined damit z.string().optional() passt
+    // Feld ist nur bei aktivem Toggle im DOM vorhanden.
+    // Das Feld ist im DOM nur bei aktivem Toggle vorhanden; die Umwandlung
+    // verhindert, dass Zod ein "explizites null" als Typfehler behandelt.
     goalAchievedNote: formData.get("goalAchievedNote") ?? undefined,
     progress: formData.get("progress") as string,
     fiveBestShots: formData.get("fiveBestShots") as string,
@@ -237,6 +259,9 @@ export async function saveFeedbackAction(
 
   if (!parsed.success) return { error: "Ungültige Werte" }
 
+  // Gleiches Verhalten fuer ersten Save und Folge-Edits.
+  // Feedback wird oft iterativ verfeinert, daher brauchen wir denselben
+  // "erstes Speichern vs. spaeteres Editieren"-Pfad.
   await db.feedback.upsert({
     where: { sessionId },
     create: { sessionId, ...parsed.data },

@@ -15,6 +15,7 @@ interface Props<Key extends string> {
   onValueChange: (name: Key, value: number) => void
 }
 
+// Generische Slider-Reihe verhindert copy/paste zwischen Wellbeing-, Prognose- und Feedback-Formularen.
 export function ScoreSliderRows<Key extends string>({
   title,
   rows,

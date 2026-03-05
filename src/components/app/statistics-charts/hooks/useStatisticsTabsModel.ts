@@ -61,6 +61,7 @@ export function useStatisticsTabsModel(params: TabsParams): StatisticsTabsState 
   } = params
 
   return useMemo<StatisticsTabsState>(() => {
+    // Alle Tab-Modelle in einem Memo bündeln, damit Tab-Wechsel keine unnötigen Subtree-Updates auslöst.
     return {
       trend: {
         hasData,
@@ -86,6 +87,7 @@ export function useStatisticsTabsModel(params: TabsParams): StatisticsTabsState 
         cloud: {
           filteredHitLocations,
           showCloudTrail,
+          // Toggle bleibt hier am View-Model, damit Tabs keine Setter direkt kennen müssen.
           onToggleCloudTrail: () => setShowCloudTrail((current) => !current),
           hitLocationCloudChartConfig,
           hitLocationCloudAxes,
@@ -99,6 +101,7 @@ export function useStatisticsTabsModel(params: TabsParams): StatisticsTabsState 
           displayTimeZone,
           showHitLocationTrendX,
           showHitLocationTrendY,
+          // Beide Toggles werden im selben Modell gehalten, weil sich ihre "mindestens eine aktiv"-Regel koppelt.
           onToggleHitLocationTrendX: () => setShowHitLocationTrendX((current) => !current),
           onToggleHitLocationTrendY: () => setShowHitLocationTrendY((current) => !current),
           hitLocationTrendChartConfig,

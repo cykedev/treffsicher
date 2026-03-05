@@ -23,7 +23,7 @@ type Props = {
 }
 
 // Löscht einen Ablauf mit dem gleichen Dialogmuster wie andere destruktive Aktionen.
-// Warum: Nutzer sollen "Löschen" überall gleich erleben, egal in welchem Bereich.
+// Lösch-Interaktion bewusst an das gemeinsame Muster angepasst, damit Verhalten überall gleich bleibt.
 export function DeleteShotRoutineButton({ routineId }: Props) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()

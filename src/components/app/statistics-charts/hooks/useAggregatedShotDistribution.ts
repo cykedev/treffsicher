@@ -49,6 +49,7 @@ export function useAggregatedShotDistribution({
       }
       const r0to6 = point.r0 + point.r1 + point.r2 + point.r3 + point.r4 + point.r5 + point.r6
 
+      // Gewichtung nach Schusszahl verhindert, dass Mini-Sessions den Verlauf unverhältnismäßig verzerren.
       current.totalShots += totalShots
       current.weightedR0to6 += r0to6 * totalShots
       current.weightedR7 += point.r7 * totalShots

@@ -17,6 +17,7 @@ interface Props {
   onToggleActive: (user: AdminUserListItem, nextIsActive: boolean) => void
 }
 
+// Desktop-Tabelle zeigt volle Nutzermetrik; Mobile bekommt eine separate, kompaktere Variante.
 export function AdminUsersTableDesktop({
   users,
   currentAdminId,
@@ -45,6 +46,7 @@ export function AdminUsersTableDesktop({
               <tr key={user.id}>
                 <td className="py-3 pr-4">
                   <div className="max-w-[280px] space-y-1">
+                    {/* Name/Email/Created gruppieren, damit Aktionsspalte visuell ruhig bleibt. */}
                     <p className="break-words font-medium leading-tight">{user.name ?? "—"}</p>
                     <p className="break-all text-xs text-muted-foreground">{user.email}</p>
                     <p className="text-xs text-muted-foreground">

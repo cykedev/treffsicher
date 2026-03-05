@@ -17,6 +17,7 @@ export function drawBadge(
   fill: Rgb,
   addCommand: AddPdfCommand
 ): void {
+  // Zwei-Buchstaben-ID begrenzt die Icon-Matrix auf eine kleine, stabile Menge von Export-Piktogrammen.
   const iconId = sanitizeText(label).trim().slice(0, 2).toUpperCase() || "?"
   const glyph: Rgb = [1, 1, 1]
   const size = 16

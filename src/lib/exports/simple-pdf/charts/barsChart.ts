@@ -35,6 +35,7 @@ export function drawBarsChart(
       : Math.max(...items.map((item) => item.value), 1)
 
   for (const item of items) {
+    // Clamp schützt den Renderer vor übergroßen Werten und hält Balken immer innerhalb des Tracks.
     const clampedValue = clamp(item.value, 0, maxValue)
     const fillRatio = maxValue > 0 ? clampedValue / maxValue : 0
     const fillWidth = clamp(trackWidth * fillRatio, 0, trackWidth)

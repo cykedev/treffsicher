@@ -45,6 +45,7 @@ export function FeedbackForm({ sessionId, initialData, onCancel, onSuccess }: Pr
   const [goalAchieved, setGoalAchieved] = useState(initialData?.goalAchieved ?? false)
 
   useEffect(() => {
+    // Callback erst nach bestätigtem Server-Erfolg, damit Wrapper nur bei persistierten Daten schließt.
     if (state?.success) onSuccess?.()
   }, [state?.success, onSuccess])
 
