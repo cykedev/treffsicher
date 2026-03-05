@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react"
 import {
-  LineChart,
+  ComposedChart,
   Line,
   BarChart,
   Bar,
@@ -102,6 +102,13 @@ const shotDistributionColors: Record<string, string> = {
   r9: "#eab308",
   r10: "#ef4444",
 }
+const shotDistributionBundledColors = {
+  r0to6: "color-mix(in srgb, #6b7280 74%, white 26%)",
+  r7: shotDistributionColors.r7,
+  r8: shotDistributionColors.r8,
+  r9: shotDistributionColors.r9,
+  r10: shotDistributionColors.r10,
+} as const
 
 const HIT_LOCATION_CLOUD_MARGIN = { top: 12, right: 12, bottom: 12, left: 12 } as const
 const HIT_LOCATION_CLOUD_AXIS_SIZE = 44
@@ -118,15 +125,22 @@ const CHART_TREND_POINT_ACTIVE_RADIUS = 4.8
 const CHART_TREND_POINT_OPACITY = 0.42
 const CHART_TREND_POINT_ACTIVE_OPACITY = 0.7
 const CHART_POINT_STROKE_WIDTH = 1
-const CHART_POINT_LINK_STROKE_WIDTH = 1.2
-const CHART_POINT_LINK_STROKE_OPACITY = 0.4
-const CHART_POINT_LINK_DASHARRAY = "3 4"
 const CHART_TREND_STROKE_WIDTH = 2.5
 const CHART_TREND_STROKE_OPACITY = 0.9
+const CHART_TREND_BAND_OPACITY = 0.3
+const CHART_TREND_BAND_FILL = "color-mix(in srgb, var(--chart-1) 72%, white 28%)"
+const TREND_BAND_LOW_QUANTILE = 0.02
+const TREND_BAND_HIGH_QUANTILE = 0.98
+const TREND_BAND_WINDOW_SIZE = 5
+const TREND_BAND_SMOOTH_WINDOW = 1
+const TREND_BAND_MIN_DISTANCE_RATIO = 0.04
+const TREND_BAND_MAX_DISTANCE_RATIO = 0.55
+const HIT_LOCATION_TREND_BAND_OPACITY = 0.18
 const HIT_LOCATION_ZERO_LINE_STROKE_WIDTH = 0.8
 const HIT_LOCATION_ZERO_LINE_STROKE_OPACITY = 0.55
 const HIT_LOCATION_ZERO_LINE_STROKE =
   "color-mix(in oklch, var(--muted-foreground) 42%, oklch(1 0 0) 58%)"
+const CHART_TIME_AXIS_MAX_TICKS = 7
 
 type HitLocationPoint = {
   sessionId: string
@@ -146,6 +160,21 @@ type HitLocationPathPoint = {
 type HitLocationCurvePoint = {
   x: number
   y: number
+}
+
+type ShotDistributionGranularity = "day" | "week" | "month"
+
+type AggregatedShotDistributionPoint = {
+  i: number
+  date: Date
+  dateLabel: string
+  tooltipLabel: string
+  totalShots: number
+  r0to6: number
+  r7: number
+  r8: number
+  r9: number
+  r10: number
 }
 
 function niceNumber(value: number, round: boolean): number {
@@ -279,6 +308,197 @@ function computeDisplayValue(
 
 function calculateTrend(values: (number | null)[]): (number | null)[] {
   return calculateMovingAverage(values, TREND_WINDOW_SIZE)
+}
+
+function calculateQuantile(sortedValues: number[], quantile: number): number {
+  if (sortedValues.length === 0) return 0
+  if (sortedValues.length === 1) return sortedValues[0]
+
+  const clampedQ = Math.max(0, Math.min(1, quantile))
+  const index = (sortedValues.length - 1) * clampedQ
+  const lowerIndex = Math.floor(index)
+  const upperIndex = Math.ceil(index)
+
+  if (lowerIndex === upperIndex) return sortedValues[lowerIndex]
+
+  const weight = index - lowerIndex
+  return sortedValues[lowerIndex] * (1 - weight) + sortedValues[upperIndex] * weight
+}
+
+function calculateRollingQuantileBand(
+  values: number[],
+  windowSize: number,
+  lowQuantile = 0.2,
+  highQuantile = 0.8
+): Array<{ low: number; high: number }> {
+  if (values.length === 0 || windowSize <= 0) return []
+
+  return values.map((_, i) => {
+    const start = Math.max(0, i - windowSize + 1)
+    const end = i
+    const windowValues = values.slice(start, end + 1)
+    if (windowValues.length === 0) {
+      return { low: 0, high: 0 }
+    }
+
+    const sorted = [...windowValues].sort((a, b) => a - b)
+
+    return {
+      low: calculateQuantile(sorted, lowQuantile),
+      high: calculateQuantile(sorted, highQuantile),
+    }
+  })
+}
+
+function calculateTrailingMovingAverage(values: number[], windowSize: number): number[] {
+  if (values.length === 0 || windowSize <= 0) return []
+
+  return values.map((_, i) => {
+    const start = Math.max(0, i - windowSize + 1)
+    const end = i
+    const windowValues = values.slice(start, end + 1)
+    if (windowValues.length === 0) return values[i] ?? 0
+    return windowValues.reduce((sum, value) => sum + value, 0) / windowValues.length
+  })
+}
+
+function calculateTrendBandsByQuantile(
+  values: number[],
+  trends: (number | null)[],
+  options: {
+    minLowerDistance: number
+    minUpperDistance: number
+    maxLowerDistance: number
+    maxUpperDistance: number
+  }
+): Array<{ low: number; high: number } | null> {
+  if (values.length === 0 || trends.length === 0) return []
+
+  const bandWindowSize = Math.max(TREND_BAND_WINDOW_SIZE, TREND_WINDOW_SIZE + 1)
+  const residualValues = values.map((value, i) => {
+    const trend = trends[i]
+    if (trend === null) return 0
+    return value - trend
+  })
+  const quantileBand = calculateRollingQuantileBand(
+    residualValues,
+    bandWindowSize,
+    TREND_BAND_LOW_QUANTILE,
+    TREND_BAND_HIGH_QUANTILE
+  )
+  const rawResidualLows = quantileBand.map((band) => band.low)
+  const rawResidualHighs = quantileBand.map((band) => band.high)
+  const smoothedResidualLows = calculateTrailingMovingAverage(
+    rawResidualLows,
+    TREND_BAND_SMOOTH_WINDOW
+  )
+  const smoothedResidualHighs = calculateTrailingMovingAverage(
+    rawResidualHighs,
+    TREND_BAND_SMOOTH_WINDOW
+  )
+
+  return trends.map((trend, i) => {
+    if (trend === null) return null
+
+    let low = trend + (smoothedResidualLows[i] ?? rawResidualLows[i] ?? 0)
+    let high = trend + (smoothedResidualHighs[i] ?? rawResidualHighs[i] ?? 0)
+
+    if (!Number.isFinite(low) || !Number.isFinite(high)) return null
+    if (high < low) {
+      const temp = low
+      low = high
+      high = temp
+    }
+
+    const rawLowerDistance = Math.abs(Math.min(0, low - trend))
+    const rawUpperDistance = Math.abs(Math.max(0, high - trend))
+    const lowerDistance = Math.min(
+      options.maxLowerDistance,
+      Math.max(options.minLowerDistance, rawLowerDistance)
+    )
+    const upperDistance = Math.min(
+      options.maxUpperDistance,
+      Math.max(options.minUpperDistance, rawUpperDistance)
+    )
+
+    return { low: trend - lowerDistance, high: trend + upperDistance }
+  })
+}
+
+function createTrendBandDistanceOptions(
+  range: number,
+  minDistanceFloor: number,
+  maxDistanceFloor: number
+): {
+  minLowerDistance: number
+  minUpperDistance: number
+  maxLowerDistance: number
+  maxUpperDistance: number
+} {
+  const minDistance = Math.max(range * TREND_BAND_MIN_DISTANCE_RATIO, minDistanceFloor)
+  const maxDistance = Math.max(range * TREND_BAND_MAX_DISTANCE_RATIO, maxDistanceFloor)
+  return {
+    minLowerDistance: minDistance,
+    minUpperDistance: minDistance,
+    maxLowerDistance: maxDistance,
+    maxUpperDistance: maxDistance,
+  }
+}
+
+function buildIndexTicks(length: number, maxTicks: number): number[] {
+  if (length <= 0) return []
+  if (length <= maxTicks) return Array.from({ length }, (_, i) => i)
+  if (maxTicks <= 1) return [0]
+
+  const lastIndex = length - 1
+  const step = lastIndex / (maxTicks - 1)
+  const ticks = new Set<number>([0, lastIndex])
+
+  for (let i = 1; i < maxTicks - 1; i++) {
+    ticks.add(Math.round(step * i))
+  }
+
+  return [...ticks].sort((a, b) => a - b)
+}
+
+function getShotDistributionGranularity(points: ShotDistributionPoint[]): ShotDistributionGranularity {
+  if (points.length <= 1) return "day"
+
+  let min = Number.POSITIVE_INFINITY
+  let max = Number.NEGATIVE_INFINITY
+
+  for (const point of points) {
+    const time = new Date(point.date).getTime()
+    if (!Number.isFinite(time)) continue
+    min = Math.min(min, time)
+    max = Math.max(max, time)
+  }
+
+  if (!Number.isFinite(min) || !Number.isFinite(max)) return "day"
+  const spanDays = (max - min) / (24 * 60 * 60 * 1000)
+  // Feiner aggregieren: bei moderaten Datenmengen und bis ca. 4-5 Monaten
+  // Tagesansicht, bei langen Verläufen Wochenansicht; Monate erst bei sehr langen Zeiträumen.
+  if (points.length <= 45 || spanDays <= 140) return "day"
+  if (spanDays <= 500) return "week"
+  return "month"
+}
+
+function getShotDistributionBucketStart(dateValue: Date, granularity: ShotDistributionGranularity): Date {
+  const date = new Date(dateValue)
+  date.setHours(0, 0, 0, 0)
+
+  if (granularity === "month") {
+    date.setDate(1)
+    return date
+  }
+
+  if (granularity === "week") {
+    const weekday = date.getDay()
+    const distanceToMonday = (weekday + 6) % 7
+    date.setDate(date.getDate() - distanceToMonday)
+  }
+
+  return date
 }
 
 function createDotStyle(color: string) {
@@ -423,10 +643,13 @@ export function StatisticsCharts({
 }: Props) {
   const DISPLAY_TIME_ZONE = displayTimeZone
   const [typeFilter, setTypeFilter] = useState<TypeFilter>("all")
-  const [from, setFrom] = useState("")
-  const [to, setTo] = useState("")
+  const [from, setFrom] = useState<string>(() => monthsAgo(3))
+  const [to, setTo] = useState<string>(() => today())
   const [disciplineFilter, setDisciplineFilter] = useState<string>("all")
   const [displayMode, setDisplayMode] = useState<DisplayMode>("per_shot")
+  const [showCloudTrail, setShowCloudTrail] = useState(false)
+  const [showHitLocationTrendX, setShowHitLocationTrendX] = useState(true)
+  const [showHitLocationTrendY, setShowHitLocationTrendY] = useState(true)
 
   // Verfügbare Disziplinen aus den Einheitendaten ableiten — keine separate Abfrage nötig
   const availableDisciplines = useMemo<DisciplineForStats[]>(() => {
@@ -495,6 +718,103 @@ export function StatisticsCharts({
     return shotDistributionData.filter((p) => filteredSessionIds.has(p.sessionId))
   }, [shotDistributionData, filteredSessionIds])
 
+  const aggregatedShotDistribution = useMemo<AggregatedShotDistributionPoint[]>(() => {
+    if (filteredShotDistribution.length === 0) return []
+
+    const granularity = getShotDistributionGranularity(filteredShotDistribution)
+    const byBucket = new Map<
+      string,
+      {
+        date: Date
+        totalShots: number
+        weightedR0to6: number
+        weightedR7: number
+        weightedR8: number
+        weightedR9: number
+        weightedR10: number
+      }
+    >()
+
+    for (const point of filteredShotDistribution) {
+      const totalShots = Math.max(0, point.totalShots)
+      if (totalShots <= 0) continue
+
+      const bucketDate = getShotDistributionBucketStart(new Date(point.date), granularity)
+      const bucketKey = bucketDate.toISOString()
+      const current = byBucket.get(bucketKey) ?? {
+        date: bucketDate,
+        totalShots: 0,
+        weightedR0to6: 0,
+        weightedR7: 0,
+        weightedR8: 0,
+        weightedR9: 0,
+        weightedR10: 0,
+      }
+      const r0to6 =
+        point.r0 + point.r1 + point.r2 + point.r3 + point.r4 + point.r5 + point.r6
+
+      current.totalShots += totalShots
+      current.weightedR0to6 += r0to6 * totalShots
+      current.weightedR7 += point.r7 * totalShots
+      current.weightedR8 += point.r8 * totalShots
+      current.weightedR9 += point.r9 * totalShots
+      current.weightedR10 += point.r10 * totalShots
+      byBucket.set(bucketKey, current)
+    }
+
+    const shortDayFormatter = new Intl.DateTimeFormat("de-CH", {
+      day: "2-digit",
+      month: "2-digit",
+      timeZone: DISPLAY_TIME_ZONE,
+    })
+    const monthFormatter = new Intl.DateTimeFormat("de-CH", {
+      month: "2-digit",
+      year: "2-digit",
+      timeZone: DISPLAY_TIME_ZONE,
+    })
+    const fullDateFormatter = new Intl.DateTimeFormat("de-CH", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      timeZone: DISPLAY_TIME_ZONE,
+    })
+
+    return [...byBucket.values()]
+      .sort((a, b) => a.date.getTime() - b.date.getTime())
+      .map((bucket, index) => {
+        const round1 = (value: number) => Math.round(value * 10) / 10
+        const r7 = round1(bucket.weightedR7 / bucket.totalShots)
+        const r8 = round1(bucket.weightedR8 / bucket.totalShots)
+        const r9 = round1(bucket.weightedR9 / bucket.totalShots)
+        const r10 = round1(bucket.weightedR10 / bucket.totalShots)
+        const r0to6 = round1(Math.max(0, 100 - r7 - r8 - r9 - r10))
+
+        const dateLabel =
+          granularity === "month"
+            ? monthFormatter.format(bucket.date)
+            : shortDayFormatter.format(bucket.date)
+        const tooltipLabel =
+          granularity === "day"
+            ? fullDateFormatter.format(bucket.date)
+            : granularity === "week"
+              ? `Woche ab ${fullDateFormatter.format(bucket.date)}`
+              : `Monat ${monthFormatter.format(bucket.date)}`
+
+        return {
+          i: index,
+          date: bucket.date,
+          dateLabel,
+          tooltipLabel,
+          totalShots: bucket.totalShots,
+          r0to6,
+          r7,
+          r8,
+          r9,
+          r10,
+        }
+      })
+  }, [filteredShotDistribution, DISPLAY_TIME_ZONE])
+
   // Prognose/Feedback-Daten konsistent zu den aktiven Filtern einschränken
   const filteredRadarSessions = useMemo(() => {
     return radarData.filter((p) => filteredSessionIds.has(p.sessionId))
@@ -535,7 +855,7 @@ export function StatisticsCharts({
 
   // Dezente Verlaufsspur in der Cloud: gleitender Schwerpunkt (X/Y) über die Zeit.
   const hitLocationCloudPathPoints = useMemo<HitLocationPathPoint[]>(() => {
-    if (filteredHitLocations.length === 0) return []
+    if (!showCloudTrail || filteredHitLocations.length === 0) return []
 
     const xTrendValues = calculateTrend(filteredHitLocations.map((point) => point.x))
     const yTrendValues = calculateTrend(filteredHitLocations.map((point) => point.y))
@@ -554,7 +874,7 @@ export function StatisticsCharts({
           typeof point.y === "number" &&
           Number.isFinite(point.y)
       )
-  }, [filteredHitLocations])
+  }, [filteredHitLocations, showCloudTrail])
 
   const hitLocationCloudPathVisualPoints = useMemo(() => {
     if (hitLocationCloudPathPoints.length <= 2) return hitLocationCloudPathPoints
@@ -600,11 +920,42 @@ export function StatisticsCharts({
     const xTrendValues = calculateTrend(xValues)
     const yTrendValues = calculateTrend(yValues)
 
-    const trendById = new Map<string, { xTrend: number | null; yTrend: number | null }>()
+    const xRange =
+      xValues.length > 0 ? Math.max(...xValues) - Math.min(...xValues) : 0
+    const yRange =
+      yValues.length > 0 ? Math.max(...yValues) - Math.min(...yValues) : 0
+    const xBandValues = calculateTrendBandsByQuantile(
+      xValues,
+      xTrendValues,
+      createTrendBandDistanceOptions(xRange, 0.12, 1.8)
+    )
+    const yBandValues = calculateTrendBandsByQuantile(
+      yValues,
+      yTrendValues,
+      createTrendBandDistanceOptions(yRange, 0.12, 1.8)
+    )
+
+    const trendById = new Map<
+      string,
+      {
+        xTrend: number | null
+        yTrend: number | null
+        xTrendLow: number | null
+        xTrendHigh: number | null
+        yTrendLow: number | null
+        yTrendHigh: number | null
+      }
+    >()
     filteredHitLocationsForTrend.forEach((point, i) => {
+      const xBand = xBandValues[i]
+      const yBand = yBandValues[i]
       trendById.set(point.sessionId, {
         xTrend: xTrendValues[i],
         yTrend: yTrendValues[i],
+        xTrendLow: xBand?.low ?? null,
+        xTrendHigh: xBand?.high ?? null,
+        yTrendLow: yBand?.low ?? null,
+        yTrendHigh: yBand?.high ?? null,
       })
     })
     return trendById
@@ -613,27 +964,57 @@ export function StatisticsCharts({
   const hitLocationTrendData = useMemo(() => {
     if (filteredHitLocations.length === 0) return []
 
-    return filteredHitLocations.map((point, i) => ({
-      i,
-      date: point.date,
-      dateLabel: new Intl.DateTimeFormat("de-CH", {
-        day: "2-digit",
-        month: "2-digit",
-        timeZone: DISPLAY_TIME_ZONE,
-      }).format(new Date(point.date)),
-      x: point.x,
-      y: point.y,
-      xTrend: hitLocationTrendBySessionId.get(point.sessionId)?.xTrend ?? null,
-      yTrend: hitLocationTrendBySessionId.get(point.sessionId)?.yTrend ?? null,
-    }))
+    return filteredHitLocations.map((point, i) => {
+      const trendEntry = hitLocationTrendBySessionId.get(point.sessionId)
+      const xTrendLow = trendEntry?.xTrendLow ?? null
+      const xTrendHigh = trendEntry?.xTrendHigh ?? null
+      const yTrendLow = trendEntry?.yTrendLow ?? null
+      const yTrendHigh = trendEntry?.yTrendHigh ?? null
+
+      return {
+        i,
+        date: point.date,
+        dateLabel: new Intl.DateTimeFormat("de-CH", {
+          day: "2-digit",
+          month: "2-digit",
+          timeZone: DISPLAY_TIME_ZONE,
+        }).format(new Date(point.date)),
+        x: point.x,
+        y: point.y,
+        xTrend: trendEntry?.xTrend ?? null,
+        yTrend: trendEntry?.yTrend ?? null,
+        xTrendLow,
+        xTrendHigh,
+        yTrendLow,
+        yTrendHigh,
+        xTrendBand:
+          xTrendLow !== null && xTrendHigh !== null ? ([xTrendLow, xTrendHigh] as const) : null,
+        yTrendBand:
+          yTrendLow !== null && yTrendHigh !== null ? ([yTrendLow, yTrendHigh] as const) : null,
+      }
+    })
   }, [filteredHitLocations, hitLocationTrendBySessionId, DISPLAY_TIME_ZONE])
 
   const hitLocationTrendAxis = useMemo<{ domain: [number, number]; ticks: number[] }>(() => {
+    const showXSeries = showHitLocationTrendX || !showHitLocationTrendY
+    const showYSeries = showHitLocationTrendY || !showHitLocationTrendX
     const values = hitLocationTrendData
-      .flatMap((point) => [point.x, point.y, point.xTrend, point.yTrend])
+      .flatMap((point) => {
+        const result: Array<number | null> = []
+        if (showXSeries) {
+          result.push(point.x, point.xTrend, point.xTrendLow, point.xTrendHigh)
+        }
+        if (showYSeries) {
+          result.push(point.y, point.yTrend, point.yTrendLow, point.yTrendHigh)
+        }
+        return result
+      })
       .filter((value): value is number => typeof value === "number" && Number.isFinite(value))
     return computeCenteredAxis(values, 1)
-  }, [hitLocationTrendData])
+  }, [hitLocationTrendData, showHitLocationTrendX, showHitLocationTrendY])
+
+  const showHitLocationTrendXSeries = showHitLocationTrendX || !showHitLocationTrendY
+  const showHitLocationTrendYSeries = showHitLocationTrendY || !showHitLocationTrendX
 
   // Befinden-Anzeigedaten: bei Hochrechnung auf Gesamtschusszahl der Disziplin projizieren
   const wellbeingDisplayData = useMemo(() => {
@@ -692,6 +1073,38 @@ export function StatisticsCharts({
   const movingAvgBySessionId = new Map<string, number | null>(
     withScoreForTrend.map((session, i) => [session.id, movingAvgForTrend[i]])
   )
+  const trendBandBySessionId = (() => {
+    if (withScoreForTrend.length === 0) return new Map<string, { low: number; high: number }>()
+
+    const minValue = Math.min(...displayValuesForTrend)
+    const maxValue = Math.max(...displayValuesForTrend)
+    const range = Number.isFinite(maxValue - minValue) ? maxValue - minValue : 0
+    const minBandWidth = Math.max(
+      range * 0.035,
+      effectiveDisplayMode === "projected" ? 0.35 : 0.03
+    )
+    const maxBandWidth = Math.max(
+      range * 0.45,
+      effectiveDisplayMode === "projected" ? 3.2 : 0.3
+    )
+    const bands = calculateTrendBandsByQuantile(
+      displayValuesForTrend,
+      movingAvgForTrend,
+      createTrendBandDistanceOptions(
+        range,
+        minBandWidth / 2,
+        maxBandWidth
+      )
+    )
+
+    return new Map<string, { low: number; high: number }>(
+      withScoreForTrend.flatMap((session, i) => {
+        const band = bands[i]
+        if (!band) return []
+        return [[session.id, band] as const]
+      })
+    )
+  })()
 
   // Gesamtschusszahl der gewählten Disziplin (für Hochrechnung-Label)
   const totalDisciplineShots = selectedDiscipline
@@ -745,19 +1158,63 @@ export function StatisticsCharts({
   }
 
   // Daten für den Verlaufschart
-  const lineData = withScore.map((s, i) => ({
-    i,
-    datum: new Intl.DateTimeFormat("de-CH", {
-      day: "2-digit",
-      month: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
-      timeZone: DISPLAY_TIME_ZONE,
-    }).format(new Date(s.date)),
-    // Feste Keys statt dynamischer — Recharts braucht stabile dataKey-Referenzen
-    wert: displayValues[i],
-    trend: movingAvgBySessionId.get(s.id) ?? null,
-  }))
+  const lineData = withScore.map((s, i) => {
+    const trend = movingAvgBySessionId.get(s.id) ?? null
+    const band = trendBandBySessionId.get(s.id)
+
+    const trendLow = trend !== null && band ? band.low : null
+    const trendHigh = trend !== null && band ? band.high : null
+
+    return {
+      i,
+      datum: new Intl.DateTimeFormat("de-CH", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "2-digit",
+        timeZone: DISPLAY_TIME_ZONE,
+      }).format(new Date(s.date)),
+      // Feste Keys statt dynamischer — Recharts braucht stabile dataKey-Referenzen
+      wert: displayValues[i],
+      trend,
+      trendLow,
+      trendHigh,
+      trendBand: trendLow !== null && trendHigh !== null ? [trendLow, trendHigh] : null,
+    }
+  })
+  const resultTrendYAxis = useMemo<{ domain: [number, number]; ticks: number[] }>(() => {
+    const values = lineData
+      .flatMap((point) => [point.wert, point.trend, point.trendLow, point.trendHigh])
+      .filter((value): value is number => typeof value === "number" && Number.isFinite(value))
+    return computeStableAxis(values)
+  }, [lineData])
+
+  const lineChartTicks = useMemo(
+    () => buildIndexTicks(lineData.length, CHART_TIME_AXIS_MAX_TICKS),
+    [lineData.length]
+  )
+  const hitLocationTrendTicks = useMemo(
+    () => buildIndexTicks(hitLocationTrendData.length, CHART_TIME_AXIS_MAX_TICKS),
+    [hitLocationTrendData.length]
+  )
+  const shotDistributionTicks = useMemo(
+    () => buildIndexTicks(aggregatedShotDistribution.length, CHART_TIME_AXIS_MAX_TICKS),
+    [aggregatedShotDistribution.length]
+  )
+
+  const presetToday = today()
+  const presetFrom6Months = monthsAgo(6)
+  const presetFrom3Months = monthsAgo(3)
+  const presetFrom1Month = monthsAgo(1)
+  const activeTimePreset: "all" | "6m" | "3m" | "1m" | null =
+    from === "" && to === ""
+      ? "all"
+      : from === presetFrom6Months && to === presetToday
+        ? "6m"
+        : from === presetFrom3Months && to === presetToday
+          ? "3m"
+          : from === presetFrom1Month && to === presetToday
+            ? "1m"
+            : null
 
   // Serien-Statistiken für BarChart
   const seriesStats = useMemo(() => calculateSeriesStats(filtered), [filtered])
@@ -884,17 +1341,11 @@ export function StatisticsCharts({
 
   const shotDistributionChartConfig = useMemo<ChartConfig>(
     () => ({
-      r0: { label: "0er", color: shotDistributionColors.r0 },
-      r1: { label: "1er", color: shotDistributionColors.r1 },
-      r2: { label: "2er", color: shotDistributionColors.r2 },
-      r3: { label: "3er", color: shotDistributionColors.r3 },
-      r4: { label: "4er", color: shotDistributionColors.r4 },
-      r5: { label: "5er", color: shotDistributionColors.r5 },
-      r6: { label: "6er", color: shotDistributionColors.r6 },
-      r7: { label: "7er", color: shotDistributionColors.r7 },
-      r8: { label: "8er", color: shotDistributionColors.r8 },
-      r9: { label: "9er", color: shotDistributionColors.r9 },
-      r10: { label: "10er", color: shotDistributionColors.r10 },
+      r10: { label: "10er", color: shotDistributionBundledColors.r10 },
+      r9: { label: "9er", color: shotDistributionBundledColors.r9 },
+      r8: { label: "8er", color: shotDistributionBundledColors.r8 },
+      r7: { label: "7er", color: shotDistributionBundledColors.r7 },
+      r0to6: { label: "0–6er", color: shotDistributionBundledColors.r0to6 },
     }),
     []
   )
@@ -981,7 +1432,7 @@ export function StatisticsCharts({
               <Label>Zeitraum</Label>
               <div className="flex flex-wrap gap-1">
                 <Button
-                  variant="outline"
+                  variant={activeTimePreset === "all" ? "default" : "outline"}
                   className="h-9 text-sm"
                   onClick={() => {
                     setFrom("")
@@ -991,31 +1442,31 @@ export function StatisticsCharts({
                   Alle
                 </Button>
                 <Button
-                  variant="outline"
+                  variant={activeTimePreset === "6m" ? "default" : "outline"}
                   className="h-9 text-sm"
                   onClick={() => {
-                    setFrom(monthsAgo(6))
-                    setTo(today())
+                    setFrom(presetFrom6Months)
+                    setTo(presetToday)
                   }}
                 >
                   6 Monate
                 </Button>
                 <Button
-                  variant="outline"
+                  variant={activeTimePreset === "3m" ? "default" : "outline"}
                   className="h-9 text-sm"
                   onClick={() => {
-                    setFrom(monthsAgo(3))
-                    setTo(today())
+                    setFrom(presetFrom3Months)
+                    setTo(presetToday)
                   }}
                 >
                   3 Monate
                 </Button>
                 <Button
-                  variant="outline"
+                  variant={activeTimePreset === "1m" ? "default" : "outline"}
                   className="h-9 text-sm"
                   onClick={() => {
-                    setFrom(monthsAgo(1))
-                    setTo(today())
+                    setFrom(presetFrom1Month)
+                    setTo(presetToday)
                   }}
                 >
                   1 Monat
@@ -1103,19 +1554,27 @@ export function StatisticsCharts({
                 </CardHeader>
                 <CardContent>
                   <ChartContainer config={lineChartConfig} className="h-[280px] w-full">
-                    <LineChart data={lineData} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
+                    <ComposedChart data={lineData} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
                       <CartesianGrid stroke="var(--border)" strokeOpacity={0.4} vertical={false} />
                       {/* dataKey="i" statt "datum" — verhindert Kollision wenn zwei Einheiten
                       am selben Tag existieren (gleicher Datumsstring → gleicher x-Slot) */}
                       <XAxis
                         dataKey="i"
+                        ticks={lineChartTicks}
                         tickFormatter={(i: number) => lineData[i]?.datum ?? ""}
                         tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
                         axisLine={false}
                         tickLine={false}
                       />
                       <YAxis
-                        domain={["auto", "auto"]}
+                        domain={resultTrendYAxis.domain}
+                        ticks={resultTrendYAxis.ticks}
+                        allowDataOverflow={true}
+                        tickFormatter={(v: number) =>
+                          effectiveDisplayMode === "projected" && selectedDiscipline
+                            ? formatDisplayValue(v)
+                            : v.toFixed(2).replace(/\.00$/, "").replace(/(\.\d)0$/, "$1")
+                        }
                         tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
                         axisLine={false}
                         tickLine={false}
@@ -1145,6 +1604,17 @@ export function StatisticsCharts({
                         }
                       />
                       <ChartLegend content={<ChartLegendContent />} />
+                      <Area
+                        type="monotone"
+                        dataKey="trendBand"
+                        legendType="none"
+                        tooltipType="none"
+                        stroke="none"
+                        fill={CHART_TREND_BAND_FILL}
+                        fillOpacity={CHART_TREND_BAND_OPACITY}
+                        connectNulls={false}
+                        isAnimationActive={false}
+                      />
                       <Line
                         type="monotone"
                         dataKey="trend"
@@ -1161,15 +1631,13 @@ export function StatisticsCharts({
                         type="linear"
                         dataKey="wert"
                         name="wert"
-                        stroke="var(--chart-1)"
-                        strokeWidth={CHART_POINT_LINK_STROKE_WIDTH}
-                        strokeOpacity={CHART_POINT_LINK_STROKE_OPACITY}
-                        strokeDasharray={CHART_POINT_LINK_DASHARRAY}
+                        stroke="transparent"
+                        strokeWidth={0}
                         dot={createDotStyle("var(--chart-1)")}
                         activeDot={createActiveDotStyle("var(--chart-1)")}
                         connectNulls={false}
                       />
-                    </LineChart>
+                    </ComposedChart>
                   </ChartContainer>
                 </CardContent>
               </Card>
@@ -1239,13 +1707,24 @@ export function StatisticsCharts({
             <>
               <Card>
                 <CardHeader>
-                  <CardTitle className="flex flex-wrap items-baseline gap-2">
-                    Trefferlagen-Cloud
-                    <span className="text-base font-normal text-muted-foreground">
-                      {filteredHitLocations.length} Einheit
-                      {filteredHitLocations.length !== 1 ? "en" : ""}
-                    </span>
-                  </CardTitle>
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <CardTitle className="flex flex-wrap items-baseline gap-2">
+                      Trefferlagen-Cloud
+                      <span className="text-base font-normal text-muted-foreground">
+                        {filteredHitLocations.length} Einheit
+                        {filteredHitLocations.length !== 1 ? "en" : ""}
+                      </span>
+                    </CardTitle>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant={showCloudTrail ? "default" : "outline"}
+                      className="h-8 px-3 text-xs"
+                      onClick={() => setShowCloudTrail((current) => !current)}
+                    >
+                      Verlauf {showCloudTrail ? "an" : "aus"}
+                    </Button>
+                  </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="mx-auto aspect-square w-full max-w-[560px]">
@@ -1333,21 +1812,22 @@ export function StatisticsCharts({
                             />
                           }
                         />
-                        {hitLocationCloudCurveSegments.map(([from, to], index) => (
-                          <ReferenceLine
-                            key={`hit-location-cloud-curve-${index}`}
-                            segment={[
-                              { x: from.x, y: from.y },
-                              { x: to.x, y: to.y },
-                            ]}
-                            stroke={HIT_LOCATION_CLOUD_TRAIL_STROKE}
-                            strokeWidth={HIT_LOCATION_CLOUD_TRAIL_STROKE_WIDTH}
-                            strokeOpacity={HIT_LOCATION_CLOUD_TRAIL_STROKE_OPACITY}
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            ifOverflow="extendDomain"
-                          />
-                        ))}
+                        {showCloudTrail &&
+                          hitLocationCloudCurveSegments.map(([from, to], index) => (
+                            <ReferenceLine
+                              key={`hit-location-cloud-curve-${index}`}
+                              segment={[
+                                { x: from.x, y: from.y },
+                                { x: to.x, y: to.y },
+                              ]}
+                              stroke={HIT_LOCATION_CLOUD_TRAIL_STROKE}
+                              strokeWidth={HIT_LOCATION_CLOUD_TRAIL_STROKE_WIDTH}
+                              strokeOpacity={HIT_LOCATION_CLOUD_TRAIL_STROKE_OPACITY}
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              ifOverflow="extendDomain"
+                            />
+                          ))}
                         <Scatter
                           data={filteredHitLocations}
                           fill="var(--chart-1)"
@@ -1355,7 +1835,7 @@ export function StatisticsCharts({
                             renderScatterPoint(props, "var(--chart-1)")
                           }
                         />
-                        {hitLocationCloudPathStart && (
+                        {showCloudTrail && hitLocationCloudPathStart && (
                           <Scatter
                             data={[hitLocationCloudPathStart]}
                             legendType="none"
@@ -1373,7 +1853,7 @@ export function StatisticsCharts({
                             )}
                           />
                         )}
-                        {hitLocationCloudPathEnd && (
+                        {showCloudTrail && hitLocationCloudPathEnd && (
                           <Scatter
                             data={[hitLocationCloudPathEnd]}
                             legendType="none"
@@ -1418,22 +1898,47 @@ export function StatisticsCharts({
 
               <Card>
                 <CardHeader>
-                  <CardTitle className="flex flex-wrap items-baseline gap-2">
-                    Trefferlage-Trend über Zeit
-                    <span className="text-base font-normal text-muted-foreground">
-                      → X (rechts/links) · ↑ Y (hoch/tief)
-                    </span>
-                  </CardTitle>
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <CardTitle className="flex flex-wrap items-baseline gap-2">
+                      Trefferlage-Trend über Zeit
+                      <span className="text-base font-normal text-muted-foreground">
+                        → X (rechts/links) · ↑ Y (hoch/tief)
+                      </span>
+                    </CardTitle>
+                    <div className="flex items-center gap-1">
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant={showHitLocationTrendX ? "default" : "outline"}
+                        className="h-8 px-3 text-xs"
+                        disabled={showHitLocationTrendX && !showHitLocationTrendY}
+                        onClick={() => setShowHitLocationTrendX((current) => !current)}
+                      >
+                        X {showHitLocationTrendX ? "an" : "aus"}
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant={showHitLocationTrendY ? "default" : "outline"}
+                        className="h-8 px-3 text-xs"
+                        disabled={showHitLocationTrendY && !showHitLocationTrendX}
+                        onClick={() => setShowHitLocationTrendY((current) => !current)}
+                      >
+                        Y {showHitLocationTrendY ? "an" : "aus"}
+                      </Button>
+                    </div>
+                  </div>
                 </CardHeader>
                 <CardContent>
                   <ChartContainer config={hitLocationTrendChartConfig} className="h-[280px] w-full">
-                    <LineChart
+                    <ComposedChart
                       data={hitLocationTrendData}
                       margin={{ top: 5, right: 20, bottom: 5, left: 0 }}
                     >
                       <CartesianGrid stroke="var(--border)" strokeOpacity={0.4} vertical={false} />
                       <XAxis
                         dataKey="i"
+                        ticks={hitLocationTrendTicks}
                         tickFormatter={(i: number) => hitLocationTrendData[i]?.dateLabel ?? ""}
                         tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
                         axisLine={false}
@@ -1492,55 +1997,85 @@ export function StatisticsCharts({
                         }
                       />
                       <ChartLegend content={<ChartLegendContent />} />
-                      <Line
-                        type="monotone"
-                        dataKey="xTrend"
-                        name="xTrend"
-                        stroke={createTrendStroke("var(--chart-1)")}
-                        strokeWidth={CHART_TREND_STROKE_WIDTH}
-                        strokeOpacity={CHART_TREND_STROKE_OPACITY}
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        dot={false}
-                        connectNulls={false}
-                      />
-                      <Line
-                        type="monotone"
-                        dataKey="yTrend"
-                        name="yTrend"
-                        stroke={createTrendStroke("var(--chart-2)")}
-                        strokeWidth={CHART_TREND_STROKE_WIDTH}
-                        strokeOpacity={CHART_TREND_STROKE_OPACITY}
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        dot={false}
-                        connectNulls={false}
-                      />
-                      <Line
-                        type="linear"
-                        dataKey="x"
-                        name="x"
-                        stroke="var(--chart-1)"
-                        strokeWidth={CHART_POINT_LINK_STROKE_WIDTH}
-                        strokeOpacity={CHART_POINT_LINK_STROKE_OPACITY}
-                        strokeDasharray={CHART_POINT_LINK_DASHARRAY}
-                        dot={createDotStyle("var(--chart-1)")}
-                        activeDot={createActiveDotStyle("var(--chart-1)")}
-                        connectNulls={false}
-                      />
-                      <Line
-                        type="linear"
-                        dataKey="y"
-                        name="y"
-                        stroke="var(--chart-2)"
-                        strokeWidth={CHART_POINT_LINK_STROKE_WIDTH}
-                        strokeOpacity={CHART_POINT_LINK_STROKE_OPACITY}
-                        strokeDasharray={CHART_POINT_LINK_DASHARRAY}
-                        dot={createDotStyle("var(--chart-2)")}
-                        activeDot={createActiveDotStyle("var(--chart-2)")}
-                        connectNulls={false}
-                      />
-                    </LineChart>
+                      {showHitLocationTrendXSeries && (
+                        <Area
+                          type="monotone"
+                          dataKey="xTrendBand"
+                          legendType="none"
+                          tooltipType="none"
+                          stroke="none"
+                          fill={createTrendStroke("var(--chart-1)")}
+                          fillOpacity={HIT_LOCATION_TREND_BAND_OPACITY}
+                          connectNulls={false}
+                          isAnimationActive={false}
+                        />
+                      )}
+                      {showHitLocationTrendXSeries && (
+                        <Line
+                          type="monotone"
+                          dataKey="xTrend"
+                          name="xTrend"
+                          stroke={createTrendStroke("var(--chart-1)")}
+                          strokeWidth={CHART_TREND_STROKE_WIDTH}
+                          strokeOpacity={CHART_TREND_STROKE_OPACITY}
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          dot={false}
+                          connectNulls={false}
+                        />
+                      )}
+                      {showHitLocationTrendXSeries && (
+                        <Line
+                          type="linear"
+                          dataKey="x"
+                          name="x"
+                          stroke="transparent"
+                          strokeWidth={0}
+                          dot={createDotStyle("var(--chart-1)")}
+                          activeDot={createActiveDotStyle("var(--chart-1)")}
+                          connectNulls={false}
+                        />
+                      )}
+                      {showHitLocationTrendYSeries && (
+                        <Area
+                          type="monotone"
+                          dataKey="yTrendBand"
+                          legendType="none"
+                          tooltipType="none"
+                          stroke="none"
+                          fill={createTrendStroke("var(--chart-2)")}
+                          fillOpacity={HIT_LOCATION_TREND_BAND_OPACITY}
+                          connectNulls={false}
+                          isAnimationActive={false}
+                        />
+                      )}
+                      {showHitLocationTrendYSeries && (
+                        <Line
+                          type="monotone"
+                          dataKey="yTrend"
+                          name="yTrend"
+                          stroke={createTrendStroke("var(--chart-2)")}
+                          strokeWidth={CHART_TREND_STROKE_WIDTH}
+                          strokeOpacity={CHART_TREND_STROKE_OPACITY}
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          dot={false}
+                          connectNulls={false}
+                        />
+                      )}
+                      {showHitLocationTrendYSeries && (
+                        <Line
+                          type="linear"
+                          dataKey="y"
+                          name="y"
+                          stroke="transparent"
+                          strokeWidth={0}
+                          dot={createDotStyle("var(--chart-2)")}
+                          activeDot={createActiveDotStyle("var(--chart-2)")}
+                          connectNulls={false}
+                        />
+                      )}
+                    </ComposedChart>
                   </ChartContainer>
                 </CardContent>
               </Card>
@@ -1826,32 +2361,27 @@ export function StatisticsCharts({
           )}
 
           {/* Schussverteilung im Zeitverlauf — normalisiert auf Prozent (Einheiten mit Einzelschüssen) */}
-          {filteredShotDistribution.length > 0 && (
+          {aggregatedShotDistribution.length > 0 && (
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-baseline gap-2">
                   Schussverteilung im Zeitverlauf
                   <span className="text-base font-normal text-muted-foreground">
-                    Anteil je Ringwert in %
+                    Anteil je Ringwert in % · aggregiert & gebündelt
                   </span>
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <ChartContainer config={shotDistributionChartConfig} className="h-[300px] w-full">
                   <AreaChart
-                    data={filteredShotDistribution}
+                    data={aggregatedShotDistribution}
                     margin={{ top: 5, right: 20, bottom: 5, left: 0 }}
                   >
                     <CartesianGrid stroke="var(--border)" strokeOpacity={0.4} vertical={false} />
                     <XAxis
-                      dataKey="date"
-                      tickFormatter={(d: Date) =>
-                        new Intl.DateTimeFormat("de-CH", {
-                          day: "2-digit",
-                          month: "2-digit",
-                          timeZone: DISPLAY_TIME_ZONE,
-                        }).format(new Date(d))
-                      }
+                      dataKey="i"
+                      ticks={shotDistributionTicks}
+                      tickFormatter={(i: number) => aggregatedShotDistribution[i]?.dateLabel ?? ""}
                       tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
                       axisLine={false}
                       tickLine={false}
@@ -1864,20 +2394,14 @@ export function StatisticsCharts({
                       tickLine={false}
                       width={38}
                     />
-                    {/* Tooltip: r10 zuerst; Buckets mit 0 % ausblenden */}
+                    {/* Tooltip: gebündelte Ringgruppen, absteigend (10 → 0–6) */}
                     <ChartTooltip
                       content={
                         <ChartTooltipContent
                           indicator="line"
                           labelFormatter={(_label, payload) => {
-                            const dateValue = payload?.[0]?.payload?.date
-                            if (!dateValue) return ""
-                            return new Intl.DateTimeFormat("de-CH", {
-                              day: "2-digit",
-                              month: "2-digit",
-                              year: "numeric",
-                              timeZone: DISPLAY_TIME_ZONE,
-                            }).format(new Date(dateValue as Date))
+                            const tooltipLabel = payload?.[0]?.payload?.tooltipLabel
+                            return typeof tooltipLabel === "string" ? tooltipLabel : ""
                           }}
                           payloadFilter={(item) =>
                             typeof item.value === "number" &&
@@ -1885,14 +2409,27 @@ export function StatisticsCharts({
                             item.value > 0
                           }
                           payloadSorter={(a, b) => {
-                            const aRing = parseInt(String(a.name).replace("r", ""), 10)
-                            const bRing = parseInt(String(b.name).replace("r", ""), 10)
-                            return bRing - aRing
+                            const order: Record<string, number> = {
+                              r10: 5,
+                              r9: 4,
+                              r8: 3,
+                              r7: 2,
+                              r0to6: 1,
+                            }
+                            return (order[String(b.name)] ?? 0) - (order[String(a.name)] ?? 0)
                           }}
                           formatter={(value, name) => (
                             <div className="flex w-full items-center justify-between gap-6">
                               <span className="text-muted-foreground">
-                                {String(name).replace("r", "")}er
+                                {name === "r10"
+                                  ? "10er"
+                                  : name === "r9"
+                                    ? "9er"
+                                    : name === "r8"
+                                      ? "8er"
+                                      : name === "r7"
+                                        ? "7er"
+                                        : "0–6er"}
                               </span>
                               <span className="text-foreground font-mono font-medium tabular-nums">
                                 {typeof value === "number"
@@ -1904,17 +2441,21 @@ export function StatisticsCharts({
                         />
                       }
                     />
-                    {/* Custom Legend: Payload umkehren → r10 links, r0 rechts */}
+                    {/* Custom Legend: gebündelte Reihenfolge 10 → 0–6 */}
                     <Legend
                       content={(props) => {
                         const { payload } = props as {
                           payload?: Array<{ value: string; color: string }>
                         }
-                        // Numerisch absteigend sortieren (Recharts liefert alphabetische Reihenfolge)
+                        const order: Record<string, number> = {
+                          r10: 5,
+                          r9: 4,
+                          r8: 3,
+                          r7: 2,
+                          r0to6: 1,
+                        }
                         const items = [...(payload ?? [])].sort((a, b) => {
-                          const nA = parseInt(a.value.replace("r", ""), 10)
-                          const nB = parseInt(b.value.replace("r", ""), 10)
-                          return nB - nA
+                          return (order[b.value] ?? 0) - (order[a.value] ?? 0)
                         })
                         return (
                           <div
@@ -1942,91 +2483,59 @@ export function StatisticsCharts({
                                     flexShrink: 0,
                                   }}
                                 />
-                                <span>{entry.value.replace("r", "")}er</span>
+                                <span>
+                                  {entry.value === "r10"
+                                    ? "10er"
+                                    : entry.value === "r9"
+                                      ? "9er"
+                                      : entry.value === "r8"
+                                        ? "8er"
+                                        : entry.value === "r7"
+                                          ? "7er"
+                                          : "0–6er"}
+                                </span>
                               </div>
                             ))}
                           </div>
                         )
                       }}
                     />
-                    {/* Stapelreihenfolge: r0 zuerst (unten) → r10 zuletzt (oben im Stack).
-                    Farbschema analog Meyton: 10 rot, 9 gelb, 8–0 Grautöne (8 dunkelst, 0 hellst). */}
+                    {/* Stapelreihenfolge: 0–6 unten, dann 7, 8, 9, 10 oben. */}
                     <Area
                       type="monotone"
-                      dataKey="r0"
+                      dataKey="r0to6"
                       stackId="rings"
-                      stroke={shotDistributionColors.r0}
-                      fill={shotDistributionColors.r0}
-                    />
-                    <Area
-                      type="monotone"
-                      dataKey="r1"
-                      stackId="rings"
-                      stroke={shotDistributionColors.r1}
-                      fill={shotDistributionColors.r1}
-                    />
-                    <Area
-                      type="monotone"
-                      dataKey="r2"
-                      stackId="rings"
-                      stroke={shotDistributionColors.r2}
-                      fill={shotDistributionColors.r2}
-                    />
-                    <Area
-                      type="monotone"
-                      dataKey="r3"
-                      stackId="rings"
-                      stroke={shotDistributionColors.r3}
-                      fill={shotDistributionColors.r3}
-                    />
-                    <Area
-                      type="monotone"
-                      dataKey="r4"
-                      stackId="rings"
-                      stroke={shotDistributionColors.r4}
-                      fill={shotDistributionColors.r4}
-                    />
-                    <Area
-                      type="monotone"
-                      dataKey="r5"
-                      stackId="rings"
-                      stroke={shotDistributionColors.r5}
-                      fill={shotDistributionColors.r5}
-                    />
-                    <Area
-                      type="monotone"
-                      dataKey="r6"
-                      stackId="rings"
-                      stroke={shotDistributionColors.r6}
-                      fill={shotDistributionColors.r6}
+                      stroke={shotDistributionBundledColors.r0to6}
+                      fill={shotDistributionBundledColors.r0to6}
+                      fillOpacity={0.9}
                     />
                     <Area
                       type="monotone"
                       dataKey="r7"
                       stackId="rings"
-                      stroke={shotDistributionColors.r7}
-                      fill={shotDistributionColors.r7}
+                      stroke={shotDistributionBundledColors.r7}
+                      fill={shotDistributionBundledColors.r7}
                     />
                     <Area
                       type="monotone"
                       dataKey="r8"
                       stackId="rings"
-                      stroke={shotDistributionColors.r8}
-                      fill={shotDistributionColors.r8}
+                      stroke={shotDistributionBundledColors.r8}
+                      fill={shotDistributionBundledColors.r8}
                     />
                     <Area
                       type="monotone"
                       dataKey="r9"
                       stackId="rings"
-                      stroke={shotDistributionColors.r9}
-                      fill={shotDistributionColors.r9}
+                      stroke={shotDistributionBundledColors.r9}
+                      fill={shotDistributionBundledColors.r9}
                     />
                     <Area
                       type="monotone"
                       dataKey="r10"
                       stackId="rings"
-                      stroke={shotDistributionColors.r10}
-                      fill={shotDistributionColors.r10}
+                      stroke={shotDistributionBundledColors.r10}
+                      fill={shotDistributionBundledColors.r10}
                     />
                   </AreaChart>
                 </ChartContainer>
