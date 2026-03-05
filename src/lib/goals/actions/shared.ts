@@ -2,7 +2,7 @@ import { revalidatePath } from "next/cache"
 import { z } from "zod"
 import { db } from "@/lib/db"
 import { getAuthSession } from "@/lib/auth-helpers"
-import type { GoalActionResult, GoalWithAssignments } from "@/lib/goals/types"
+import type { GoalWithAssignments } from "@/lib/goals/types"
 
 export const CreateGoalSchema = z.object({
   title: z.string().trim().min(1, "Titel ist erforderlich"),
@@ -30,6 +30,8 @@ type ValidatedGoalInput = {
   dateFrom: Date
   dateTo: Date
 }
+
+type GoalInputError = { error: string }
 
 function parseDateFromInput(value: string): Date {
   return new Date(`${value}T00:00:00`)
@@ -59,7 +61,7 @@ export function mapGoalWithAssignments(goal: GoalWithRelations): GoalWithAssignm
 export function parseGoalInput(
   formData: FormData,
   context: "create" | "update"
-): ValidatedGoalInput | GoalActionResult {
+): ValidatedGoalInput | GoalInputError {
   const parsed = CreateGoalSchema.safeParse({
     title: formData.get("title"),
     description: formData.get("description") || undefined,

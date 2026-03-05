@@ -1,8 +1,8 @@
 export type SeriesStats = {
   position: number
-  min: number | null
-  max: number | null
-  avg: number | null
+  min: number
+  max: number
+  avg: number
   // Anzahl Einheiten mit Wert an dieser Serienposition
   count: number
 }
