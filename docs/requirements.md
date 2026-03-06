@@ -1,5 +1,24 @@
 # Fachliche Anforderungen — Schiesstraining App
 
+## Index
+
+- **Projektziel / Zielgruppen / Kernprinzipien** — App-Vision, 3 Nutzertypen (Hobby/Wettkampf/Verein), 5 Leitprinzipien
+- **Nicht-funktionale Qualitätsziele** — Wartbarkeit, Verständlichkeit, Wiederverwendung, lose Kopplung
+- **Disziplinen** — Konfigurierbare Parameter (Serien, Schuss, Wertungsart); Standarddisziplinen vorinstalliert
+- **Die Einheit** — 4 Typen (TRAINING/WETTKAMPF/TROCKENTRAINING/MENTAL), Pflichtfelder, optionale Felder, Favorit
+- **Ergebniserfassung** — Serien, Einzelschuss-Optional, Validierungsregeln (WHOLE/TENTH)
+- **Meyton-PDF Import** — URL oder Upload, textbasiert, Serienerkennung, harter Abbruch bei Fehler
+- **Befinden-Tracking** — Schlaf/Energie/Stress/Motivation (0–100), UI-Muster für mentale Module
+- **Reflexion / Prognose / Feedback** — Mentale Begleitmodule (freiwillig, nur bei TRAINING/WETTKAMPF)
+- **Schuss-Ablauf** — Editierbares Schritte-Dokument, disziplinabhängig, Einheits-Verknüpfung
+- **Saisonziele** — Ergebnis- und Prozessziele mit Zeitraum und Einheits-Verknüpfung
+- **Dateien & Bilder** — Anhänge nur bei TRAINING/WETTKAMPF (JPEG/PNG/WebP/PDF)
+- **Statistiken & Auswertung** — Verlauf, Serien, Befinden-Korrelation, 7-Dim-Radar, Schussverteilung
+- **Nutzerverwaltung & Sicherheit** — Admin-Only-Erstellung, Datenisolation, Lastschutz-Grenzen
+- **Export / Design-Entscheidungen** — PDF/CSV-Export; Dark Mode only, Sprache, UI-Muster
+
+---
+
 ## Projektziel
 
 Eine digitale Trainingsunterstützungs-App für Schiesssportler, die Trainingstagebuch, Ergebniserfassung und Mentaltraining zu einem kohärenten System verbindet. Die App soll sowohl von Hobbyschützen (minimaler Aufwand) als auch von ambitionierten Wettkampfschützen (voller Funktionsumfang) genutzt werden können. Sie ist disziplinunabhängig aufgebaut und für den Einzelnutzer wie auch für den Vereinseinsatz geeignet.
