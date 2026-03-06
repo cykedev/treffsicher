@@ -3,6 +3,24 @@
 Dieses Dokument definiert verbindliche technische Entscheidungen für das Projekt.
 Diese Regeln dürfen nicht ohne explizite Überprüfung und Begründung geändert werden.
 
+## Index
+
+- **Hosting / Entwicklungsumgebung** — Docker Compose (dev/prod), TrueNAS-portabel, Node.js 20 LTS
+- **Persistenz** — PostgreSQL + Named Volumes, Upload-Volume `/app/uploads`, Dateinamen als UUID
+- **Datenbank-Migrationen** — Prisma Migrate deploy beim Start, P3009-Recovery-Script, kein Datenverlust
+- **Tech Stack + Prisma 7** — Verbindliche Versionen; Prisma 7 breaking changes (Client-Pfad, Adapter, Config)
+- **Daten- und Aktionsarchitektur** — Server Actions, Zod, useActionState, serverseitige Konsistenzregeln
+- **Authentifizierung & Sicherheit + DoS-Schutz** — NextAuth v4, bcrypt, Session-Invalidierung, Rate-Limits
+- **Code Conventions** — Benennung, TypeScript-Regeln, Zod v4, React 19 useActionState, DB-Zugriffsmuster, Kommentare
+- **Testing** — Vitest, Testpflicht-Kategorien (Berechnung/Actions/Guards), Arrange-Act-Assert
+- **Datenmodell** — Vollständiges Prisma-Schema (User, Sessions, Disciplines, ShotRoutines, Goals, ...)
+- **Linting + Dateistruktur** — ESLint v9 Flat Config, Prettier, verbindliche Verzeichnisstruktur
+- **Modularität & Wartbarkeit** — Dateigrössen-/Split-Regel, Props-Budget, Feature-Struktur, Duplikationsregel
+- **Umgebungsvariablen / Nutzerverwaltung / Disziplinen** — Env-Vars, Rollen (ADMIN/USER), System-Disziplinen
+- **Ergebniserfassung + Meyton-Import** — Serien, Validierungsregeln, PDF-Import-Architektur + Sicherheitsgrenzen
+- **Design & UI** — Dark Mode only, 8 verbindliche UI-Konsistenzregeln
+- **Betrieb / Sprache / Versionskontrolle** — Fehlerfälle, Sprachmatrix, Git-Regeln
+
 ---
 
 ## Hosting & Betrieb
