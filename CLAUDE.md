@@ -5,9 +5,12 @@ Self-hosted, Einzelnutzer bis Vereinsbetrieb, ausschliesslich Dark Mode, ausschl
 
 **Verbindliche Referenzdokumente** (bei Widersprüchen: Docs gewinnen):
 - Fachlich: `docs/requirements.md`
-- Technisch: `docs/technical-constraints.md`
+- Technisch (Infra, Architektur, UI): `docs/technical-constraints.md`
+- Code-Stil, TypeScript, Zod, Testing: `docs/code-conventions.md`
+- Datenmodell, Env-Vars, Disziplinen, Ergebniserfassung: `docs/data-model.md`
 - Deployment: `docs/production-deploy-truenas.md`
-- Backlog: `docs/backlog.md`
+- Backlog / nächste Aufgaben: `docs/backlog.md`
+- Status / Roadmap: `docs/implementation-plan.md`
 
 ---
 
@@ -17,10 +20,11 @@ Self-hosted, Einzelnutzer bis Vereinsbetrieb, ausschliesslich Dark Mode, ausschl
 # Dev starten (DB + App mit Hot-Reload)
 docker compose -f docker-compose.dev.yml up --watch
 
-# Vor jedem Commit — alle drei müssen fehlerfrei sein
+# Vor jedem Commit — alle vier müssen fehlerfrei sein
 docker compose -f docker-compose.dev.yml run --rm app npm run lint
 docker compose -f docker-compose.dev.yml run --rm app npm run format:check
 docker compose -f docker-compose.dev.yml run --rm app npm run test
+docker compose -f docker-compose.dev.yml run --rm app npx tsc --noEmit
 
 # Formatierung auto-fix
 docker compose -f docker-compose.dev.yml run --rm app npm run format
@@ -116,4 +120,4 @@ Details: @docs/technical-constraints.md#design--ui
 - Disziplinen **archivieren, nicht löschen** (@docs/requirements.md#disziplinen)
 - `NEXTAUTH_SECRET` erzeugen: `openssl rand -base64 48`
 - `next lint` defekt in Next.js 16 — `lint`-Script nutzt `eslint src` (@docs/technical-constraints.md#linting--formatierung)
-- Zod v4: kein `invalid_type_error` → nutze `message` (@docs/technical-constraints.md#zod-v4-aktuell-installiert)
+- Zod v4: kein `invalid_type_error` → nutze `message` (@docs/code-conventions.md#zod-v4-aktuell-installiert)
