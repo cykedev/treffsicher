@@ -16,7 +16,7 @@ export default async function NewDisciplinePage() {
         </h1>
         <p className="text-muted-foreground">
           {isAdmin
-            ? "Als Admin kannst du System-Disziplinen fuer alle oder eigene Disziplinen anlegen."
+            ? "Als Admin kannst du System-Disziplinen für alle oder eigene Disziplinen anlegen."
             : "Eigene Disziplin mit individuellem Format anlegen."}
         </p>
       </div>

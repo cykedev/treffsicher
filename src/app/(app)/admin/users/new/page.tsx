@@ -12,7 +12,7 @@ export default async function AdminUserCreatePage() {
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Neuer Nutzer</h1>
         <p className="text-muted-foreground">
-          Neues Konto mit Name und temporaerem Passwort anlegen.
+          Neues Konto mit Name und temporärem Passwort anlegen.
         </p>
       </div>
       <AdminCreateUserForm />
