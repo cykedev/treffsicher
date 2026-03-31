@@ -4,6 +4,7 @@ Trainings-App für Schiesssportler (Tagebuch, Ergebniserfassung, Mentaltraining,
 Self-hosted, Einzelnutzer bis Vereinsbetrieb, ausschliesslich Dark Mode, ausschliesslich Deutsch in der UI.
 
 **Verbindliche Referenzdokumente** (bei Widersprüchen: Docs gewinnen):
+
 - Fachlich: `docs/requirements.md`
 - Technisch (Infra, Architektur, UI): `docs/technical-constraints.md`
 - Code-Stil, TypeScript, Zod, Testing: `docs/code-conventions.md`
@@ -48,16 +49,16 @@ Produktions-Deployment auf TrueNAS SCALE via Docker: @docs/production-deploy-tru
 
 ## Tech Stack
 
-| Bereich | Technologie |
-|---------|-------------|
-| Framework | Next.js 16 App Router |
-| Sprache | TypeScript 5 strict |
-| Datenbank | PostgreSQL 15 + Prisma 7 |
-| Auth | NextAuth.js v4 |
-| UI | shadcn/ui + Tailwind CSS 4 |
-| Charts | Recharts 2 |
-| Tests | Vitest |
-| Container | Docker + Docker Compose |
+| Bereich   | Technologie                |
+| --------- | -------------------------- |
+| Framework | Next.js 16 App Router      |
+| Sprache   | TypeScript 5 strict        |
+| Datenbank | PostgreSQL 15 + Prisma 7   |
+| Auth      | NextAuth.js v4             |
+| UI        | shadcn/ui + Tailwind CSS 4 |
+| Charts    | Recharts 2                 |
+| Tests     | Vitest                     |
+| Container | Docker + Docker Compose    |
 
 ---
 
@@ -94,9 +95,9 @@ Details: @docs/technical-constraints.md#modularität--wartbarkeit-verbindlich
 
 Details: @docs/technical-constraints.md#sprache
 
-| Kontext | Sprache |
-|---------|---------|
-| UI-Texte, Fehlermeldungen, Code-Kommentare | **Deutsch** |
+| Kontext                                                   | Sprache      |
+| --------------------------------------------------------- | ------------ |
+| UI-Texte, Fehlermeldungen, Code-Kommentare                | **Deutsch**  |
 | Komponenten, Funktionen, Dateinamen, Routen/URLs, Commits | **Englisch** |
 
 Keine neuen deutschen Benennungen für interne Bezeichner oder URL-Segmente.

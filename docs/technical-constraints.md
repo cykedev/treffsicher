@@ -4,6 +4,7 @@ Dieses Dokument definiert verbindliche technische Entscheidungen für das Projek
 Diese Regeln dürfen nicht ohne explizite Überprüfung und Begründung geändert werden.
 
 **Weitere verbindliche Constraint-Dokumente:**
+
 - Code-Stil, TypeScript, Zod, Testing: @docs/code-conventions.md
 - Datenmodell, Env-Vars, Disziplinen, Ergebniserfassung: @docs/data-model.md
 
@@ -193,10 +194,10 @@ if (process.env.NODE_ENV !== "production") {
 
 ### Tools
 
-| Tool     | Zweck                        | Konfigurationsdatei  |
-| -------- | ---------------------------- | -------------------- |
-| ESLint   | Code-Qualität, Fehler finden | `eslint.config.mjs`  |
-| Prettier | Code-Formatierung            | `.prettierrc`        |
+| Tool     | Zweck                        | Konfigurationsdatei |
+| -------- | ---------------------------- | ------------------- |
+| ESLint   | Code-Qualität, Fehler finden | `eslint.config.mjs` |
+| Prettier | Code-Formatierung            | `.prettierrc`       |
 
 ### ESLint-Konfiguration
 

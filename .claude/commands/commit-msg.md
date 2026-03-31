@@ -10,6 +10,7 @@ Führe folgende Schritte aus:
 ## Verbindliche Regeln für die Commit-Message
 
 **Format:**
+
 ```
 type: short imperative summary
 
@@ -18,6 +19,7 @@ type: short imperative summary
 ```
 
 **Types:**
+
 - `feat` — neue Funktionalität
 - `fix` — Bugfix
 - `refactor` — Umstrukturierung ohne Verhaltensänderung
@@ -28,6 +30,7 @@ type: short imperative summary
 - `perf` — Performance-Verbesserung
 
 **Regeln:**
+
 - Alles Englisch
 - Erste Zeile: imperativ, kein Punkt am Ende, max. 72 Zeichen
 - Bullet Points mit `-`, beschreiben WAS geändert wurde und WARUM (nicht nur "refactoring")

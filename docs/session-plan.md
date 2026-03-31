@@ -29,6 +29,7 @@ Vorgehen: In den Zod-Schemas je `.max(N, { message: "..." })` ergänzen. Tests l
 ### T-05: React Error Boundaries
 
 3 neue Dateien mit `"use client"` + Standard-Next.js-Error-Boundary-Signatur:
+
 - `src/app/error.tsx` (Root-Fallback)
 - `src/app/(app)/error.tsx` (App-Shell-Fallback)
 - `src/app/(app)/sessions/[id]/error.tsx` (Session-Detail-Fallback)
@@ -51,6 +52,7 @@ Inhalt: Fehlermeldung auf Deutsch, `reset`-Button, Link zurück zur Übersicht.
 ### Vorgehen
 
 1. **Neuen Typ anlegen:** `src/lib/types.ts` erstellen:
+
    ```typescript
    // Einzige erlaubte Rückgabestruktur für alle Server Actions.
    export type ActionResult<T = void> =
@@ -90,6 +92,7 @@ Inhalt: Fehlermeldung auf Deutsch, `reset`-Button, Link zurück zur Übersicht.
 Ziel: Schemas und Typen → `sessionSchemas.ts`, Parse-Helfer bleiben in `shared.ts`.
 
 Neue Datei `src/lib/sessions/actions/sessionSchemas.ts`:
+
 - `CreateSessionSchema` + abgeleitete Typen
 - `MeytonImportSchema`
 - `SeriesInputSchema`
@@ -103,11 +106,13 @@ Imports in allen Actions anpassen, die bisher aus `shared.ts` die Schemas import
 ### T-02: `mentalActions.ts` Duplikation entfernen
 
 Neue Hilfsfunktion in `mentalActions.ts` (oder in separater `dimensionHelpers.ts`):
+
 ```typescript
 function parseDimensionsFromFormData(formData: FormData): DimensionValues {
   // 7 Dimensionen parsen
 }
 ```
+
 `savePrognosisAction` und `saveFeedbackAction` nutzen diese Funktion.
 
 **Commit-Scope:** `refactor: split session schemas and deduplicate dimension parsing`
@@ -147,6 +152,7 @@ function parseDimensionsFromFormData(formData: FormData): DimensionValues {
 ### T-09: `GoalAssignmentsForm` Props gruppieren
 
 Callbacks zu `handlers`-Objekt zusammenfassen:
+
 ```typescript
 interface Props {
   sessions: GoalSessionOption[]
@@ -161,6 +167,7 @@ interface Props {
   }
 }
 ```
+
 Aufrufstellen entsprechend anpassen.
 
 **Commit-Scope:** `fix: add maxLength to trainingGoal textarea, group GoalAssignmentsForm handlers`
@@ -169,13 +176,13 @@ Aufrufstellen entsprechend anpassen.
 
 ## Übersicht
 
-| Session | Tickets | Aufwand | Risiko |
-|---------|---------|---------|--------|
-| 1 | T-01, T-05, T-10 | ~1 h | Niedrig |
-| 2 | T-08 | ~1.5 h | Mittel (viele Import-Stellen) |
-| 3 | T-02, T-03 | ~1.5 h | Mittel (viele Import-Stellen) |
-| 4 | T-04 | ~1 h | Niedrig |
-| 5 | T-07, T-09 | ~30 min | Niedrig |
+| Session | Tickets          | Aufwand | Risiko                        |
+| ------- | ---------------- | ------- | ----------------------------- |
+| 1       | T-01, T-05, T-10 | ~1 h    | Niedrig                       |
+| 2       | T-08             | ~1.5 h  | Mittel (viele Import-Stellen) |
+| 3       | T-02, T-03       | ~1.5 h  | Mittel (viele Import-Stellen) |
+| 4       | T-04             | ~1 h    | Niedrig                       |
+| 5       | T-07, T-09       | ~30 min | Niedrig                       |
 
 **Gesamtaufwand:** ~5.5 h verteilt auf 5 Sessions
 

@@ -167,10 +167,10 @@ Admins können System-Disziplinen verwalten (anlegen, bearbeiten, archivieren/re
 
 ### Validierungsregeln
 
-| Wertungsart  | Gültige Schusswerte                                       | Max. Seriensumme          |
-| ------------ | --------------------------------------------------------- | ------------------------- |
-| WHOLE        | 0–10, ganzzahlig                                          | `Schussanzahl × 10`       |
-| TENTH        | 0.0 oder 1.0–10.9 (1 Dezimalstelle)                      | `Schussanzahl × 10.9`     |
+| Wertungsart | Gültige Schusswerte                 | Max. Seriensumme      |
+| ----------- | ----------------------------------- | --------------------- |
+| WHOLE       | 0–10, ganzzahlig                    | `Schussanzahl × 10`   |
+| TENTH       | 0.0 oder 1.0–10.9 (1 Dezimalstelle) | `Schussanzahl × 10.9` |
 
 Leere Felder gelten nie als Fehler. Implementiert in `src/lib/sessions/validation.ts`.
 
