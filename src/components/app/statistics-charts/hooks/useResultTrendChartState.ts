@@ -4,7 +4,7 @@ import type { DisplayMode } from "@/components/app/statistics-charts/types"
 import {
   buildIndexTicks,
   calculateTrend,
-  calculateTrendBandsByQuantile,
+  calculateTrendBands,
   computeDisplayValue,
   computeStableAxis,
   createTrendBandDistanceOptions,
@@ -84,7 +84,7 @@ export function useResultTrendChartState({
     const minBandWidth = Math.max(range * 0.035, effectiveDisplayMode === "projected" ? 0.35 : 0.03)
     const maxBandWidth = Math.max(range * 0.45, effectiveDisplayMode === "projected" ? 3.2 : 0.3)
     // Bandbreiten werden je Modus unterschiedlich gefloort, damit Hochrechnungs-Charts nicht künstlich "nervös" wirken.
-    const bands = calculateTrendBandsByQuantile(
+    const bands = calculateTrendBands(
       displayValuesForTrend,
       movingAvgForTrend,
       createTrendBandDistanceOptions(range, minBandWidth / 2, maxBandWidth)

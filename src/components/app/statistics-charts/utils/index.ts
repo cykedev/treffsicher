@@ -17,6 +17,7 @@ export { getShotDistributionBucketStart, getShotDistributionGranularity } from "
 export { buildIndexTicks } from "./ticks"
 export {
   calculateTrend,
+  calculateTrendBands,
   calculateTrendBandsByQuantile,
   createTrendBandDistanceOptions,
 } from "./trends"
