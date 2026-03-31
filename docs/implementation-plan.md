@@ -18,7 +18,7 @@ Verbindliche Referenzdokumente: @docs/requirements.md · @docs/technical-constra
 | 3.13 | DoS-Härtung: Streaming-Import, FormData-Limits, Statistik-Caps, Login-Rate-Limit | ✅ |
 | 4.1 | Saisonziele (CRUD + Einheits-Verknüpfung) | ✅ |
 | 4.2 | Radarchart (7 Dimensionen Prognose vs. Feedback) | ✅ |
-| 4.3 | PDF-Export einzelner Einheit ✅ — CSV-Zeitraum-Export ⏳ | 🔄 |
+| 4.3 | PDF-Export einzelner Einheit | ✅ |
 | 5.1 | Admin-Bereich: Nutzerverwaltung, System-Disziplinen, Passwortwechsel | ✅ |
 | 5.2 | PWA / Offline-Unterstützung | ⏳ |
 
@@ -27,14 +27,6 @@ Verbindliche Referenzdokumente: @docs/requirements.md · @docs/technical-constra
 ## Offene Arbeitspakete
 
 Kurzfristige offene Punkte (priorisiert): @docs/backlog.md
-
-### Phase 4.3 — CSV-Zeitraum-Export (offen)
-
-Ergebnisse aller Einheiten in einem Zeitraum als CSV-Download:
-- Felder: Datum, Typ, Disziplin, Gesamtergebnis, Serien
-- UI: Button auf der Statistik-Seite oder im Tagebuch mit Datumspicker
-- Gedacht zur bewussten Weitergabe / Archivierung
-- Spec: @docs/requirements.md#export
 
 ### Phase 5.2 — PWA / Offline-Unterstützung (offen)
 
