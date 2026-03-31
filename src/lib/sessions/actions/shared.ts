@@ -12,9 +12,9 @@ import type {
 export const CreateSessionSchema = z.object({
   type: z.enum(["TRAINING", "WETTKAMPF", "TROCKENTRAINING", "MENTAL"] as const),
   date: z.string().min(1, "Datum ist erforderlich"),
-  location: z.string().optional(),
+  location: z.string().max(200).optional(),
   disciplineId: z.string().optional(),
-  trainingGoal: z.string().optional(),
+  trainingGoal: z.string().max(500).optional(),
 })
 
 export const MeytonImportSchema = z.object({

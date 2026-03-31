@@ -77,15 +77,45 @@ export async function saveReflectionAction(
 
   const routineFollowed = formData.get("routineFollowed") === "on"
 
+  const ReflectionSchema = z.object({
+    observations: z
+      .string()
+      .max(3000)
+      .optional()
+      .transform((v) => v || null),
+    insight: z
+      .string()
+      .max(3000)
+      .optional()
+      .transform((v) => v || null),
+    learningQuestion: z
+      .string()
+      .max(3000)
+      .optional()
+      .transform((v) => v || null),
+    routineDeviation: z
+      .string()
+      .max(3000)
+      .optional()
+      .transform((v) => v || null),
+  })
+
+  const reflectionParsed = ReflectionSchema.safeParse({
+    observations: formData.get("observations") as string,
+    insight: formData.get("insight") as string,
+    learningQuestion: formData.get("learningQuestion") as string,
+    routineDeviation: formData.get("routineDeviation") as string,
+  })
+
+  if (!reflectionParsed.success) return { error: "Ungültige Eingabe" }
+
   const data = {
-    observations: (formData.get("observations") as string) || null,
-    insight: (formData.get("insight") as string) || null,
-    learningQuestion: (formData.get("learningQuestion") as string) || null,
+    ...reflectionParsed.data,
     routineFollowed,
     // Alte Abweichung aktiv loeschen, wenn der Ablauf wieder eingehalten wurde.
     // Alte Abweichungstexte duerfen bei "wieder eingehalten" nicht stehen bleiben,
     // sonst zeigt die Detailansicht widerspruechliche Informationen.
-    routineDeviation: routineFollowed ? null : (formData.get("routineDeviation") as string) || null,
+    routineDeviation: routineFollowed ? null : reflectionParsed.data.routineDeviation,
   }
 
   // Identischer Save-Pfad fuer Create und Edit.
@@ -136,6 +166,7 @@ export async function savePrognosisAction(
     equipment: DimensionSchema,
     expectedScore: z
       .string()
+      .max(200)
       .optional()
       .transform((v) => (v && v !== "" ? v : null)),
     expectedCleanShots: z
@@ -148,6 +179,7 @@ export async function savePrognosisAction(
       }),
     performanceGoal: z
       .string()
+      .max(200)
       .optional()
       .transform((v) => v || null),
   })
@@ -212,27 +244,33 @@ export async function saveFeedbackAction(
     equipment: DimensionSchema,
     explanation: z
       .string()
+      .max(3000)
       .optional()
       .transform((v) => v || null),
     goalAchieved: z.boolean(),
     goalAchievedNote: z
       .string()
+      .max(3000)
       .optional()
       .transform((v) => v || null),
     progress: z
       .string()
+      .max(3000)
       .optional()
       .transform((v) => v || null),
     fiveBestShots: z
       .string()
+      .max(3000)
       .optional()
       .transform((v) => v || null),
     wentWell: z
       .string()
+      .max(3000)
       .optional()
       .transform((v) => v || null),
     insights: z
       .string()
+      .max(3000)
       .optional()
       .transform((v) => v || null),
   })
