@@ -30,3 +30,43 @@ export function calculateMovingAverage(
     return sum / windowValues.length
   })
 }
+
+/**
+ * Berechnet den gewichteten gleitenden Durchschnitt (WMA) einer Wertereihe.
+ * Neuere Werte erhalten höheres Gewicht: linear ansteigend von 1 (ältester)
+ * bis n (aktuellster Wert im Fenster).
+ * Beispiel bei windowSize=3: Gewichte [1, 2, 3], Summe 6.
+ *
+ * Am Anfang der Reihe wird mit einem kleineren Fenster gearbeitet.
+ * Null-Werte werden übersprungen; ihre Gewichte entfallen.
+ *
+ * @param values - Eingabewerte (null-Werte werden im Fenster übersprungen)
+ * @param windowSize - Fenstergrösse
+ * @returns Array gleicher Länge mit gewichteten Durchschnittswerten
+ */
+export function calculateWeightedMovingAverage(
+  values: (number | null)[],
+  windowSize: number
+): (number | null)[] {
+  if (values.length === 0 || windowSize <= 0) return []
+
+  return values.map((_, i) => {
+    const start = Math.max(0, i - windowSize + 1)
+    const end = i
+    const window = values.slice(start, end + 1)
+
+    // Gewichte [1, 2, ..., n] — Index im Fenster bestimmt das Gewicht.
+    // null-Werte entfallen mitsamt ihrem Gewicht.
+    let weightedSum = 0
+    let weightSum = 0
+    window.forEach((v, j) => {
+      if (v === null) return
+      const weight = j + 1
+      weightedSum += v * weight
+      weightSum += weight
+    })
+
+    if (weightSum === 0) return null
+    return weightedSum / weightSum
+  })
+}
