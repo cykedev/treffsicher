@@ -19,7 +19,9 @@ export function formatDisplayScore(
   discipline: DisciplineForStats | null
 ): string {
   if (mode === "projected" && discipline) {
-    return discipline.scoringType === "TENTH" ? value.toFixed(1) : String(value)
+    if (discipline.scoringType === "TENTH") return value.toFixed(1)
+    // Ganzzahlige Werte (echte Ergebnisse) ohne Nachkommastellen, Gleitkommazahlen (z.B. Trend) auf 2 Stellen
+    return Number.isInteger(value) ? String(value) : value.toFixed(2)
   }
   return value.toFixed(2)
 }

@@ -19,7 +19,7 @@ import {
   createTrendStroke,
   formatDisplayScore,
 } from "@/components/app/statistics-charts/utils"
-import type { TrendTabModel } from "@/components/app/statistics-charts/tabs/types"
+import type { LineDataPoint, TrendTabModel } from "@/components/app/statistics-charts/tabs/types"
 
 interface Props {
   model: TrendTabModel["resultTrend"]
@@ -86,18 +86,45 @@ export function ResultTrendCard({ model }: Props) {
                     const index = Number(payload?.[0]?.payload?.i)
                     return lineData[index]?.datum ?? ""
                   }}
-                  formatter={(value, name) => (
-                    <div className="flex w-full items-center justify-between gap-6">
-                      <span className="text-muted-foreground">
-                        {name === "wert" ? metricLabel : "Trend"}
-                      </span>
-                      <span className="text-foreground font-mono font-medium tabular-nums">
-                        {typeof value === "number"
-                          ? formatDisplayScore(value, effectiveDisplayMode, selectedDiscipline)
-                          : String(value ?? "")}
-                      </span>
-                    </div>
-                  )}
+                  formatter={(value, name, _item, _index, payload) => {
+                    const dp = payload as LineDataPoint
+                    const label = name === "wert" ? metricLabel : "Trend"
+                    const displayValue =
+                      typeof value === "number"
+                        ? formatDisplayScore(value, effectiveDisplayMode, selectedDiscipline)
+                        : String(value ?? "")
+                    const showBand =
+                      name === "trend" && dp?.trendLow != null && dp?.trendHigh != null
+
+                    return (
+                      <div className="flex w-full flex-col gap-0.5">
+                        <div className="flex w-full items-center justify-between gap-6">
+                          <span className="text-muted-foreground">{label}</span>
+                          <span className="text-foreground font-mono font-medium tabular-nums">
+                            {displayValue}
+                          </span>
+                        </div>
+                        {showBand && (
+                          <div className="flex w-full items-center justify-between gap-6">
+                            <span className="text-muted-foreground">Streuband</span>
+                            <span className="text-muted-foreground font-mono tabular-nums">
+                              {formatDisplayScore(
+                                dp.trendLow!,
+                                effectiveDisplayMode,
+                                selectedDiscipline
+                              )}
+                              {" – "}
+                              {formatDisplayScore(
+                                dp.trendHigh!,
+                                effectiveDisplayMode,
+                                selectedDiscipline
+                              )}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    )
+                  }}
                 />
               }
             />
@@ -114,6 +141,17 @@ export function ResultTrendCard({ model }: Props) {
               isAnimationActive={false}
             />
             <Line
+              type="linear"
+              dataKey="wert"
+              name="wert"
+              // Messpunkte als eigene unsichtbare Linie rendern, damit Dot/ActiveDot unabhängig vom Trend steuerbar sind.
+              stroke="transparent"
+              strokeWidth={0}
+              dot={createDotStyle("var(--chart-1)")}
+              activeDot={createActiveDotStyle("var(--chart-1)")}
+              connectNulls={false}
+            />
+            <Line
               type="monotone"
               dataKey="trend"
               name="trend"
@@ -123,17 +161,6 @@ export function ResultTrendCard({ model }: Props) {
               strokeLinecap="round"
               strokeLinejoin="round"
               dot={false}
-              connectNulls={false}
-            />
-            <Line
-              type="linear"
-              dataKey="wert"
-              name="wert"
-              // Messpunkte als eigene unsichtbare Linie rendern, damit Dot/ActiveDot unabhängig vom Trend steuerbar sind.
-              stroke="transparent"
-              strokeWidth={0}
-              dot={createDotStyle("var(--chart-1)")}
-              activeDot={createActiveDotStyle("var(--chart-1)")}
               connectNulls={false}
             />
           </ComposedChart>
