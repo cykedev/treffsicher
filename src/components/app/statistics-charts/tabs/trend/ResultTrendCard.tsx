@@ -87,7 +87,7 @@ export function ResultTrendCard({ model }: Props) {
                     return lineData[index]?.datum ?? ""
                   }}
                   formatter={(value, name, _item, _index, payload) => {
-                    const dp = payload as LineDataPoint
+                    const dp = payload as unknown as LineDataPoint
                     const label = name === "wert" ? metricLabel : "Trend"
                     const displayValue =
                       typeof value === "number"
