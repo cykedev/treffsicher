@@ -20,29 +20,34 @@ import type { DisciplineForStats } from "@/lib/stats/actions"
 
 interface Props {
   data: StatisticsChartsDataBundle
+  hiddenDisciplineIds: string[]
   displayTimeZone: string
 }
 
-export function StatisticsCharts({ data, displayTimeZone }: Props) {
+export function StatisticsCharts({ data, hiddenDisciplineIds, displayTimeZone }: Props) {
   const { sessions, wellbeingData, qualityData, shotDistributionData, radarData } = data
   const [showCloudTrail, setShowCloudTrail] = useState(false)
   const [showHitLocationTrendX, setShowHitLocationTrendX] = useState(true)
   const [showHitLocationTrendY, setShowHitLocationTrendY] = useState(true)
 
   const availableDisciplines = useMemo<DisciplineForStats[]>(() => {
-    // Filterliste direkt aus vorhandenen Sessions ableiten:
-    // So bleibt die Filterliste exakt auf tatsaechlich vorhandene Daten
-    // begrenzt und verhindert leere Filter-Zustaende ohne Treffer.
+    // Filterliste aus vorhandenen Sessions ableiten — ausgeblendete Disziplinen ausschliessen.
+    // So bleibt die Filterliste auf tatsaechlich vorhandene und sichtbare Daten begrenzt.
+    const hiddenSet = new Set(hiddenDisciplineIds)
     const seen = new Set<string>()
     const result: DisciplineForStats[] = []
     for (const session of sessions) {
-      if (session.discipline && !seen.has(session.discipline.id)) {
+      if (
+        session.discipline &&
+        !seen.has(session.discipline.id) &&
+        !hiddenSet.has(session.discipline.id)
+      ) {
         seen.add(session.discipline.id)
         result.push(session.discipline)
       }
     }
     return result.sort((a, b) => a.name.localeCompare(b.name, "de"))
-  }, [sessions])
+  }, [sessions, hiddenDisciplineIds])
 
   const {
     typeFilter,

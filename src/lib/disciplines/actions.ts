@@ -9,7 +9,9 @@ import {
   getDisciplinesAction,
   getDisciplinesForManagementAction,
   getFavouriteDisciplineIdAction,
+  getHiddenDisciplineIdsAction,
 } from "@/lib/disciplines/actions/getDisciplines"
+import { toggleHiddenDisciplineAction } from "@/lib/disciplines/actions/hideDiscipline"
 import {
   archiveDisciplineAction,
   createDisciplineAction,
@@ -44,6 +46,14 @@ export async function getFavouriteDisciplineId(): Promise<string | null> {
 
 export async function setFavouriteDiscipline(disciplineId: string): Promise<ActionResult> {
   return setFavouriteDisciplineAction(disciplineId)
+}
+
+export async function getHiddenDisciplineIds(): Promise<string[]> {
+  return getHiddenDisciplineIdsAction()
+}
+
+export async function toggleHiddenDiscipline(disciplineId: string): Promise<ActionResult> {
+  return toggleHiddenDisciplineAction(disciplineId)
 }
 
 export async function createDiscipline(

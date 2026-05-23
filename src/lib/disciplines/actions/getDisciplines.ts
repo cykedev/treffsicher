@@ -7,13 +7,27 @@ export async function getDisciplinesAction(): Promise<Discipline[]> {
   const session = await requireAuthSession()
   if (!session) return []
 
+  // Ausgeblendete Disziplinen werden aus der Auswahl gefiltert — sie sind nicht gelöscht.
   return db.discipline.findMany({
     where: {
       isArchived: false,
       OR: [{ isSystem: true }, { ownerId: session.user.id }],
+      NOT: { hiddenByUsers: { some: { id: session.user.id } } },
     },
     orderBy: [{ isSystem: "desc" }, { name: "asc" }],
   })
+}
+
+export async function getHiddenDisciplineIdsAction(): Promise<string[]> {
+  const session = await requireAuthSession()
+  if (!session) return []
+
+  const user = await db.user.findUnique({
+    where: { id: session.user.id },
+    select: { hiddenDisciplines: { select: { id: true } } },
+  })
+
+  return user?.hiddenDisciplines.map((d) => d.id) ?? []
 }
 
 export async function getDisciplinesForManagementAction(): Promise<Discipline[]> {
@@ -81,6 +95,8 @@ export async function getFavouriteDisciplineIdAction(): Promise<string | null> {
       id: favouriteDisciplineId,
       isArchived: false,
       OR: [{ isSystem: true }, { ownerId: session.user.id }],
+      // Ausgeblendeter Favorit wird nicht zurückgegeben — toggleHiddenDisciplineAction bereinigt ihn bereits.
+      NOT: { hiddenByUsers: { some: { id: session.user.id } } },
     },
     select: { id: true },
   })

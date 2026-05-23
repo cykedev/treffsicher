@@ -74,6 +74,7 @@ describe("getDisciplines actions", () => {
       where: {
         isArchived: false,
         OR: [{ isSystem: true }, { ownerId: "u1" }],
+        NOT: { hiddenByUsers: { some: { id: "u1" } } },
       },
       orderBy: [{ isSystem: "desc" }, { name: "asc" }],
     })

@@ -74,6 +74,8 @@ model User {
   // Favorit-Disziplin des Nutzers (auch System-Disziplinen möglich)
   favouriteDisciplineId String?
   favouriteDiscipline   Discipline? @relation("UserFavouriteDiscipline", fields: [favouriteDisciplineId], references: [id], onDelete: SetNull)
+  // Ausgeblendete Disziplinen — bleiben in Einheiten sichtbar, fehlen in der Auswahl
+  hiddenDisciplines     Discipline[] @relation("UserHiddenDisciplines")
 }
 
 // ─────────────────────────────────────────────
@@ -117,6 +119,8 @@ model Discipline {
   ownerId  String?
   owner    User?             @relation(fields: [ownerId], references: [id])
   favouritedBy User[]        @relation("UserFavouriteDiscipline")
+  // Nutzer, die diese Disziplin ausgeblendet haben
+  hiddenByUsers User[]       @relation("UserHiddenDisciplines")
 
   sessions     TrainingSession[]
   shotRoutines ShotRoutine[]

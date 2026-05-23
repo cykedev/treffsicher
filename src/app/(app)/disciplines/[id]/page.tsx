@@ -6,10 +6,12 @@ import {
   getDisciplineForDetail,
   getDisciplineUsage,
   getFavouriteDisciplineId,
+  getHiddenDisciplineIds,
 } from "@/lib/disciplines/actions"
 import { ArchiveDisciplineButton } from "@/components/app/disciplines/ArchiveDisciplineButton"
 import { DeleteDisciplineButton } from "@/components/app/disciplines/DeleteDisciplineButton"
 import { FavouriteDisciplineButton } from "@/components/app/disciplines/FavouriteDisciplineButton"
+import { HideDisciplineButton } from "@/components/app/disciplines/HideDisciplineButton"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -29,10 +31,12 @@ export default async function DisciplineDetailPage({
   if (!session) redirect("/login")
 
   const { id } = await params
-  const [discipline, favouriteDisciplineId] = await Promise.all([
+  const [discipline, favouriteDisciplineId, hiddenIds] = await Promise.all([
     getDisciplineForDetail(id),
     getFavouriteDisciplineId(),
+    getHiddenDisciplineIds(),
   ])
+  const isHidden = hiddenIds.includes(id)
 
   if (!discipline) notFound()
 
@@ -50,6 +54,9 @@ export default async function DisciplineDetailPage({
                 disciplineId={discipline.id}
                 initialFavourite={favouriteDisciplineId === discipline.id}
               />
+            )}
+            {!discipline.isArchived && (
+              <HideDisciplineButton disciplineId={discipline.id} initialHidden={isHidden} />
             )}
             {canManage && (
               <Button variant="ghost" size="icon" asChild>
@@ -82,6 +89,7 @@ export default async function DisciplineDetailPage({
             <h1 className="break-words text-2xl font-bold tracking-tight">{discipline.name}</h1>
             {discipline.isSystem && <Badge variant="secondary">Standard</Badge>}
             {discipline.isArchived && <Badge variant="outline">Archiviert</Badge>}
+            {isHidden && <Badge variant="outline">Ausgeblendet</Badge>}
           </div>
           <p className="text-muted-foreground">
             {discipline.isSystem

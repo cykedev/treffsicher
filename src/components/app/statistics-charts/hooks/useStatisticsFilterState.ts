@@ -14,7 +14,10 @@ export function useStatisticsFilterState({ availableDisciplines }: Params) {
   const [typeFilter, setTypeFilter] = useState<TypeFilter>("all")
   const [from, setFrom] = useState<string>(() => monthsAgo(3))
   const [to, setTo] = useState<string>(() => today())
-  const [disciplineFilter, setDisciplineFilter] = useState<string>("all")
+  // Einzige verfügbare Disziplin wird automatisch vorausgewählt.
+  const [disciplineFilter, setDisciplineFilter] = useState<string>(() =>
+    availableDisciplines.length === 1 ? availableDisciplines[0].id : "all"
+  )
   const [displayMode, setDisplayMode] = useState<DisplayMode>("per_shot")
 
   const selectedDiscipline = useMemo(

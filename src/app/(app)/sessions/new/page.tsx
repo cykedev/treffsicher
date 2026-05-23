@@ -14,6 +14,10 @@ export default async function NewSessionPage() {
     getGoalsForSelection(),
   ])
 
+  // Vorauswahl: Favorit (wenn sichtbar) > einzige verfügbare Disziplin > keine
+  const autoSelectId =
+    favouriteDisciplineId ?? (disciplines.length === 1 ? disciplines[0].id : undefined)
+
   return (
     <div className="space-y-6">
       <div>
@@ -22,11 +26,7 @@ export default async function NewSessionPage() {
           Training, Wettkampf, Trockentraining oder Mentaltraining erfassen.
         </p>
       </div>
-      <SessionForm
-        disciplines={disciplines}
-        goals={goals}
-        defaultDisciplineId={favouriteDisciplineId ?? undefined}
-      />
+      <SessionForm disciplines={disciplines} goals={goals} defaultDisciplineId={autoSelectId} />
     </div>
   )
 }

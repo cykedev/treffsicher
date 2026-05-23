@@ -127,7 +127,11 @@ export function calculateTrendBands(
     if (trend === null) return 0
     return value - trend
   })
-  const stdDevBand = calculateRollingStdDevBand(residuals, TREND_BAND_WINDOW_SIZE, TREND_BAND_STD_DEV_MULTIPLIER)
+  const stdDevBand = calculateRollingStdDevBand(
+    residuals,
+    TREND_BAND_WINDOW_SIZE,
+    TREND_BAND_STD_DEV_MULTIPLIER
+  )
   return applyDistanceConstraints(trends, stdDevBand, options)
 }
 

@@ -14,9 +14,16 @@ const StatisticsChartsInner = dynamic(
 
 interface Props {
   data: StatisticsChartsDataBundle
+  hiddenDisciplineIds: string[]
   displayTimeZone: string
 }
 
-export function StatisticsChartsWrapper({ data, displayTimeZone }: Props) {
-  return <StatisticsChartsInner data={data} displayTimeZone={displayTimeZone} />
+export function StatisticsChartsWrapper({ data, hiddenDisciplineIds, displayTimeZone }: Props) {
+  return (
+    <StatisticsChartsInner
+      data={data}
+      hiddenDisciplineIds={hiddenDisciplineIds}
+      displayTimeZone={displayTimeZone}
+    />
+  )
 }

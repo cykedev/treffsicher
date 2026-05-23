@@ -2,7 +2,11 @@ import { getAuthSession } from "@/lib/auth-helpers"
 import { redirect } from "next/navigation"
 import Link from "next/link"
 import { Star } from "lucide-react"
-import { getDisciplinesForManagement, getFavouriteDisciplineId } from "@/lib/disciplines/actions"
+import {
+  getDisciplinesForManagement,
+  getFavouriteDisciplineId,
+  getHiddenDisciplineIds,
+} from "@/lib/disciplines/actions"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import { CreateItemLinkButton } from "@/components/app/sessions/CreateItemLinkButton"
@@ -17,10 +21,12 @@ export default async function DisciplinesPage() {
   if (!session) redirect("/login")
   const isAdmin = session.user.role === "ADMIN"
 
-  const [disciplines, favouriteDisciplineId] = await Promise.all([
+  const [disciplines, favouriteDisciplineId, hiddenIds] = await Promise.all([
     getDisciplinesForManagement(),
     getFavouriteDisciplineId(),
+    getHiddenDisciplineIds(),
   ])
+  const hiddenSet = new Set(hiddenIds)
 
   return (
     <div className="space-y-6">
@@ -68,6 +74,11 @@ export default async function DisciplinesPage() {
                       {d.isArchived && (
                         <Badge variant="outline" className="text-xs">
                           Archiviert
+                        </Badge>
+                      )}
+                      {hiddenSet.has(d.id) && (
+                        <Badge variant="outline" className="text-xs">
+                          Ausgeblendet
                         </Badge>
                       )}
                     </div>
