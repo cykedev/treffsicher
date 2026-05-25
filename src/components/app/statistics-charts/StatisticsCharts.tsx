@@ -17,6 +17,7 @@ import {
 } from "@/components/app/statistics-charts/hooks"
 import type { StatisticsChartsDataBundle } from "@/components/app/statistics-charts/types"
 import type { DisciplineForStats } from "@/lib/stats/actions"
+import { aggregateOverview } from "@/lib/stats/overview/aggregateOverview"
 
 interface Props {
   data: StatisticsChartsDataBundle
@@ -180,7 +181,18 @@ export function StatisticsCharts({ data, hiddenDisciplineIds, displayTimeZone }:
     maxTicks: CHART_TIME_AXIS_MAX_TICKS,
   })
 
+  const overviewGroups = useMemo(
+    () =>
+      aggregateOverview({
+        sessions: filtered,
+        hiddenDisciplineIds,
+        disciplineFilter,
+      }),
+    [filtered, hiddenDisciplineIds, disciplineFilter]
+  )
+
   const tabsModel = useStatisticsTabsModel({
+    overviewGroups,
     hasData,
     effectiveDisplayMode,
     selectedDiscipline,

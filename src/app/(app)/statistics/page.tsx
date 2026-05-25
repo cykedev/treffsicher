@@ -38,8 +38,8 @@ export default async function StatisticsPage() {
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Statistiken</h1>
         <p className="text-muted-foreground">
-          Vergleiche Verläufe, Trefferlagen, Korrelationen, Schussverteilung sowie Prognose und
-          Feedback.
+          Übersicht je Disziplin sowie Verläufe, Trefferlagen, Korrelationen, Schussverteilung und
+          Prognose/Feedback.
         </p>
       </div>
 

@@ -6,6 +6,7 @@ import type {
 
 export function useStatisticsTabsModel(params: TabsParams): StatisticsTabsState {
   const {
+    overviewGroups,
     hasData,
     effectiveDisplayMode,
     selectedDiscipline,
@@ -63,6 +64,9 @@ export function useStatisticsTabsModel(params: TabsParams): StatisticsTabsState 
   return useMemo<StatisticsTabsState>(() => {
     // Alle Tab-Modelle in einem Memo bündeln, damit Tab-Wechsel keine unnötigen Subtree-Updates auslöst.
     return {
+      overview: {
+        groups: overviewGroups,
+      },
       trend: {
         hasData,
         resultTrend: {
@@ -146,6 +150,7 @@ export function useStatisticsTabsModel(params: TabsParams): StatisticsTabsState 
       },
     }
   }, [
+    overviewGroups,
     aggregatedShotDistribution,
     barData,
     disciplineFilter,

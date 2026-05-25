@@ -6,6 +6,7 @@ import type {
   RadarLegendItem,
 } from "@/components/app/statistics-charts/types"
 import type { DisciplineForStats } from "@/lib/stats/actions"
+import type { OverviewDisciplineGroup } from "@/lib/stats/overview/aggregateOverview"
 
 export type AxisConfig = {
   domain: [number, number]
@@ -153,7 +154,12 @@ export interface QualityTabModel {
   }
 }
 
+export interface OverviewTabModel {
+  groups: OverviewDisciplineGroup[]
+}
+
 export interface StatisticsChartsTabsModel {
+  overview: OverviewTabModel
   trend: TrendTabModel
   hitLocation: HitLocationTabModel
   selfAssessment: SelfAssessmentTabModel
