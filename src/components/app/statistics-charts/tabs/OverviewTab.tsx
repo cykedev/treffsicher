@@ -28,7 +28,10 @@ export function OverviewTab({ model }: Props) {
 
   return (
     <TabsContent value="uebersicht" className="space-y-4">
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+      {/* Vertikaler Stapel über die volle Breite: Karten haben je nach Disziplin
+          unterschiedlich viele Schussgruppen — nebeneinander würden Höhen springen
+          oder müssten künstlich aufgefüllt werden. */}
+      <div className="flex flex-col gap-4">
         {groups.map((group) => (
           <DisciplineOverviewCard key={group.disciplineId} group={group} />
         ))}
