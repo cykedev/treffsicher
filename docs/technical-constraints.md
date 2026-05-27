@@ -10,7 +10,7 @@ Diese Regeln dürfen nicht ohne explizite Überprüfung und Begründung geänder
 
 ## Index
 
-- **Hosting / Entwicklungsumgebung** — Docker Compose (dev/prod), TrueNAS-portabel, Node.js 20 LTS
+- **Hosting / Entwicklungsumgebung** — Docker Compose (dev/prod), TrueNAS-portabel, Node.js 24 LTS
 - **Persistenz** — PostgreSQL + Named Volumes, Upload-Volume `/app/uploads`, Dateinamen als UUID
 - **Datenbank-Migrationen** — Prisma Migrate deploy beim Start, P3009-Recovery-Script, kein Datenverlust
 - **Tech Stack + Prisma 7** — Verbindliche Versionen; Prisma 7 breaking changes (Client-Pfad, Adapter, Config)
@@ -28,7 +28,7 @@ Diese Regeln dürfen nicht ohne explizite Überprüfung und Begründung geänder
 - **Zielplattform**: Self-hosted auf TrueNAS via Docker Compose
 - **Portabilität**: Kein TrueNAS-spezifischer Code — die App muss auf jeder Docker-Compose-Umgebung lauffähig sein
 - **Konfiguration**: Alle umgebungsabhängigen Werte (DB-URL, Secrets, Pfade) über Umgebungsvariablen in `.env` — niemals hart im Code verdrahtet
-- **Node.js-Version**: 20 LTS (im Dockerfile: `FROM node:20-alpine`)
+- **Node.js-Version**: 24 LTS (im Dockerfile: `FROM node:24-alpine`)
 
 ---
 
