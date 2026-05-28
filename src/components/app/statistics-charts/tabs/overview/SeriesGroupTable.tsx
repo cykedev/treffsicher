@@ -1,3 +1,7 @@
+"use client"
+
+import { ChevronDown, ChevronRight } from "lucide-react"
+import { useState } from "react"
 import {
   Table,
   TableBody,
@@ -25,6 +29,7 @@ export function SeriesGroupTable({ group, typicalSeriesCount, scoringType }: Pro
     typicalTotalAverage,
     grandTotalAverage,
   } = group
+  const [expanded, setExpanded] = useState(false)
 
   // Sub-typische Gruppen zeigen alle ihre Spalten + Gesamt (= grandTotal).
   // Typische Gruppen zeigen typicalSeriesCount Spalten + Gesamt (= typicalTotal)
@@ -39,7 +44,22 @@ export function SeriesGroupTable({ group, typicalSeriesCount, scoringType }: Pro
       <Table className="min-w-full text-sm">
         <TableHeader>
           <TableRow>
-            <TableHead className="sticky left-0 bg-card px-2 py-2 sm:px-3">Datum</TableHead>
+            <TableHead className="sticky left-0 bg-card px-0 py-0 sm:px-0">
+              <button
+                type="button"
+                aria-expanded={expanded}
+                aria-label={expanded ? "Einheiten ausblenden" : "Einheiten anzeigen"}
+                onClick={() => setExpanded((v) => !v)}
+                className="flex w-full items-center gap-1 px-2 py-2 text-left font-medium hover:text-foreground/80 sm:px-3"
+              >
+                {expanded ? (
+                  <ChevronDown className="size-4 shrink-0" aria-hidden />
+                ) : (
+                  <ChevronRight className="size-4 shrink-0" aria-hidden />
+                )}
+                Datum
+              </button>
+            </TableHead>
             {Array.from({ length: columnCount }, (_, i) => (
               <NumHead key={i + 1} label={buildSeriesLabel(i + 1)} />
             ))}
@@ -51,19 +71,21 @@ export function SeriesGroupTable({ group, typicalSeriesCount, scoringType }: Pro
             {hasExtraSeries && <TotalHead label={{ full: "Gesamt (alle)", short: "Σ alle" }} />}
           </TableRow>
         </TableHeader>
-        <TableBody>
-          {rows.map((row) => (
-            <DataRow
-              key={row.sessionId}
-              row={row}
-              scoringType={scoringType}
-              columnCount={columnCount}
-              isSubTypical={isSubTypical}
-              hasExtraSeries={hasExtraSeries}
-              extraCount={extraCount}
-            />
-          ))}
-        </TableBody>
+        {expanded && (
+          <TableBody>
+            {rows.map((row) => (
+              <DataRow
+                key={row.sessionId}
+                row={row}
+                scoringType={scoringType}
+                columnCount={columnCount}
+                isSubTypical={isSubTypical}
+                hasExtraSeries={hasExtraSeries}
+                extraCount={extraCount}
+              />
+            ))}
+          </TableBody>
+        )}
         <TableFooter>
           <TableRow>
             <TableCell className="sticky left-0 bg-muted/50 px-2 py-1.5 font-semibold sm:px-3 sm:py-2">
