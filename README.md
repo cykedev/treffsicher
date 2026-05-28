@@ -227,3 +227,9 @@ docs/                  # Anforderungen und technische Dokumentation
 | Charts    | Recharts                   |
 | Tests     | Vitest                     |
 | Container | Docker + Docker Compose    |
+
+---
+
+## Lizenz
+
+Veröffentlicht unter der [Apache License 2.0](LICENSE).

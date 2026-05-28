@@ -2,6 +2,8 @@
   "name": "treffsicher",
   "version": "0.1.0",
   "private": true,
+  "license": "Apache-2.0",
+  "author": "Christian Eiden",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
