@@ -13,11 +13,11 @@ import type {
 } from "@/components/app/statistics-charts/types"
 import type { TypeFilter } from "@/components/app/statistics-charts/hooks/useStatisticsFilterState"
 import type { DisciplineForStats } from "@/lib/stats/actions"
-import type { OverviewDisciplineGroup } from "@/lib/stats/overview/aggregateOverview"
+import type { OverviewTableGroup } from "@/lib/stats/overview/aggregateOverview"
 
 export interface TabsParams {
   // Breite, explizite Struktur hält Mapping-Hooks von konkreten Tab-Komponenten entkoppelt.
-  overviewGroups: OverviewDisciplineGroup[]
+  overviewGroups: OverviewTableGroup[]
   hasData: boolean
   effectiveDisplayMode: DisplayMode
   selectedDiscipline: DisciplineForStats | null

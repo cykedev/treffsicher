@@ -1,22 +1,39 @@
 import type { DisciplineForStats, StatsSession } from "@/lib/stats/actions"
 
-export type OverviewShotGroup = {
-  // Anzahl Wertungsschüsse pro Einheit innerhalb dieser Gruppe.
-  totalShots: number
-  // Anzahl Wertungsserien pro Einheit (typischer Wert für Anzeige).
-  seriesCount: number
-  sessionCount: number
-  minScore: number
-  avgScore: number
-  maxScore: number
+export type OverviewTableRow = {
+  sessionId: string
+  date: Date
+  // index = position - 1; null wenn an dieser Position keine gewertete Serie vorhanden
+  seriesScores: (number | null)[]
+  // Summe S1..S{typicalSeriesCount}; null wenn nicht alle typischen Slots gefüllt
+  typicalTotal: number | null
+  // Summe aller vorhandenen Wertungsserien
+  grandTotal: number
 }
 
-export type OverviewDisciplineGroup = {
+export type OverviewSeriesGroup = {
+  // Anzahl tatsächlich gewerteter Serien dieser Gruppe (Gruppierschlüssel)
+  seriesCount: number
+  // true wenn seriesCount < typicalSeriesCount der Disziplin
+  isSubTypical: boolean
+  // Maximale Spaltenanzahl in dieser Gruppe (≥ seriesCount wegen möglicher Positionslücken)
+  maxSeriesCount: number
+  rows: OverviewTableRow[]
+  // Spaltendurchschnitte; null wenn Spalte komplett leer
+  seriesAverages: (number | null)[]
+  // null bei isSubTypical (typicalTotal ist in dieser Gruppe für alle Zeilen null)
+  typicalTotalAverage: number | null
+  grandTotalAverage: number
+}
+
+export type OverviewTableGroup = {
   disciplineId: string
   disciplineName: string
   scoringType: string
+  typicalSeriesCount: number
   sessionCount: number
-  shotGroups: OverviewShotGroup[]
+  // Aufsteigend nach seriesCount sortiert
+  seriesGroups: OverviewSeriesGroup[]
 }
 
 interface AggregateOverviewParams {
@@ -25,83 +42,118 @@ interface AggregateOverviewParams {
   disciplineFilter: string
 }
 
-// Verdichtet die Sessions zu Disziplin-Karten mit Subgruppen pro Wertungsschuss-Zahl.
-// Sessions ohne Disziplin oder ohne gültiges Ergebnis werden ignoriert, weil sie
-// keinen min/avg/max-Beitrag leisten können.
 export function aggregateOverview({
   sessions,
   hiddenDisciplineIds,
   disciplineFilter,
-}: AggregateOverviewParams): OverviewDisciplineGroup[] {
+}: AggregateOverviewParams): OverviewTableGroup[] {
   const hidden = new Set(hiddenDisciplineIds)
   const byDiscipline = new Map<
     string,
     {
       discipline: DisciplineForStats
-      shots: Map<number, { seriesCount: number; scores: number[] }>
+      pendingRows: Array<{ row: OverviewTableRow; scoredCount: number }>
     }
   >()
 
   for (const session of sessions) {
     if (!session.discipline) continue
-    if (session.totalScore === null) continue
-    if (session.totalNonPracticeShots <= 0) continue
-    // Ausgeblendete Disziplinen nur dann anzeigen, wenn sie aktiv ausgewählt sind.
     if (disciplineFilter === "all" && hidden.has(session.discipline.id)) continue
 
-    const scoredSeriesCount = session.series.filter(
-      (serie) => !serie.isPractice && serie.scoreTotal !== null
-    ).length
+    const scored = session.series
+      .filter((s) => !s.isPractice && s.scoreTotal !== null)
+      .sort((a, b) => a.position - b.position)
+
+    if (scored.length === 0) continue
+
+    const maxPosition = scored.reduce((m, s) => Math.max(m, s.position), 0)
+    const seriesScores: (number | null)[] = Array(maxPosition).fill(null)
+    for (const s of scored) {
+      seriesScores[s.position - 1] = s.scoreTotal
+    }
+
+    const typicalCount = session.discipline.seriesCount
+    const typicalSlots = seriesScores.slice(0, typicalCount)
+    const typicalTotal =
+      typicalSlots.length === typicalCount && typicalSlots.every((v) => v !== null)
+        ? typicalSlots.reduce((sum, v) => sum + (v as number), 0)
+        : null
+
+    const grandTotal = scored.reduce((sum, s) => sum + (s.scoreTotal as number), 0)
 
     let bucket = byDiscipline.get(session.discipline.id)
     if (!bucket) {
-      bucket = { discipline: session.discipline, shots: new Map() }
+      bucket = { discipline: session.discipline, pendingRows: [] }
       byDiscipline.set(session.discipline.id, bucket)
     }
-
-    const shotKey = session.totalNonPracticeShots
-    let shotEntry = bucket.shots.get(shotKey)
-    if (!shotEntry) {
-      shotEntry = { seriesCount: scoredSeriesCount, scores: [] }
-      bucket.shots.set(shotKey, shotEntry)
-    }
-    shotEntry.scores.push(session.totalScore)
+    bucket.pendingRows.push({
+      row: { sessionId: session.id, date: session.date, seriesScores, typicalTotal, grandTotal },
+      scoredCount: scored.length,
+    })
   }
 
-  const result: OverviewDisciplineGroup[] = []
-  for (const { discipline, shots } of byDiscipline.values()) {
-    const shotGroups: OverviewShotGroup[] = []
-    for (const [totalShots, entry] of shots.entries()) {
-      const scores = entry.scores
-      if (scores.length === 0) continue
-      let min = scores[0]
-      let max = scores[0]
-      let sum = 0
-      for (const score of scores) {
-        if (score < min) min = score
-        if (score > max) max = score
-        sum += score
+  const result: OverviewTableGroup[] = []
+
+  for (const { discipline, pendingRows } of byDiscipline.values()) {
+    const typicalSeriesCount = discipline.seriesCount
+
+    // Jede distinct Serienzahl bekommt eine eigene Gruppe und damit eine eigene Tabelle.
+    const byKey = new Map<number, Array<{ row: OverviewTableRow; scoredCount: number }>>()
+    for (const entry of pendingRows) {
+      const key = entry.scoredCount
+      const existing = byKey.get(key) ?? []
+      existing.push(entry)
+      byKey.set(key, existing)
+    }
+
+    const seriesGroups: OverviewSeriesGroup[] = []
+    for (const [seriesCount, entries] of byKey.entries()) {
+      const rows = entries.map((e) => e.row)
+      const isSubTypical = seriesCount < typicalSeriesCount
+      const maxSeriesCount = rows.reduce((m, r) => Math.max(m, r.seriesScores.length), seriesCount)
+
+      for (const row of rows) {
+        while (row.seriesScores.length < maxSeriesCount) row.seriesScores.push(null)
       }
-      shotGroups.push({
-        totalShots,
-        seriesCount: entry.seriesCount,
-        sessionCount: scores.length,
-        minScore: min,
-        avgScore: sum / scores.length,
-        maxScore: max,
+
+      rows.sort((a, b) => {
+        const d = a.date.getTime() - b.date.getTime()
+        return d !== 0 ? d : a.sessionId.localeCompare(b.sessionId)
+      })
+
+      const seriesAverages: (number | null)[] = Array.from({ length: maxSeriesCount }, (_, i) => {
+        const vals = rows.map((r) => r.seriesScores[i]).filter((v): v is number => v !== null)
+        return vals.length > 0 ? vals.reduce((s, v) => s + v, 0) / vals.length : null
+      })
+
+      const typicalTotals = rows.map((r) => r.typicalTotal).filter((v): v is number => v !== null)
+      const typicalTotalAverage =
+        typicalTotals.length > 0
+          ? typicalTotals.reduce((s, v) => s + v, 0) / typicalTotals.length
+          : null
+
+      const grandTotalAverage = rows.reduce((s, r) => s + r.grandTotal, 0) / rows.length
+
+      seriesGroups.push({
+        seriesCount,
+        isSubTypical,
+        maxSeriesCount,
+        rows,
+        seriesAverages,
+        typicalTotalAverage,
+        grandTotalAverage,
       })
     }
 
-    // Innerhalb einer Disziplin: aufsteigende Schusszahl, damit kürzere Formate oben stehen.
-    shotGroups.sort((a, b) => a.totalShots - b.totalShots)
+    seriesGroups.sort((a, b) => a.seriesCount - b.seriesCount)
 
-    const sessionCount = shotGroups.reduce((acc, group) => acc + group.sessionCount, 0)
     result.push({
       disciplineId: discipline.id,
       disciplineName: discipline.name,
       scoringType: discipline.scoringType,
-      sessionCount,
-      shotGroups,
+      typicalSeriesCount,
+      sessionCount: pendingRows.length,
+      seriesGroups,
     })
   }
 

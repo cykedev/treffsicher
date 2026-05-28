@@ -1,0 +1,1 @@
+export { DisciplineOverviewTable } from "./DisciplineOverviewTable"
