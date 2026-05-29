@@ -5,8 +5,8 @@ export type OverviewTableRow = {
   date: Date
   // index = position - 1; null wenn an dieser Position keine gewertete Serie vorhanden
   seriesScores: (number | null)[]
-  // Summe S1..S{typicalSeriesCount}; null wenn nicht alle typischen Slots gefüllt
-  typicalTotal: number | null
+  // Summe der vorhandenen Serien mit Position <= typicalSeriesCount (Teilsummen erlaubt, nie null)
+  typicalRangeTotal: number
   // Summe aller vorhandenen Wertungsserien
   grandTotal: number
 }
@@ -16,13 +16,13 @@ export type OverviewSeriesGroup = {
   seriesCount: number
   // true wenn seriesCount < typicalSeriesCount der Disziplin
   isSubTypical: boolean
-  // Maximale Spaltenanzahl in dieser Gruppe (≥ seriesCount wegen möglicher Positionslücken)
+  // Maximale Spaltenanzahl in dieser Gruppe (>= seriesCount wegen möglicher Positionslücken)
   maxSeriesCount: number
   rows: OverviewTableRow[]
   // Spaltendurchschnitte; null wenn Spalte komplett leer
   seriesAverages: (number | null)[]
-  // null bei isSubTypical (typicalTotal ist in dieser Gruppe für alle Zeilen null)
-  typicalTotalAverage: number | null
+  // Mittel der typicalRangeTotal der Zeilen (nie null bei >= 1 Zeile)
+  typicalRangeTotalAverage: number
   grandTotalAverage: number
 }
 
@@ -31,6 +31,8 @@ export type OverviewTableGroup = {
   disciplineName: string
   scoringType: string
   typicalSeriesCount: number
+  // Maximale Serienzahl über alle Gruppen dieser Disziplin (für das gemeinsame Spaltenraster)
+  maxSeriesCount: number
   sessionCount: number
   // Aufsteigend nach seriesCount sortiert
   seriesGroups: OverviewSeriesGroup[]
@@ -73,11 +75,9 @@ export function aggregateOverview({
     }
 
     const typicalCount = session.discipline.seriesCount
-    const typicalSlots = seriesScores.slice(0, typicalCount)
-    const typicalTotal =
-      typicalSlots.length === typicalCount && typicalSlots.every((v) => v !== null)
-        ? typicalSlots.reduce((sum, v) => sum + (v as number), 0)
-        : null
+    const typicalRangeTotal = seriesScores
+      .slice(0, typicalCount)
+      .reduce((sum: number, v) => sum + (v ?? 0), 0)
 
     const grandTotal = scored.reduce((sum, s) => sum + (s.scoreTotal as number), 0)
 
@@ -87,7 +87,13 @@ export function aggregateOverview({
       byDiscipline.set(session.discipline.id, bucket)
     }
     bucket.pendingRows.push({
-      row: { sessionId: session.id, date: session.date, seriesScores, typicalTotal, grandTotal },
+      row: {
+        sessionId: session.id,
+        date: session.date,
+        seriesScores,
+        typicalRangeTotal,
+        grandTotal,
+      },
       scoredCount: scored.length,
     })
   }
@@ -126,11 +132,8 @@ export function aggregateOverview({
         return vals.length > 0 ? vals.reduce((s, v) => s + v, 0) / vals.length : null
       })
 
-      const typicalTotals = rows.map((r) => r.typicalTotal).filter((v): v is number => v !== null)
-      const typicalTotalAverage =
-        typicalTotals.length > 0
-          ? typicalTotals.reduce((s, v) => s + v, 0) / typicalTotals.length
-          : null
+      const typicalRangeTotalAverage =
+        rows.reduce((s, r) => s + r.typicalRangeTotal, 0) / rows.length
 
       const grandTotalAverage = rows.reduce((s, r) => s + r.grandTotal, 0) / rows.length
 
@@ -140,18 +143,21 @@ export function aggregateOverview({
         maxSeriesCount,
         rows,
         seriesAverages,
-        typicalTotalAverage,
+        typicalRangeTotalAverage,
         grandTotalAverage,
       })
     }
 
     seriesGroups.sort((a, b) => a.seriesCount - b.seriesCount)
 
+    const maxSeriesCount = seriesGroups.reduce((m, g) => Math.max(m, g.maxSeriesCount), 0)
+
     result.push({
       disciplineId: discipline.id,
       disciplineName: discipline.name,
       scoringType: discipline.scoringType,
       typicalSeriesCount,
+      maxSeriesCount,
       sessionCount: pendingRows.length,
       seriesGroups,
     })

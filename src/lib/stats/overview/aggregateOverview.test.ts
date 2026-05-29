@@ -61,7 +61,7 @@ describe("aggregateOverview", () => {
 
     const row = sg.rows[0]
     expect(row.seriesScores).toEqual([88, 90, 85, 92])
-    expect(row.typicalTotal).toBe(355)
+    expect(row.typicalRangeTotal).toBe(355)
     expect(row.grandTotal).toBe(355)
   })
 
@@ -100,14 +100,14 @@ describe("aggregateOverview", () => {
     expect(subTypical.seriesCount).toBe(2)
     expect(subTypical.rows).toHaveLength(1)
     expect(subTypical.rows[0].grandTotal).toBe(165)
-    expect(subTypical.typicalTotalAverage).toBeNull()
+    expect(subTypical.typicalRangeTotalAverage).toBe(165)
     expect(subTypical.grandTotalAverage).toBe(165)
 
     const typical = group.seriesGroups.find((g) => !g.isSubTypical)!
     expect(typical.seriesCount).toBe(4)
     expect(typical.rows).toHaveLength(1)
-    expect(typical.rows[0].typicalTotal).toBe(360)
-    expect(typical.typicalTotalAverage).toBe(360)
+    expect(typical.rows[0].typicalRangeTotal).toBe(360)
+    expect(typical.typicalRangeTotalAverage).toBe(360)
   })
 
   it("Durchschnitte der typischen Gruppe sind nicht von sub-typischen Einheiten beeinflusst", () => {
@@ -152,7 +152,7 @@ describe("aggregateOverview", () => {
     expect(typical.seriesAverages[1]).toBeCloseTo(90)
     expect(typical.seriesAverages[2]).toBeCloseTo(91)
     expect(typical.seriesAverages[3]).toBeCloseTo(87)
-    expect(typical.typicalTotalAverage).toBeCloseTo(360) // (356+364)/2
+    expect(typical.typicalRangeTotalAverage).toBeCloseTo(360) // (356+364)/2
     expect(typical.rows).toHaveLength(2)
 
     const subTypical = result[0].seriesGroups.find((g) => g.isSubTypical)!
@@ -186,17 +186,18 @@ describe("aggregateOverview", () => {
     const sg4 = group.seriesGroups.find((g) => g.seriesCount === 4)!
     expect(sg4.isSubTypical).toBe(false)
     expect(sg4.maxSeriesCount).toBe(4)
-    expect(sg4.rows[0].typicalTotal).toBe(360)
+    expect(sg4.rows[0].typicalRangeTotal).toBe(360)
     expect(sg4.rows[0].grandTotal).toBe(360)
 
     const sg6 = group.seriesGroups.find((g) => g.seriesCount === 6)!
     expect(sg6.isSubTypical).toBe(false)
     expect(sg6.maxSeriesCount).toBe(6)
-    expect(sg6.rows[0].typicalTotal).toBe(355) // 88+90+85+92
+    expect(sg6.rows[0].typicalRangeTotal).toBe(355) // 88+90+85+92
     expect(sg6.rows[0].grandTotal).toBe(533)
+    expect(group.maxSeriesCount).toBe(6)
   })
 
-  it("setzt typicalTotal auf null wenn eine typische Serie fehlt", () => {
+  it("berechnet typicalRangeTotal als Teilsumme bei fehlender typischer Serie", () => {
     const sessions = [
       makeSession({
         id: "a",
@@ -210,14 +211,13 @@ describe("aggregateOverview", () => {
     ]
 
     const result = aggregateOverview({ sessions, hiddenDisciplineIds: [], disciplineFilter: "all" })
-    // scored.length=3, key=min(3,4)=3 → sub-typische Gruppe
     const sg = result[0].seriesGroups[0]
     expect(sg.isSubTypical).toBe(true)
     expect(sg.seriesCount).toBe(3)
     const row = sg.rows[0]
     expect(row.seriesScores[1]).toBeNull()
-    expect(row.typicalTotal).toBeNull()
-    expect(row.grandTotal).toBe(265) // 88+85+92
+    expect(row.typicalRangeTotal).toBe(265) // 88+85+92, fehlende Serie zählt nicht mit
+    expect(row.grandTotal).toBe(265)
   })
 
   it("ignoriert Probe-Serien komplett", () => {
@@ -241,8 +241,8 @@ describe("aggregateOverview", () => {
     const row = sg.rows[0]
     expect(row.seriesScores[0]).toBeNull() // Position 1 = Probe → leer
     expect(row.seriesScores[1]).toBe(88)
-    expect(row.typicalTotal).toBeNull() // S1 fehlt
-    expect(row.grandTotal).toBe(355) // 88+90+85+92
+    expect(row.typicalRangeTotal).toBe(263) // 88+90+85: S1 Probe → 0, S5 liegt über typicalSeriesCount → nicht in Gesamt
+    expect(row.grandTotal).toBe(355)
   })
 
   it("überspringt Sessions ohne gewertete Serien", () => {
