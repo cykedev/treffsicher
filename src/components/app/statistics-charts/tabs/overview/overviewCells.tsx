@@ -33,7 +33,10 @@ export function ValueCells({
         }
         const isTotal = col.kind !== "series"
         return (
-          <TableCell key={i} className={`${BASE} ${isTotal ? "bg-secondary/30 font-semibold" : ""}`}>
+          <TableCell
+            key={i}
+            className={`${BASE} ${isTotal ? "bg-secondary/30 font-semibold" : ""}`}
+          >
             {formatScore(value, scoringType)}
           </TableCell>
         )

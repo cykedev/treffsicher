@@ -47,10 +47,10 @@ derselben Stelle — das ursprüngliche „Springen" der Gesamt-Spalte ist damit
 
 ### Werte-Semantik
 
-| Feld | Definition | Sub-typisch (z. B. 3 von 4) |
-| --- | --- | --- |
+| Feld                                  | Definition                                                      | Sub-typisch (z. B. 3 von 4)                                                           |
+| ------------------------------------- | --------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
 | `typicalRangeTotal` (Spalte „Gesamt") | Summe der gewerteten Serien mit Position ≤ `typicalSeriesCount` | partielle Summe, **nicht null** — Wert ist einfach kleiner; fehlende Position als „–" |
-| `grandTotal` (Spalte „Σ alle") | Summe **aller** gewerteten Serien | = `typicalRangeTotal`, daher „–" (keine Zusatzserien) |
+| `grandTotal` (Spalte „Σ alle")        | Summe **aller** gewerteten Serien                               | = `typicalRangeTotal`, daher „–" (keine Zusatzserien)                                 |
 
 Bisher war `typicalTotal` `null`, wenn nicht alle typischen Slots gefüllt waren. **Neu:**
 sub-typische Einheiten zeigen die partielle Summe an der konsistenten Spaltenposition; die
@@ -90,16 +90,19 @@ Pro Disziplin gibt es zwei Render-Modi, abhängig von der Zahl der Serien-Gruppe
 Layer-Reihenfolge: Calculate → Components (keine Schema-/DB-Änderung).
 
 **`OverviewTableRow`**
+
 - `typicalTotal: number | null` → ersetzt durch `typicalRangeTotal: number` (Summe der
   gewerteten Serien mit Position ≤ `typicalSeriesCount`; partielle Summen erlaubt, nie null
   solange ≥ 1 solche Serie existiert). `grandTotal` bleibt.
 
 **`OverviewSeriesGroup`**
+
 - `typicalTotalAverage: number | null` → `typicalRangeTotalAverage: number` (Mittel der
   `typicalRangeTotal` der Zeilen). `grandTotalAverage`, `seriesAverages`, `maxSeriesCount`,
   `isSubTypical`, `seriesCount` bleiben.
 
 **`OverviewTableGroup`** (Disziplin-Ebene)
+
 - Neu: `maxSeriesCount: number` = Maximum über `seriesGroups[].maxSeriesCount`. Daraus
   abgeleitet (in der Komponente, nicht zwingend im Modell): Anzahl Zusatzspalten und ob die
   „Σ alle"-Spalte angezeigt wird.

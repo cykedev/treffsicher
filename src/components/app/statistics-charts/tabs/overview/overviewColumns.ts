@@ -12,7 +12,7 @@ export type OverviewColumn =
  */
 export function buildOverviewColumns(
   typicalSeriesCount: number,
-  maxSeriesCount: number,
+  maxSeriesCount: number
 ): OverviewColumn[] {
   const columns: OverviewColumn[] = []
 

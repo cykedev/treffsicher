@@ -8,9 +8,13 @@ describe("buildOverviewColumns", () => {
   it("typisch 4 / max 6: führende Serien, Gesamt, Extra-Serien, Σ alle", () => {
     const cols = buildOverviewColumns(4, 6)
     expect(cols.map((c) => c.kind)).toEqual([
-      "series", "series", "series", "series",
+      "series",
+      "series",
+      "series",
+      "series",
       "typicalTotal",
-      "series", "series",
+      "series",
+      "series",
       "grandTotal",
     ])
     expect(cols.filter(isSeries).map((c) => c.position)).toEqual([1, 2, 3, 4, 5, 6])
@@ -26,7 +30,11 @@ describe("buildOverviewColumns", () => {
   it("typisch 4 / max 4: Gesamt am Ende, keine Σ-alle-Spalte", () => {
     const cols = buildOverviewColumns(4, 4)
     expect(cols.map((c) => c.kind)).toEqual([
-      "series", "series", "series", "series", "typicalTotal",
+      "series",
+      "series",
+      "series",
+      "series",
+      "typicalTotal",
     ])
   })
 
@@ -41,7 +49,11 @@ describe("buildOverviewColumns", () => {
     // Alle 4 typischen Spalten erscheinen (fehlende Serien später als Strich).
     const cols = buildOverviewColumns(4, 2)
     expect(cols.map((c) => c.kind)).toEqual([
-      "series", "series", "series", "series", "typicalTotal",
+      "series",
+      "series",
+      "series",
+      "series",
+      "typicalTotal",
     ])
     expect(cols.filter(isSeries).map((c) => c.position)).toEqual([1, 2, 3, 4])
   })

@@ -32,6 +32,7 @@ Subagents must read the baseline docs in `.claude`/project conventions before co
 - `overviewFormatting.ts` (`formatScore`, `formatDate`, `buildSeriesLabel`) — unchanged, reused.
 
 Notes for the executor:
+
 - `aggregateOverview` and `buildOverviewColumns` are pure → strict TDD (test first, watch it fail, implement, watch it pass).
 - The React components have **no unit-test harness** in this repo (Vitest is used for pure logic only). Do **not** introduce React Testing Library. Verify components via `npx tsc --noEmit`, lint, and the manual visual checkpoint in the final task.
 - All commands run through Docker per the project: `docker compose -f docker-compose.dev.yml run --rm app <cmd>`.
@@ -41,6 +42,7 @@ Notes for the executor:
 ### Task 1: Aggregation — partial typical-range total + discipline maxSeriesCount
 
 **Files:**
+
 - Modify: `src/lib/stats/overview/aggregateOverview.ts`
 - Test: `src/lib/stats/overview/aggregateOverview.test.ts`
 
@@ -66,34 +68,36 @@ In `aggregateOverview.test.ts` apply these exact changes:
 Replace the whole test `it("setzt typicalTotal auf null wenn eine typische Serie fehlt", …)` with:
 
 ```ts
-  it("berechnet typicalRangeTotal als Teilsumme bei fehlender typischer Serie", () => {
-    const sessions = [
-      makeSession({
-        id: "a",
-        series: [
-          { position: 1, scoreTotal: 88, isPractice: false, shotCount: 10, executionQuality: null },
-          // Position 2 fehlt
-          { position: 3, scoreTotal: 85, isPractice: false, shotCount: 10, executionQuality: null },
-          { position: 4, scoreTotal: 92, isPractice: false, shotCount: 10, executionQuality: null },
-        ],
-      }),
-    ]
+it("berechnet typicalRangeTotal als Teilsumme bei fehlender typischer Serie", () => {
+  const sessions = [
+    makeSession({
+      id: "a",
+      series: [
+        { position: 1, scoreTotal: 88, isPractice: false, shotCount: 10, executionQuality: null },
+        // Position 2 fehlt
+        { position: 3, scoreTotal: 85, isPractice: false, shotCount: 10, executionQuality: null },
+        { position: 4, scoreTotal: 92, isPractice: false, shotCount: 10, executionQuality: null },
+      ],
+    }),
+  ]
 
-    const result = aggregateOverview({ sessions, hiddenDisciplineIds: [], disciplineFilter: "all" })
-    const sg = result[0].seriesGroups[0]
-    expect(sg.isSubTypical).toBe(true)
-    expect(sg.seriesCount).toBe(3)
-    const row = sg.rows[0]
-    expect(row.seriesScores[1]).toBeNull()
-    expect(row.typicalRangeTotal).toBe(265) // 88+85+92, fehlende Serie zählt nicht mit
-    expect(row.grandTotal).toBe(265)
-  })
+  const result = aggregateOverview({ sessions, hiddenDisciplineIds: [], disciplineFilter: "all" })
+  const sg = result[0].seriesGroups[0]
+  expect(sg.isSubTypical).toBe(true)
+  expect(sg.seriesCount).toBe(3)
+  const row = sg.rows[0]
+  expect(row.seriesScores[1]).toBeNull()
+  expect(row.typicalRangeTotal).toBe(265) // 88+85+92, fehlende Serie zählt nicht mit
+  expect(row.grandTotal).toBe(265)
+})
 ```
 
 In the practice test (`ignoriert Probe-Serien komplett`), change line ~244:
+
 ```ts
-    expect(row.typicalRangeTotal).toBe(263) // 88+90+85 (Position 2-4 ≤ typisch); Position 5 zählt nicht zur Gesamt-Spalte
+expect(row.typicalRangeTotal).toBe(263) // 88+90+85 (Position 2-4 ≤ typisch); Position 5 zählt nicht zur Gesamt-Spalte
 ```
+
 (keep `expect(row.grandTotal).toBe(355)`).
 
 - [ ] **Step 2: Run the tests and confirm they fail**
@@ -150,24 +154,24 @@ export type OverviewTableGroup = {
 Find the block that computes `typicalTotal` (the `typicalSlots` / `typicalTotal` lines) and replace it with:
 
 ```ts
-    const typicalRangeTotal = seriesScores
-      .slice(0, typicalCount)
-      .reduce((sum: number, v) => sum + (v ?? 0), 0)
+const typicalRangeTotal = seriesScores
+  .slice(0, typicalCount)
+  .reduce((sum: number, v) => sum + (v ?? 0), 0)
 ```
 
 Update the row push to use the new field:
 
 ```ts
-    bucket.pendingRows.push({
-      row: {
-        sessionId: session.id,
-        date: session.date,
-        seriesScores,
-        typicalRangeTotal,
-        grandTotal,
-      },
-      scoredCount: scored.length,
-    })
+bucket.pendingRows.push({
+  row: {
+    sessionId: session.id,
+    date: session.date,
+    seriesScores,
+    typicalRangeTotal,
+    grandTotal,
+  },
+  scoredCount: scored.length,
+})
 ```
 
 - [ ] **Step 5: Update the group + discipline aggregation (second loop)**
@@ -175,8 +179,7 @@ Update the row push to use the new field:
 Replace the `typicalTotals` / `typicalTotalAverage` computation with:
 
 ```ts
-      const typicalRangeTotalAverage =
-        rows.reduce((s, r) => s + r.typicalRangeTotal, 0) / rows.length
+const typicalRangeTotalAverage = rows.reduce((s, r) => s + r.typicalRangeTotal, 0) / rows.length
 ```
 
 Update the `seriesGroups.push({ … })` object to use `typicalRangeTotalAverage` in place of `typicalTotalAverage` (keep the other fields).
@@ -184,7 +187,7 @@ Update the `seriesGroups.push({ … })` object to use `typicalRangeTotalAverage`
 After `seriesGroups.sort((a, b) => a.seriesCount - b.seriesCount)`, add:
 
 ```ts
-    const maxSeriesCount = seriesGroups.reduce((m, g) => Math.max(m, g.maxSeriesCount), 0)
+const maxSeriesCount = seriesGroups.reduce((m, g) => Math.max(m, g.maxSeriesCount), 0)
 ```
 
 Add `maxSeriesCount` to the `result.push({ … })` object (between `typicalSeriesCount` and `sessionCount`).
@@ -206,6 +209,7 @@ git commit -m "feat(stats): partial typical-range total + discipline maxSeriesCo
 ### Task 2: Column-grid helper `buildOverviewColumns`
 
 **Files:**
+
 - Create: `src/components/app/statistics-charts/tabs/overview/overviewColumns.ts`
 - Test: `src/components/app/statistics-charts/tabs/overview/overviewColumns.test.ts`
 
@@ -221,14 +225,18 @@ describe("buildOverviewColumns", () => {
   it("typisch 4 / max 6: führende Serien, Gesamt, Extra-Serien, Σ alle", () => {
     const cols = buildOverviewColumns(4, 6)
     expect(cols.map((c) => c.kind)).toEqual([
-      "series", "series", "series", "series",
+      "series",
+      "series",
+      "series",
+      "series",
       "typicalTotal",
-      "series", "series",
+      "series",
+      "series",
       "grandTotal",
     ])
-    expect(cols.filter((c) => c.kind === "series").map((c) => (c as { position: number }).position)).toEqual([
-      1, 2, 3, 4, 5, 6,
-    ])
+    expect(
+      cols.filter((c) => c.kind === "series").map((c) => (c as { position: number }).position)
+    ).toEqual([1, 2, 3, 4, 5, 6])
     expect(cols[4].label.full).toBe("Gesamt")
     expect(cols[7].label.full).toBe("Σ alle")
   })
@@ -241,7 +249,11 @@ describe("buildOverviewColumns", () => {
   it("typisch 4 / max 4: Gesamt am Ende, keine Σ-alle-Spalte", () => {
     const cols = buildOverviewColumns(4, 4)
     expect(cols.map((c) => c.kind)).toEqual([
-      "series", "series", "series", "series", "typicalTotal",
+      "series",
+      "series",
+      "series",
+      "series",
+      "typicalTotal",
     ])
   })
 })
@@ -269,7 +281,7 @@ export type OverviewColumn =
  */
 export function buildOverviewColumns(
   typicalSeriesCount: number,
-  maxSeriesCount: number,
+  maxSeriesCount: number
 ): OverviewColumn[] {
   const columns: OverviewColumn[] = []
 
@@ -308,6 +320,7 @@ git commit -m "feat(stats): shared column-grid helper for overview table"
 ### Task 3: Shared numeric-cell renderer `ValueCells`
 
 **Files:**
+
 - Create: `src/components/app/statistics-charts/tabs/overview/overviewCells.tsx`
 
 No unit test (presentational). Verified via tsc in Task 5.
@@ -350,7 +363,10 @@ export function ValueCells({
         }
         const isTotal = col.kind !== "series"
         return (
-          <TableCell key={i} className={`${BASE} ${isTotal ? "bg-secondary/30 font-semibold" : ""}`}>
+          <TableCell
+            key={i}
+            className={`${BASE} ${isTotal ? "bg-secondary/30 font-semibold" : ""}`}
+          >
             {formatScore(value, scoringType)}
           </TableCell>
         )
@@ -377,6 +393,7 @@ git commit -m "feat(stats): shared ValueCells renderer for overview rows"
 ### Task 4: Series-group rows + table rewrite, remove old sub-table
 
 **Files:**
+
 - Create: `src/components/app/statistics-charts/tabs/overview/SeriesGroupRows.tsx`
 - Rewrite: `src/components/app/statistics-charts/tabs/overview/DisciplineOverviewTable.tsx`
 - Delete: `src/components/app/statistics-charts/tabs/overview/SeriesGroupTable.tsx`
@@ -426,7 +443,17 @@ export function SeriesGroupRows({
   if (!showGroupHeader) {
     return (
       <>
-        {expanded && group.rows.map((row) => <DetailRow key={row.sessionId} row={row} columns={columns} scoringType={scoringType} hasExtra={hasExtra} accent={false} />)}
+        {expanded &&
+          group.rows.map((row) => (
+            <DetailRow
+              key={row.sessionId}
+              row={row}
+              columns={columns}
+              scoringType={scoringType}
+              hasExtra={hasExtra}
+              accent={false}
+            />
+          ))}
         <AvgRow columns={columns} scoringType={scoringType} getValue={avgGetter} accent={false} />
       </>
     )
@@ -476,7 +503,14 @@ export function SeriesGroupRows({
       </TableRow>
 
       {group.rows.map((row) => (
-        <DetailRow key={row.sessionId} row={row} columns={columns} scoringType={scoringType} hasExtra={hasExtra} accent />
+        <DetailRow
+          key={row.sessionId}
+          row={row}
+          columns={columns}
+          scoringType={scoringType}
+          hasExtra={hasExtra}
+          accent
+        />
       ))}
 
       <AvgRow columns={columns} scoringType={scoringType} getValue={avgGetter} accent />
@@ -505,7 +539,9 @@ function DetailRow({
   }
   return (
     <TableRow>
-      <TableCell className={`sticky left-0 bg-card px-2 py-1.5 font-medium sm:px-3 sm:py-2 ${accent ? `pl-8 sm:pl-9 ${ACCENT}` : ""}`}>
+      <TableCell
+        className={`sticky left-0 bg-card px-2 py-1.5 font-medium sm:px-3 sm:py-2 ${accent ? `pl-8 sm:pl-9 ${ACCENT}` : ""}`}
+      >
         <span className="hidden sm:inline">{date.full}</span>
         <span className="sm:hidden">{date.short}</span>
       </TableCell>
@@ -527,7 +563,9 @@ function AvgRow({
 }) {
   return (
     <TableRow>
-      <TableCell className={`sticky left-0 bg-card px-2 py-1.5 font-semibold text-muted-foreground sm:px-3 sm:py-2 ${accent ? `pl-8 sm:pl-9 ${ACCENT}` : ""}`}>
+      <TableCell
+        className={`sticky left-0 bg-card px-2 py-1.5 font-semibold text-muted-foreground sm:px-3 sm:py-2 ${accent ? `pl-8 sm:pl-9 ${ACCENT}` : ""}`}
+      >
         Ø
       </TableCell>
       <ValueCells columns={columns} scoringType={scoringType} getValue={getValue} />
@@ -554,7 +592,14 @@ interface Props {
 }
 
 export function DisciplineOverviewTable({ group }: Props) {
-  const { disciplineName, scoringType, typicalSeriesCount, maxSeriesCount, sessionCount, seriesGroups } = group
+  const {
+    disciplineName,
+    scoringType,
+    typicalSeriesCount,
+    maxSeriesCount,
+    sessionCount,
+    seriesGroups,
+  } = group
   const columns = buildOverviewColumns(typicalSeriesCount, maxSeriesCount)
   const singleGroup = seriesGroups.length === 1
 
@@ -634,7 +679,9 @@ export function DisciplineOverviewTable({ group }: Props) {
 function HeadCell({ column }: { column: OverviewColumn }) {
   const isTotal = column.kind !== "series"
   return (
-    <TableHead className={`px-2 py-2 text-right sm:px-3 ${isTotal ? "bg-secondary/30 font-semibold" : ""}`}>
+    <TableHead
+      className={`px-2 py-2 text-right sm:px-3 ${isTotal ? "bg-secondary/30 font-semibold" : ""}`}
+    >
       <span className="hidden sm:inline">{column.label.full}</span>
       <span className="sm:hidden">{column.label.short}</span>
     </TableHead>
@@ -667,6 +714,7 @@ git commit -m "feat(stats): single aligned overview table with per-group collaps
 ### Task 5: Full quality gate, visual verification & doc sync
 
 **Files:**
+
 - Possibly modify: `docs/data-model.md` or `docs/requirements.md` if they describe the overview table layout.
 
 - [ ] **Step 1: Run the full quality gate**
@@ -677,11 +725,13 @@ docker compose -f docker-compose.dev.yml run --rm app npm run format:check
 docker compose -f docker-compose.dev.yml run --rm app npm run test
 docker compose -f docker-compose.dev.yml run --rm app npx tsc --noEmit
 ```
+
 Expected: all green. If `format:check` fails, run `docker compose -f docker-compose.dev.yml run --rm app npm run format` and re-check.
 
 - [ ] **Step 2: Visual verification in the running app**
 
 Start the dev environment (`docker compose -f docker-compose.dev.yml up --watch`), log in (`admin@example.com` / `admin-passwort-12`), open Statistiken → Übersicht and confirm against the approved design:
+
 - One table per discipline, single column header, `Einheiten` as first column.
 - `Gesamt` sits directly after the typical series count; `Σ alle` only when extra series exist.
 - A discipline with mixed series sizes shows per-group collapse rows; expanding one group reveals its sessions with the Ø row as footer and the left accent bar; other groups stay collapsed.
