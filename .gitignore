@@ -26,6 +26,9 @@
 .DS_Store
 *.pem
 
+# superpowers brainstorm artifacts
+/.superpowers/
+
 # uploads — Dateien nur im Docker-Volume, nie im Repository
 /uploads/
 
