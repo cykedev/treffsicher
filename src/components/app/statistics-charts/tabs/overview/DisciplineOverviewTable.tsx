@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import type { OverviewTableGroup } from "@/lib/stats/overview/aggregateOverview"
 import { buildOverviewColumns, type OverviewColumn } from "./overviewColumns"
+import { formatScore } from "./overviewFormatting"
 import { SeriesGroupRows } from "./SeriesGroupRows"
 
 interface Props {
@@ -19,6 +20,7 @@ export function DisciplineOverviewTable({ group }: Props) {
     typicalSeriesCount,
     maxSeriesCount,
     sessionCount,
+    allSeriesAverage,
     seriesGroups,
   } = group
   const columns = buildOverviewColumns(typicalSeriesCount, maxSeriesCount)
@@ -92,6 +94,14 @@ export function DisciplineOverviewTable({ group }: Props) {
             </TableBody>
           </Table>
         </div>
+        {allSeriesAverage !== null && (
+          <p className="flex items-baseline justify-between gap-2 border-t px-6 pt-3 text-sm text-muted-foreground">
+            <span>Ø aller Serien</span>
+            <span className="font-mono font-semibold tabular-nums text-foreground">
+              {formatScore(allSeriesAverage, scoringType)}
+            </span>
+          </p>
+        )}
       </CardContent>
     </Card>
   )

@@ -34,6 +34,9 @@ export type OverviewTableGroup = {
   // Maximale Serienzahl über alle Gruppen dieser Disziplin (für das gemeinsame Spaltenraster)
   maxSeriesCount: number
   sessionCount: number
+  // Ø über alle gewerteten Serien aller Einheiten der Disziplin
+  // (Summe aller Serien ÷ Anzahl Serien); null wenn keine Serien vorhanden
+  allSeriesAverage: number | null
   // Aufsteigend nach seriesCount sortiert
   seriesGroups: OverviewSeriesGroup[]
 }
@@ -152,6 +155,10 @@ export function aggregateOverview({
 
     const maxSeriesCount = seriesGroups.reduce((m, g) => Math.max(m, g.maxSeriesCount), 0)
 
+    const totalSeriesScore = pendingRows.reduce((s, e) => s + e.row.grandTotal, 0)
+    const totalSeriesCount = pendingRows.reduce((s, e) => s + e.scoredCount, 0)
+    const allSeriesAverage = totalSeriesCount > 0 ? totalSeriesScore / totalSeriesCount : null
+
     result.push({
       disciplineId: discipline.id,
       disciplineName: discipline.name,
@@ -159,6 +166,7 @@ export function aggregateOverview({
       typicalSeriesCount,
       maxSeriesCount,
       sessionCount: pendingRows.length,
+      allSeriesAverage,
       seriesGroups,
     })
   }

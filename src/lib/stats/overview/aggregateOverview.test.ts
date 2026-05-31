@@ -52,6 +52,7 @@ describe("aggregateOverview", () => {
     expect(group.disciplineName).toBe("Luftpistole")
     expect(group.typicalSeriesCount).toBe(4)
     expect(group.sessionCount).toBe(1)
+    expect(group.allSeriesAverage).toBeCloseTo(88.75) // 355 / 4 Serien
     expect(group.seriesGroups).toHaveLength(1)
 
     const sg = group.seriesGroups[0]
@@ -195,6 +196,7 @@ describe("aggregateOverview", () => {
     expect(sg6.rows[0].typicalRangeTotal).toBe(355) // 88+90+85+92
     expect(sg6.rows[0].grandTotal).toBe(533)
     expect(group.maxSeriesCount).toBe(6)
+    expect(group.allSeriesAverage).toBeCloseTo(89.3) // (360 + 533) / (4 + 6 Serien)
   })
 
   it("berechnet typicalRangeTotal als Teilsumme bei fehlender typischer Serie", () => {
