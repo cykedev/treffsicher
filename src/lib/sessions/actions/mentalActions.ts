@@ -104,7 +104,10 @@ export async function saveReflectionAction(
     observations: formData.get("observations") as string,
     insight: formData.get("insight") as string,
     learningQuestion: formData.get("learningQuestion") as string,
-    routineDeviation: formData.get("routineDeviation") as string,
+    // Feld ist nur im DOM, wenn der Ablauf nicht eingehalten wurde.
+    // Bei eingehaltenem Ablauf fehlt das Feld; formData.get() liefert dann null,
+    // was Zods .optional() (erwartet undefined) als Typfehler ablehnen würde.
+    routineDeviation: formData.get("routineDeviation") ?? undefined,
   })
 
   if (!reflectionParsed.success) return { error: "Ungültige Eingabe" }
