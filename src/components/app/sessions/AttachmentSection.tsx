@@ -74,7 +74,7 @@ export function AttachmentSection({ sessionId, attachments }: Props) {
 
       {/* Bestehende Anhänge */}
       {attachments.length > 0 && (
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {attachments.map((attachment) => (
             <Card key={attachment.id}>
               <CardContent className="p-3 space-y-2">
@@ -101,14 +101,14 @@ export function AttachmentSection({ sessionId, attachments }: Props) {
                     rel="noopener noreferrer"
                     className="flex items-center gap-2 rounded border p-3 text-sm hover:bg-muted"
                   >
-                    <span>PDF</span>
-                    <span className="truncate text-muted-foreground">
+                    <span className="shrink-0">PDF</span>
+                    <span className="min-w-0 truncate text-muted-foreground">
                       {attachment.originalName}
                     </span>
                   </a>
                 )}
                 <div className="flex items-center justify-between gap-2">
-                  <span className="truncate text-xs text-muted-foreground">
+                  <span className="min-w-0 truncate text-xs text-muted-foreground">
                     {attachment.label ?? attachment.originalName}
                   </span>
                   <Button
