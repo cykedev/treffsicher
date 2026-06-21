@@ -1,6 +1,7 @@
 import { getAuthSession } from "@/lib/auth-helpers"
 import { redirect } from "next/navigation"
 import { DisciplineForm } from "@/components/app/disciplines/DisciplineForm"
+import { PageHeader } from "@/components/app/shell/PageHeader"
 
 export default async function NewDisciplinePage() {
   const session = await getAuthSession()
@@ -10,16 +11,14 @@ export default async function NewDisciplinePage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">
-          {isAdmin ? "Neue Disziplin anlegen" : "Neue Disziplin"}
-        </h1>
-        <p className="text-muted-foreground">
-          {isAdmin
+      <PageHeader
+        title={isAdmin ? "Neue Disziplin anlegen" : "Neue Disziplin"}
+        description={
+          isAdmin
             ? "Als Admin kannst du System-Disziplinen für alle oder eigene Disziplinen anlegen."
-            : "Eigene Disziplin mit individuellem Format anlegen."}
-        </p>
-      </div>
+            : "Eigene Disziplin mit individuellem Format anlegen."
+        }
+      />
       <DisciplineForm canCreateSystem={isAdmin} />
     </div>
   )

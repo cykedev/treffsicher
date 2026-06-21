@@ -167,7 +167,7 @@ export function FeedbackForm({ sessionId, initialData, onCancel, onSuccess }: Pr
       <ActionFormFooter
         pending={pending}
         submitLabel="Feedback speichern"
-        submitPendingLabel="Speichern..."
+        submitPendingLabel="Speichern…"
         onCancel={onCancel}
       />
     </form>

@@ -30,7 +30,7 @@ export function SessionFormFooter({
 
       <div className="flex gap-3">
         <Button type="submit" disabled={submitDisabled}>
-          {pending ? "Speichern..." : sessionId ? "Änderungen speichern" : "Einheit speichern"}
+          {pending ? "Speichern…" : sessionId ? "Änderungen speichern" : "Einheit speichern"}
         </Button>
         {showValidationHint && (
           <p className="self-center text-sm text-destructive">Bitte ungültige Werte korrigieren.</p>

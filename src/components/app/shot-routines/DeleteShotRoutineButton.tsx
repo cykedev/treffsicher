@@ -53,10 +53,10 @@ export function DeleteShotRoutineButton({ routineId }: Props) {
             // ab `sm` wird das Textlabel wieder eingeblendet.
             className="size-9 sm:h-8 sm:w-auto sm:px-3"
             disabled={isPending}
-            aria-label={isPending ? "Löschen..." : "Löschen"}
+            aria-label={isPending ? "Löschen…" : "Löschen"}
           >
             <Trash2 className="h-4 w-4 sm:mr-1.5" />
-            <span className="hidden sm:inline">{isPending ? "Löschen..." : "Löschen"}</span>
+            <span className="hidden sm:inline">{isPending ? "Löschen…" : "Löschen"}</span>
           </Button>
         </AlertDialogTrigger>
         <AlertDialogContent>

@@ -123,7 +123,7 @@ export function PrognosisForm({ sessionId, initialData, onSuccess, onCancel }: P
       <ActionFormFooter
         pending={pending}
         submitLabel="Prognose speichern"
-        submitPendingLabel="Speichern..."
+        submitPendingLabel="Speichern…"
         onCancel={onCancel}
       />
     </form>

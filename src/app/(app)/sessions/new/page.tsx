@@ -3,6 +3,7 @@ import { redirect } from "next/navigation"
 import { getDisciplines, getFavouriteDisciplineId } from "@/lib/disciplines/actions"
 import { getGoalsForSelection } from "@/lib/goals/actions"
 import { SessionForm } from "@/components/app/session-form/SessionForm"
+import { PageHeader } from "@/components/app/shell/PageHeader"
 
 export default async function NewSessionPage() {
   const session = await getAuthSession()
@@ -20,12 +21,10 @@ export default async function NewSessionPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Neue Einheit</h1>
-        <p className="text-muted-foreground">
-          Training, Wettkampf, Trockentraining oder Mentaltraining erfassen.
-        </p>
-      </div>
+      <PageHeader
+        title="Neue Einheit"
+        description="Training, Wettkampf, Trockentraining oder Mentaltraining erfassen."
+      />
       <SessionForm disciplines={disciplines} goals={goals} defaultDisciplineId={autoSelectId} />
     </div>
   )

@@ -2,21 +2,16 @@ import { redirect } from "next/navigation"
 import Link from "next/link"
 import { ListChecks } from "lucide-react"
 import { getAuthSession } from "@/lib/auth-helpers"
+import { formatDateOnly, getDisplayTimeZone } from "@/lib/dateTime"
 import { getShotRoutines } from "@/lib/shot-routines/actions"
 import type { RoutineStep } from "@/lib/shot-routines/actions"
 import { CreateItemLinkButton } from "@/components/app/sessions/CreateItemLinkButton"
+import { PageHeader } from "@/components/app/shell/PageHeader"
 import { Card, CardContent } from "@/components/ui/card"
 import { EmptyState } from "@/components/ui/empty-state"
 
-function formatDate(date: Date): string {
-  return new Intl.DateTimeFormat("de-CH", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  }).format(date)
-}
-
 export default async function ShotRoutinesPage() {
+  const displayTimeZone = getDisplayTimeZone()
   const session = await getAuthSession()
   if (!session) redirect("/login")
 
@@ -24,15 +19,11 @@ export default async function ShotRoutinesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Schuss-Abläufe</h1>
-          <p className="text-muted-foreground">
-            Lege Abläufe mit ihren Schritten an und verfeinere sie laufend.
-          </p>
-        </div>
-        <CreateItemLinkButton href="/shot-routines/new" label="Neuer Ablauf" />
-      </div>
+      <PageHeader
+        title="Schuss-Abläufe"
+        description="Lege Abläufe mit ihren Schritten an und verfeinere sie laufend."
+        action={<CreateItemLinkButton href="/shot-routines/new" label="Neuer Ablauf" />}
+      />
 
       {routines.length === 0 ? (
         <EmptyState
@@ -56,7 +47,8 @@ export default async function ShotRoutinesPage() {
                     <div className="min-w-0 space-y-0.5">
                       <p className="break-words font-medium">{r.name}</p>
                       <p className="break-words text-sm text-muted-foreground">
-                        {stepCountText} · Zuletzt geändert am {formatDate(r.updatedAt)}
+                        {stepCountText} · Zuletzt geändert am{" "}
+                        {formatDateOnly(r.updatedAt, displayTimeZone)}
                       </p>
                     </div>
                   </CardContent>

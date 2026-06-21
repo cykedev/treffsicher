@@ -109,7 +109,7 @@ export function AdminCreateUserForm() {
       </div>
 
       <Button type="submit" disabled={pending}>
-        {pending ? "Lege an..." : "Nutzer anlegen"}
+        {pending ? "Lege an…" : "Nutzer anlegen"}
       </Button>
     </form>
   )

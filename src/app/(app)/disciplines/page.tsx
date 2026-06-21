@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import { EmptyState } from "@/components/ui/empty-state"
 import { CreateItemLinkButton } from "@/components/app/sessions/CreateItemLinkButton"
+import { PageHeader } from "@/components/app/shell/PageHeader"
 
 const scoringTypeLabel: Record<string, string> = {
   WHOLE: "Ganzringe",
@@ -31,20 +32,20 @@ export default async function DisciplinesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Disziplinen</h1>
-          <p className="text-muted-foreground">
-            {isAdmin
-              ? "Verwalte System- und eigene Disziplinen, setze Favoriten und archiviere bei Bedarf."
-              : "Nutze System-Disziplinen, verwalte eigene Disziplinen und setze deinen Favoriten."}
-          </p>
-        </div>
-        <CreateItemLinkButton
-          href="/disciplines/new"
-          label={isAdmin ? "Neue (System-)Disziplin" : "Neue Disziplin"}
-        />
-      </div>
+      <PageHeader
+        title="Disziplinen"
+        description={
+          isAdmin
+            ? "Verwalte System- und eigene Disziplinen, setze Favoriten und archiviere bei Bedarf."
+            : "Nutze System-Disziplinen, verwalte eigene Disziplinen und setze deinen Favoriten."
+        }
+        action={
+          <CreateItemLinkButton
+            href="/disciplines/new"
+            label={isAdmin ? "Neue (System-)Disziplin" : "Neue Disziplin"}
+          />
+        }
+      />
 
       {disciplines.length === 0 ? (
         <EmptyState

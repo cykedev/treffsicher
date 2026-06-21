@@ -81,7 +81,7 @@ export function GoalEditForm({ goal, message, pending, onSubmit, onCancel }: Pro
       </div>
       <div className="flex flex-wrap gap-2">
         <Button type="submit" size="sm" disabled={pending}>
-          {pending ? "Speichern..." : "Ziel speichern"}
+          {pending ? "Speichern…" : "Ziel speichern"}
         </Button>
         <Button type="button" size="sm" variant="outline" onClick={onCancel} disabled={pending}>
           Abbrechen

@@ -14,6 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { PageHeader } from "@/components/app/shell/PageHeader"
 
 export default async function NewGoalPage({
   searchParams,
@@ -26,10 +27,10 @@ export default async function NewGoalPage({
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Neues Ziel</h1>
-        <p className="text-muted-foreground">Ergebnis- oder Prozessziel für die Saison anlegen.</p>
-      </div>
+      <PageHeader
+        title="Neues Ziel"
+        description="Ergebnis- oder Prozessziel für die Saison anlegen."
+      />
 
       <Card>
         <CardHeader>

@@ -2,8 +2,10 @@ import Link from "next/link"
 import { redirect } from "next/navigation"
 import { Goal } from "lucide-react"
 import { getAuthSession } from "@/lib/auth-helpers"
+import { formatDateOnly, getDisplayTimeZone } from "@/lib/dateTime"
 import { getGoalsWithAssignments } from "@/lib/goals/actions"
 import { CreateItemLinkButton } from "@/components/app/sessions/CreateItemLinkButton"
+import { PageHeader } from "@/components/app/shell/PageHeader"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import { EmptyState } from "@/components/ui/empty-state"
@@ -13,15 +15,8 @@ const goalTypeLabels: Record<string, string> = {
   PROCESS: "Prozessziel",
 }
 
-function formatDateOnly(date: Date): string {
-  return new Intl.DateTimeFormat("de-CH", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  }).format(new Date(date))
-}
-
 export default async function GoalsPage() {
+  const displayTimeZone = getDisplayTimeZone()
   const session = await getAuthSession()
   if (!session) redirect("/login")
 
@@ -29,15 +24,11 @@ export default async function GoalsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Saisonziele</h1>
-          <p className="text-muted-foreground">
-            Lege Ziele an und öffne sie für Bearbeiten, Zuweisen und Löschen.
-          </p>
-        </div>
-        <CreateItemLinkButton href="/goals/new" label="Neues Ziel" />
-      </div>
+      <PageHeader
+        title="Saisonziele"
+        description="Lege Ziele an und öffne sie für Bearbeiten, Zuweisen und Löschen."
+        action={<CreateItemLinkButton href="/goals/new" label="Neues Ziel" />}
+      />
 
       {goals.length === 0 ? (
         <EmptyState
@@ -60,7 +51,8 @@ export default async function GoalsPage() {
                     <Badge variant="outline">{goalTypeLabels[goal.type] ?? goal.type}</Badge>
                   </div>
                   <p className="text-sm text-muted-foreground">
-                    Zeitraum: {formatDateOnly(goal.dateFrom)} bis {formatDateOnly(goal.dateTo)}
+                    Zeitraum: {formatDateOnly(new Date(goal.dateFrom), displayTimeZone)} bis{" "}
+                    {formatDateOnly(new Date(goal.dateTo), displayTimeZone)}
                   </p>
                   <p className="text-sm text-muted-foreground">
                     Einheiten, die auf das Ziel einzahlen: {goal.sessionCount}

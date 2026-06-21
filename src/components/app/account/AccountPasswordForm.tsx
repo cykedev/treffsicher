@@ -50,7 +50,7 @@ export function AccountPasswordForm() {
     <form action={formAction} className="max-w-xl space-y-4">
       {generalError && <p className="text-sm text-destructive">{generalError}</p>}
       {state?.success && (
-        <p className="text-sm text-muted-foreground">Passwort geändert. Abmeldung läuft...</p>
+        <p className="text-sm text-muted-foreground">Passwort geändert. Abmeldung läuft…</p>
       )}
 
       <div className="space-y-2">
@@ -96,7 +96,7 @@ export function AccountPasswordForm() {
 
       <div className="flex flex-wrap gap-2">
         <Button type="submit" disabled={isBusy}>
-          {isBusy ? "Speichern..." : "Passwort ändern"}
+          {isBusy ? "Speichern…" : "Passwort ändern"}
         </Button>
         <Button
           type="button"

@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation"
 import { getAuthSession } from "@/lib/auth-helpers"
 import { AdminCreateUserForm } from "@/components/app/admin/AdminCreateUserForm"
+import { PageHeader } from "@/components/app/shell/PageHeader"
 
 export default async function AdminUserCreatePage() {
   const session = await getAuthSession()
@@ -9,12 +10,10 @@ export default async function AdminUserCreatePage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Neuer Nutzer</h1>
-        <p className="text-muted-foreground">
-          Neues Konto mit Name und temporärem Passwort anlegen.
-        </p>
-      </div>
+      <PageHeader
+        title="Neuer Nutzer"
+        description="Neues Konto mit Name und temporärem Passwort anlegen."
+      />
       <AdminCreateUserForm />
     </div>
   )

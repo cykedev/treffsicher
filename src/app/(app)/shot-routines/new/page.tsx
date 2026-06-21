@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation"
 import { getAuthSession } from "@/lib/auth-helpers"
 import { ShotRoutineEditor } from "@/components/app/shot-routines/ShotRoutineEditor"
+import { PageHeader } from "@/components/app/shell/PageHeader"
 
 export default async function NeuerShotRoutinesPage() {
   const session = await getAuthSession()
@@ -8,12 +9,10 @@ export default async function NeuerShotRoutinesPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Neuer Schuss-Ablauf</h1>
-        <p className="text-muted-foreground">
-          Beschreibe die Schritte deines idealen Schuss-Ablaufs.
-        </p>
-      </div>
+      <PageHeader
+        title="Neuer Schuss-Ablauf"
+        description="Beschreibe die Schritte deines idealen Schuss-Ablaufs."
+      />
       <ShotRoutineEditor />
     </div>
   )

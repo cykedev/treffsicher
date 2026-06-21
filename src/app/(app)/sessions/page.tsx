@@ -8,6 +8,7 @@ import { EmptyState } from "@/components/ui/empty-state"
 import { SessionsFilters } from "@/components/app/sessions/SessionsFilters"
 import { CreateItemLinkButton } from "@/components/app/sessions/CreateItemLinkButton"
 import { SessionsList } from "@/components/app/sessions/list/SessionsList"
+import { PageHeader } from "@/components/app/shell/PageHeader"
 
 type SessionsSearchParams = Promise<{
   type?: string | string[]
@@ -67,19 +68,17 @@ export default async function SessionsPage({
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Tagebuch</h1>
-          <p className="text-muted-foreground">
-            {sessions.length === 0
-              ? "Noch keine Einheiten erfasst."
-              : hasActiveFilters
-                ? `${formatSessionCount(filteredSessions.length)} von ${formatSessionCount(sessions.length)}`
-                : formatSessionCount(sessions.length)}
-          </p>
-        </div>
-        <CreateItemLinkButton href="/sessions/new" label="Neue Einheit" />
-      </div>
+      <PageHeader
+        title="Tagebuch"
+        description={
+          sessions.length === 0
+            ? "Noch keine Einheiten erfasst."
+            : hasActiveFilters
+              ? `${formatSessionCount(filteredSessions.length)} von ${formatSessionCount(sessions.length)}`
+              : formatSessionCount(sessions.length)
+        }
+        action={<CreateItemLinkButton href="/sessions/new" label="Neue Einheit" />}
+      />
 
       {sessions.length > 0 && (
         <SessionsFilters

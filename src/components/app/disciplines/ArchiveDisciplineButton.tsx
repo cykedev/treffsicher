@@ -57,10 +57,10 @@ export function ArchiveDisciplineButton({ disciplineId, isArchived, compact = fa
           )}
           {compact ? (
             <span className="hidden sm:inline">
-              {isPending ? "..." : isArchived ? "Aktivieren" : "Archivieren"}
+              {isPending ? "…" : isArchived ? "Aktivieren" : "Archivieren"}
             </span>
           ) : (
-            <span>{isPending ? "..." : isArchived ? "Aktivieren" : "Archivieren"}</span>
+            <span>{isPending ? "…" : isArchived ? "Aktivieren" : "Archivieren"}</span>
           )}
         </Button>
       </AlertDialogTrigger>

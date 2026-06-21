@@ -12,6 +12,7 @@ Self-hosted, Einzelnutzer bis Vereinsbetrieb, ausschliesslich Dark Mode, ausschl
 - Deployment: `docs/production-deploy-truenas.md`
 - Backlog / nächste Aufgaben: `docs/backlog.md`
 - Status / Roadmap: `docs/implementation-plan.md`
+- App-übergreifende Konsistenz (Ringwerk × Treffsicher): `docs/shared-conventions.md`
 
 ---
 

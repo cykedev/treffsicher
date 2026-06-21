@@ -17,7 +17,7 @@ export default function SessionDetailError({
 
   return (
     <div className="flex flex-col items-center justify-center gap-4 py-20 text-center">
-      <h1 className="text-2xl font-bold">Fehler beim Laden der Einheit</h1>
+      <h1 className="text-2xl font-semibold">Fehler beim Laden der Einheit</h1>
       <p className="text-muted-foreground">
         Die Einheit konnte nicht geladen werden. Bitte versuche es erneut.
       </p>

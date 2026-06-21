@@ -168,7 +168,7 @@ export function DisciplineForm({ initialData, disciplineId, canCreateSystem = fa
           <div className="flex gap-3">
             <Button type="submit" disabled={pending}>
               {pending
-                ? "Speichern..."
+                ? "Speichern…"
                 : disciplineId
                   ? "Änderungen speichern"
                   : "Disziplin speichern"}

@@ -132,7 +132,7 @@ export function AdminEditUserForm({ user }: Props) {
 
       <div className="flex flex-wrap gap-2">
         <Button type="submit" disabled={pending}>
-          {pending ? "Speichern..." : "Änderungen speichern"}
+          {pending ? "Speichern…" : "Änderungen speichern"}
         </Button>
         <Button type="button" variant="outline" asChild disabled={pending}>
           <Link href="/admin">Abbrechen</Link>

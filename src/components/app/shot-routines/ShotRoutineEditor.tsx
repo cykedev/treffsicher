@@ -145,7 +145,7 @@ export function ShotRoutineEditor({ initialName, initialSteps, routineId }: Prop
 
       <div className="flex gap-3">
         <Button type="submit" disabled={pending || steps.length === 0}>
-          {pending ? "Speichern..." : routineId ? "Änderungen speichern" : "Ablauf erstellen"}
+          {pending ? "Speichern…" : routineId ? "Änderungen speichern" : "Ablauf erstellen"}
         </Button>
         <Button
           type="button"

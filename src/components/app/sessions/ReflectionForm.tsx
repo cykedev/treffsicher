@@ -119,7 +119,7 @@ export function ReflectionForm({ sessionId, initialData, onSuccess, onCancel }: 
       <ActionFormFooter
         pending={pending}
         submitLabel="Reflexion speichern"
-        submitPendingLabel="Speichern..."
+        submitPendingLabel="Speichern…"
         onCancel={onCancel}
       />
     </form>

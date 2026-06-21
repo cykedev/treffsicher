@@ -87,7 +87,7 @@ export function GoalAssignmentsForm({
       ))}
       <div className="flex flex-wrap gap-2">
         <Button type="submit" size="sm" disabled={pending}>
-          {pending ? "Speichern..." : "Markierung speichern"}
+          {pending ? "Speichern…" : "Markierung speichern"}
         </Button>
         <Button type="button" size="sm" variant="outline" onClick={onCancel} disabled={pending}>
           Abbrechen

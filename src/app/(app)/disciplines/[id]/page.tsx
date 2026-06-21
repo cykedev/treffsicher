@@ -87,7 +87,7 @@ export default async function DisciplineDetailPage({
 
         <div className="space-y-1">
           <div className="flex flex-wrap items-center gap-2">
-            <h1 className="break-words text-2xl font-bold tracking-tight">{discipline.name}</h1>
+            <h1 className="break-words text-2xl font-semibold tracking-tight">{discipline.name}</h1>
             {discipline.isSystem && <Badge variant="secondary">Standard</Badge>}
             {discipline.isArchived && <Badge variant="outline">Archiviert</Badge>}
             {isHidden && <Badge variant="outline">Ausgeblendet</Badge>}

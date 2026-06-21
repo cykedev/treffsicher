@@ -55,13 +55,13 @@ export function DeleteDisciplineButton({ disciplineId, compact = false }: Props)
             size={compact ? "icon" : "sm"}
             className={compact ? "size-9 sm:h-8 sm:w-auto sm:px-3" : undefined}
             disabled={isPending}
-            aria-label={isPending ? "Löschen..." : "Disziplin löschen"}
+            aria-label={isPending ? "Löschen…" : "Disziplin löschen"}
           >
             <Trash2 className={compact ? "h-4 w-4 sm:mr-1.5" : "mr-1.5 h-3.5 w-3.5"} />
             {compact ? (
-              <span className="hidden sm:inline">{isPending ? "Löschen..." : "Löschen"}</span>
+              <span className="hidden sm:inline">{isPending ? "Löschen…" : "Löschen"}</span>
             ) : (
-              <span>{isPending ? "Löschen..." : "Löschen"}</span>
+              <span>{isPending ? "Löschen…" : "Löschen"}</span>
             )}
           </Button>
         </AlertDialogTrigger>

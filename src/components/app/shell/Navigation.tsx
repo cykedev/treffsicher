@@ -19,6 +19,13 @@ import {
   X,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { cn } from "@/lib/utils"
 
 const baseNavLinks = [
@@ -82,25 +89,36 @@ export function Navigation() {
           ))}
         </nav>
 
-        {/* Rechte Seite: Konto + Abmelden (Desktop) + Hamburger (Mobil) */}
+        {/* Rechte Seite: Konto-Dropdown (Desktop) + Hamburger (Mobil) */}
         <div className="flex items-center gap-1">
-          <Link
-            href={accountLink.href}
-            className={cn("hidden md:flex", linkClass(accountLink.href, "horizontal"))}
-          >
-            <UserCircle className="h-4 w-4" />
-            <span className="hidden lg:inline">{accountLink.label}</span>
-          </Link>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={() => signOut({ callbackUrl: "/login" })}
-            className="hidden text-muted-foreground hover:text-foreground md:flex"
-          >
-            <LogOut className="h-4 w-4" />
-            <span className="hidden lg:inline">Abmelden</span>
-          </Button>
+          <div className="hidden md:block">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="text-muted-foreground hover:text-foreground"
+                >
+                  <UserCircle className="h-4 w-4" />
+                  <span className="sr-only">Konto</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem asChild>
+                  <Link href={accountLink.href}>
+                    <UserCircle className="mr-2 h-4 w-4" />
+                    Mein Konto
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => signOut({ callbackUrl: "/login" })}>
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Abmelden
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
           <Button
             type="button"
             variant="ghost"

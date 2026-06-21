@@ -2,6 +2,7 @@ import { notFound, redirect } from "next/navigation"
 import { getAuthSession } from "@/lib/auth-helpers"
 import { getAdminUserById } from "@/lib/admin/actions"
 import { AdminEditUserForm } from "@/components/app/admin/AdminEditUserForm"
+import { PageHeader } from "@/components/app/shell/PageHeader"
 
 export default async function AdminUserEditPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await getAuthSession()
@@ -14,10 +15,10 @@ export default async function AdminUserEditPage({ params }: { params: Promise<{ 
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Nutzer bearbeiten</h1>
-        <p className="text-muted-foreground">Name, Rolle, Status und optional Passwort anpassen.</p>
-      </div>
+      <PageHeader
+        title="Nutzer bearbeiten"
+        description="Name, Rolle, Status und optional Passwort anpassen."
+      />
       <AdminEditUserForm user={user} />
     </div>
   )

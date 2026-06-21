@@ -71,7 +71,7 @@ export function WellbeingForm({ sessionId, initialData, onSuccess, onCancel }: P
       <ActionFormFooter
         pending={pending}
         submitLabel="Befinden speichern"
-        submitPendingLabel="Speichern..."
+        submitPendingLabel="Speichern…"
         onCancel={onCancel}
       />
     </form>

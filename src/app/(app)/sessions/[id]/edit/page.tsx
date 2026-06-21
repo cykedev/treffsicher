@@ -4,6 +4,7 @@ import { getSessionById } from "@/lib/sessions/actions"
 import { getDisciplines } from "@/lib/disciplines/actions"
 import { getGoalsForSelection } from "@/lib/goals/actions"
 import { SessionForm } from "@/components/app/session-form/SessionForm"
+import { PageHeader } from "@/components/app/shell/PageHeader"
 
 export default async function EditSessionPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await getAuthSession()
@@ -20,10 +21,10 @@ export default async function EditSessionPage({ params }: { params: Promise<{ id
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Einheit bearbeiten</h1>
-        <p className="text-muted-foreground">Typ, Datum, Serien und weitere Angaben anpassen.</p>
-      </div>
+      <PageHeader
+        title="Einheit bearbeiten"
+        description="Typ, Datum, Serien und weitere Angaben anpassen."
+      />
       <SessionForm
         disciplines={disciplines}
         goals={goals}

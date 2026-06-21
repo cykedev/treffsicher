@@ -10,6 +10,7 @@ import {
 } from "@/lib/stats/actions"
 import { getHiddenDisciplineIds } from "@/lib/disciplines/actions"
 import { StatisticsChartsWrapper } from "@/components/app/statistics-charts/StatisticsChartsWrapper"
+import { PageHeader } from "@/components/app/shell/PageHeader"
 
 export default async function StatisticsPage() {
   const displayTimeZone = getDisplayTimeZone()
@@ -35,13 +36,10 @@ export default async function StatisticsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Statistiken</h1>
-        <p className="text-muted-foreground">
-          Übersicht je Disziplin sowie Verläufe, Trefferlagen, Korrelationen, Schussverteilung und
-          Prognose/Feedback.
-        </p>
-      </div>
+      <PageHeader
+        title="Statistiken"
+        description="Übersicht je Disziplin sowie Verläufe, Trefferlagen, Korrelationen, Schussverteilung und Prognose/Feedback."
+      />
 
       <StatisticsChartsWrapper
         data={{

@@ -1,32 +1,25 @@
 "use client"
 
 import { useEffect } from "react"
-import Link from "next/link"
 import { Button } from "@/components/ui/button"
 
-export default function AppError({
-  error,
-  reset,
-}: {
+interface Props {
   error: Error & { digest?: string }
   reset: () => void
-}) {
+}
+
+export default function Error({ error, reset }: Props) {
   useEffect(() => {
     console.error(error)
   }, [error])
 
   return (
-    <div className="flex flex-col items-center justify-center gap-4 py-20 text-center">
-      <h1 className="text-2xl font-bold">Ein Fehler ist aufgetreten</h1>
-      <p className="text-muted-foreground">
-        Ein unerwarteter Fehler ist aufgetreten. Bitte versuche es erneut.
-      </p>
-      <div className="flex gap-2">
-        <Button onClick={reset}>Erneut versuchen</Button>
-        <Button variant="outline" asChild>
-          <Link href="/dashboard">Zum Dashboard</Link>
-        </Button>
-      </div>
+    <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4 px-4 text-center">
+      <h2 className="text-lg font-semibold">Etwas ist schiefgelaufen</h2>
+      <p className="text-sm text-muted-foreground">Ein unerwarteter Fehler ist aufgetreten.</p>
+      <Button variant="outline" onClick={reset}>
+        Erneut versuchen
+      </Button>
     </div>
   )
 }

@@ -149,7 +149,7 @@ export function AttachmentSection({ sessionId, attachments }: Props) {
             size="sm"
             className="shrink-0"
           >
-            {isPending ? "Wird hochgeladen..." : "Hochladen"}
+            {isPending ? "Wird hochgeladen…" : "Hochladen"}
           </Button>
         </div>
         <p className="text-xs text-muted-foreground">JPEG, PNG, WebP oder PDF — max. 10 MB</p>

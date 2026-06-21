@@ -4,6 +4,7 @@ import Link from "next/link"
 import { Plus, BookOpen, TrendingUp, Goal, Target, ListChecks } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { PageHeader } from "@/components/app/shell/PageHeader"
 
 const quickActions = [
   {
@@ -66,10 +67,7 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
-        <p className="text-muted-foreground">Willkommen, {displayName}</p>
-      </div>
+      <PageHeader title="Dashboard" description={`Willkommen, ${displayName}`} />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {quickActions.map((action) => {

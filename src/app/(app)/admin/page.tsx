@@ -6,6 +6,7 @@ import { AdminLoginRateLimitInsightsPanel } from "@/components/app/admin/AdminLo
 import { AdminLoginRateLimitTable } from "@/components/app/admin/AdminLoginRateLimitTable"
 import { AdminUsersTable } from "@/components/app/admin/AdminUsersTable"
 import { CreateItemLinkButton } from "@/components/app/sessions/CreateItemLinkButton"
+import { PageHeader } from "@/components/app/shell/PageHeader"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
 export default async function AdminPage() {
@@ -21,18 +22,15 @@ export default async function AdminPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Nutzerverwaltung</h1>
-          <p className="text-muted-foreground">
-            Nutzer anzeigen, bearbeiten und Aktivität übersichtlich anhand der erfassten Daten
-            sehen.
-          </p>
-        </div>
-        <div className="flex w-full flex-wrap gap-2 sm:w-auto sm:justify-end">
-          <CreateItemLinkButton href="/admin/users/new" label="Neuer Nutzer" />
-        </div>
-      </div>
+      <PageHeader
+        title="Nutzerverwaltung"
+        description="Nutzer anzeigen, bearbeiten und Aktivität übersichtlich anhand der erfassten Daten sehen."
+        action={
+          <div className="flex w-full flex-wrap gap-2 sm:w-auto sm:justify-end">
+            <CreateItemLinkButton href="/admin/users/new" label="Neuer Nutzer" />
+          </div>
+        }
+      />
 
       <Card>
         <CardHeader>

@@ -21,3 +21,13 @@ function resolveDisplayTimeZone(raw: string | undefined): string {
 export function getDisplayTimeZone(): string {
   return resolveDisplayTimeZone(process.env.DISPLAY_TIME_ZONE)
 }
+
+/** Formatiert ein Datum als "TT.MM.JJJJ" in der konfigurierten Zeitzone. */
+export function formatDateOnly(date: Date, displayTimeZone: string): string {
+  return new Intl.DateTimeFormat("de-CH", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    timeZone: displayTimeZone,
+  }).format(date)
+}

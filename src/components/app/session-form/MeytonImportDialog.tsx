@@ -117,7 +117,7 @@ export function MeytonImportDialog({ model, actions }: Props) {
               void actions.runImport()
             }}
           >
-            {isPending ? "Importiere..." : "Importieren"}
+            {isPending ? "Importiere…" : "Importieren"}
           </Button>
           <Button
             type="button"
