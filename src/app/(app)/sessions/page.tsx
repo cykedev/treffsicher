@@ -2,8 +2,9 @@ import { getAuthSession } from "@/lib/auth-helpers"
 import { redirect } from "next/navigation"
 import { getSessions } from "@/lib/sessions/actions"
 import { getDisplayTimeZone } from "@/lib/dateTime"
+import { BookOpen } from "lucide-react"
 import { SESSION_TYPE_LABELS } from "@/lib/sessions/presentation"
-import { Card, CardContent } from "@/components/ui/card"
+import { EmptyState } from "@/components/ui/empty-state"
 import { SessionsFilters } from "@/components/app/sessions/SessionsFilters"
 import { CreateItemLinkButton } from "@/components/app/sessions/CreateItemLinkButton"
 import { SessionsList } from "@/components/app/sessions/list/SessionsList"
@@ -90,13 +91,17 @@ export default async function SessionsPage({
       )}
 
       {filteredSessions.length === 0 ? (
-        <Card>
-          <CardContent className="py-10 text-center text-muted-foreground">
-            {sessions.length === 0
-              ? "Noch keine Einheiten vorhanden. Starte mit der ersten Einheit."
-              : "Keine Einheiten für die gewählten Filter."}
-          </CardContent>
-        </Card>
+        sessions.length === 0 ? (
+          <EmptyState
+            title="Noch keine Einheiten vorhanden"
+            description="Starte mit deiner ersten Einheit."
+            icon={BookOpen}
+            actionLabel="Neue Einheit"
+            actionHref="/sessions/new"
+          />
+        ) : (
+          <EmptyState title="Keine Einheiten für die gewählten Filter." />
+        )
       ) : (
         <SessionsList sessions={filteredSessions} displayTimeZone={displayTimeZone} />
       )}

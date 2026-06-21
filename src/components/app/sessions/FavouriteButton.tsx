@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react"
 import { Heart } from "lucide-react"
+import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { toggleFavourite } from "@/lib/sessions/actions"
 
@@ -10,16 +11,23 @@ interface Props {
   initialFavourite: boolean
 }
 
-// Optimistischer Toggle: Zustand wird sofort lokal umgeschaltet,
-// während die Server Action im Hintergrund läuft.
+// Optimistischer Toggle: Zustand wird sofort umgeschaltet. Schlägt die Server Action
+// fehl, wird der optimistische Wert zurückgerollt und ein Fehler-Toast angezeigt.
 export function FavouriteButton({ sessionId, initialFavourite }: Props) {
   const [isFavourite, setIsFavourite] = useState(initialFavourite)
   const [isPending, startTransition] = useTransition()
 
   function handleToggle() {
-    setIsFavourite((prev) => !prev)
+    const previous = isFavourite
+    setIsFavourite(!previous)
     startTransition(async () => {
-      await toggleFavourite(sessionId)
+      const result = await toggleFavourite(sessionId)
+      if (result && "error" in result && result.error) {
+        setIsFavourite(previous)
+        toast.error(
+          typeof result.error === "string" ? result.error : "Favorit konnte nicht geändert werden."
+        )
+      }
     })
   }
 

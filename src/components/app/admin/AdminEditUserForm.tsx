@@ -3,7 +3,9 @@
 import Link from "next/link"
 import { useActionState, useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
+import { toast } from "sonner"
 import { updateUser, type AdminActionResult, type AdminUserSummary } from "@/lib/admin/actions"
+import { getGeneralError } from "@/lib/forms/fieldErrors"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -29,15 +31,22 @@ export function AdminEditUserForm({ user }: Props) {
     null
   )
 
+  const generalError = getGeneralError(state)
+
   useEffect(() => {
+    if (generalError) {
+      toast.error(generalError)
+      return
+    }
     // Nach erfolgreichem Save zurück zur Übersicht, damit Tabelle und Detailzustand sofort konsistent sind.
     if (!state?.success) return
+    toast.success("Nutzer gespeichert.")
     router.push("/admin")
-  }, [state?.success, router])
+  }, [state?.success, generalError, router])
 
   return (
     <form action={formAction} className="max-w-3xl space-y-4">
-      {state?.error && <p className="text-sm text-destructive">{state.error}</p>}
+      {generalError && <p className="text-sm text-destructive">{generalError}</p>}
 
       <div className="space-y-2">
         <Label htmlFor="admin-edit-name">Name</Label>

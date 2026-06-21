@@ -1,5 +1,6 @@
 "use client"
 
+import { useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { signOut, useSession } from "next-auth/react"
@@ -11,11 +12,14 @@ import {
   Target,
   Goal,
   ListChecks,
-  User,
+  UserCircle,
   Shield,
   LogOut,
+  Menu,
+  X,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { cn } from "@/lib/utils"
 
 const baseNavLinks = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -24,69 +28,119 @@ const baseNavLinks = [
   { href: "/goals", label: "Ziele", icon: Goal },
   { href: "/shot-routines", label: "Ablauf", icon: ListChecks },
   { href: "/disciplines", label: "Disziplinen", icon: Target },
-  { href: "/account", label: "Konto", icon: User },
 ]
 
+const accountLink = { href: "/account", label: "Konto", icon: UserCircle }
+
 // Haupt-Navigation der App.
-// Client-Komponente weil usePathname() (aktiver Link) nur im Browser verfügbar ist.
+// Client-Komponente weil usePathname() (aktiver Link) und useSession() nur im Browser verfügbar sind.
 export function Navigation() {
   const pathname = usePathname()
   const { data: session } = useSession()
+  const [mobileOpen, setMobileOpen] = useState(false)
   const isAdmin = session?.user?.role === "ADMIN"
   const navLinks = isAdmin
     ? [...baseNavLinks, { href: "/admin", label: "Admin", icon: Shield }]
     : baseNavLinks
 
+  // Im Mobil-Panel sind Hauptlinks, Konto und Admin gemeinsam sichtbar.
+  const mobileLinks = [...navLinks, accountLink]
+
+  function linkClass(href: string, layout: "horizontal" | "panel") {
+    const isActive = pathname.startsWith(href)
+    const base =
+      layout === "horizontal"
+        ? "flex items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors"
+        : "flex items-center gap-3 px-4 py-3 text-sm transition-colors"
+    return cn(
+      base,
+      isActive
+        ? "bg-secondary text-foreground"
+        : "text-muted-foreground hover:bg-secondary/50 hover:text-foreground"
+    )
+  }
+
   return (
-    <nav className="border-b border-border/50 bg-background">
-      <div className="mx-auto max-w-6xl px-4">
-        <div className="flex h-16 items-center gap-2">
-          {/* App-Name / Logo */}
+    <header className="border-b border-border/50 bg-background">
+      <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
+        {/* App-Name / Logo */}
+        <Link
+          href="/dashboard"
+          className="flex shrink-0 items-center gap-2 text-lg font-semibold tracking-tight"
+        >
+          <Crosshair className="h-5 w-5 text-primary" />
+          <span>Treffsicher</span>
+        </Link>
+
+        {/* Desktop-Navigation */}
+        <nav className="hidden items-center gap-1 md:flex">
+          {navLinks.map(({ href, label, icon: Icon }) => (
+            <Link key={href} href={href} className={linkClass(href, "horizontal")}>
+              <Icon className="h-4 w-4" />
+              {label}
+            </Link>
+          ))}
+        </nav>
+
+        {/* Rechte Seite: Konto + Abmelden (Desktop) + Hamburger (Mobil) */}
+        <div className="flex items-center gap-1">
           <Link
-            href="/dashboard"
-            className="flex shrink-0 items-center gap-2 text-lg font-semibold tracking-tight"
+            href={accountLink.href}
+            className={cn("hidden md:flex", linkClass(accountLink.href, "horizontal"))}
           >
-            <Crosshair className="h-5 w-5 text-primary" />
-            <span className="hidden lg:inline">Treffsicher</span>
+            <UserCircle className="h-4 w-4" />
+            <span className="hidden lg:inline">{accountLink.label}</span>
           </Link>
-
-          {/* Navigations-Links */}
-          <div className="no-scrollbar min-w-0 flex-1 overflow-x-auto">
-            <div className="flex w-max min-w-full items-center justify-center gap-0 px-0.5">
-              {navLinks.map((link) => {
-                const isActive = pathname.startsWith(link.href)
-                const Icon = link.icon
-                return (
-                  <Link
-                    key={link.href}
-                    href={link.href}
-                    className={`flex min-h-11 min-w-16 flex-col items-center justify-center gap-0.5 whitespace-nowrap rounded-md px-2 py-1.5 text-[11px] font-medium transition-colors sm:min-w-11 sm:flex-row sm:gap-1.5 sm:px-2.5 sm:py-2 sm:text-sm ${
-                      isActive
-                        ? "bg-secondary text-foreground"
-                        : "text-muted-foreground hover:bg-secondary/50 hover:text-foreground"
-                    }`}
-                  >
-                    <Icon className="h-4 w-4 shrink-0" />
-                    <span>{link.label}</span>
-                  </Link>
-                )
-              })}
-            </div>
-          </div>
-
-          {/* Abmelden */}
           <Button
             type="button"
             variant="ghost"
             size="sm"
             onClick={() => signOut({ callbackUrl: "/login" })}
-            className="min-h-11 min-w-16 shrink-0 flex-col gap-0.5 px-2 py-1.5 text-[11px] text-muted-foreground sm:min-w-11 sm:flex-row sm:gap-1.5 sm:px-2.5 sm:py-2 sm:text-sm"
+            className="hidden text-muted-foreground hover:text-foreground md:flex"
           >
-            <LogOut className="h-4 w-4 shrink-0" />
-            <span>Abmelden</span>
+            <LogOut className="h-4 w-4" />
+            <span className="hidden lg:inline">Abmelden</span>
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="text-muted-foreground hover:text-foreground md:hidden"
+            onClick={() => setMobileOpen((o) => !o)}
+            aria-label="Menü öffnen"
+          >
+            {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </Button>
         </div>
       </div>
-    </nav>
+
+      {/* Mobile-Menü */}
+      {mobileOpen && (
+        <nav className="border-t border-border md:hidden">
+          {mobileLinks.map(({ href, label, icon: Icon }) => (
+            <Link
+              key={href}
+              href={href}
+              onClick={() => setMobileOpen(false)}
+              className={linkClass(href, "panel")}
+            >
+              <Icon className="h-4 w-4" />
+              {label}
+            </Link>
+          ))}
+          <button
+            type="button"
+            onClick={() => {
+              setMobileOpen(false)
+              signOut({ callbackUrl: "/login" })
+            }}
+            className="flex w-full items-center gap-3 px-4 py-3 text-sm text-muted-foreground transition-colors hover:bg-secondary/50 hover:text-foreground"
+          >
+            <LogOut className="h-4 w-4" />
+            Abmelden
+          </button>
+        </nav>
+      )}
+    </header>
   )
 }

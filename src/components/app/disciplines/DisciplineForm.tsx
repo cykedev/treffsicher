@@ -3,8 +3,11 @@
 import { useActionState } from "react"
 import { useRouter } from "next/navigation"
 import { useEffect } from "react"
+import { toast } from "sonner"
 import { createDiscipline, updateDiscipline, type ActionResult } from "@/lib/disciplines/actions"
+import { getFieldError, getGeneralError } from "@/lib/forms/fieldErrors"
 import { Button } from "@/components/ui/button"
+import { FieldError } from "@/components/ui/field-error"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import {
@@ -34,28 +37,28 @@ export function DisciplineForm({ initialData, disciplineId, canCreateSystem = fa
 
   const [state, formAction, pending] = useActionState<ActionResult | null, FormData>(action, null)
 
-  // Nach erfolgreicher Erstellung zur Disziplin-Liste navigieren
+  // Feld- und Globalfehler defensiv aus dem ActionResult lesen.
+  const nameError = getFieldError(state, "name")
+  const seriesCountError = getFieldError(state, "seriesCount")
+  const shotsPerSeriesError = getFieldError(state, "shotsPerSeries")
+  const generalError = getGeneralError(state)
+
+  // Nach erfolgreicher Erstellung Toast zeigen und zur Disziplin-Liste navigieren.
   useEffect(() => {
     if (state?.success) {
+      toast.success(disciplineId ? "Disziplin gespeichert." : "Disziplin angelegt.")
       router.push("/disciplines")
+    } else if (generalError) {
+      toast.error(generalError)
     }
-  }, [state, router])
-
-  // Fehler für ein bestimmtes Feld extrahieren
-  function fieldError(field: string): string | undefined {
-    if (!state?.error || typeof state.error === "string") return undefined
-    const errors = state.error[field]
-    return errors?.[0]
-  }
+  }, [state, generalError, disciplineId, router])
 
   return (
     <Card className="max-w-lg">
       <CardContent className="pt-6">
         <form action={formAction} className="space-y-4">
           {/* Globaler Fehler */}
-          {state?.error && typeof state.error === "string" && (
-            <p className="text-sm text-destructive">{state.error}</p>
-          )}
+          {generalError && <p className="text-sm text-destructive">{generalError}</p>}
 
           <div className="space-y-2">
             <Label htmlFor="name">Name</Label>
@@ -66,8 +69,10 @@ export function DisciplineForm({ initialData, disciplineId, canCreateSystem = fa
               required
               disabled={pending}
               defaultValue={initialData?.name ?? ""}
+              aria-invalid={nameError ? true : undefined}
+              aria-describedby={nameError ? "name-error" : undefined}
             />
-            {fieldError("name") && <p className="text-sm text-destructive">{fieldError("name")}</p>}
+            <FieldError id="name-error" message={nameError} />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -82,10 +87,10 @@ export function DisciplineForm({ initialData, disciplineId, canCreateSystem = fa
                 defaultValue={initialData?.seriesCount ?? 4}
                 required
                 disabled={pending}
+                aria-invalid={seriesCountError ? true : undefined}
+                aria-describedby={seriesCountError ? "seriesCount-error" : undefined}
               />
-              {fieldError("seriesCount") && (
-                <p className="text-sm text-destructive">{fieldError("seriesCount")}</p>
-              )}
+              <FieldError id="seriesCount-error" message={seriesCountError} />
             </div>
 
             <div className="space-y-2">
@@ -99,10 +104,10 @@ export function DisciplineForm({ initialData, disciplineId, canCreateSystem = fa
                 defaultValue={initialData?.shotsPerSeries ?? 10}
                 required
                 disabled={pending}
+                aria-invalid={shotsPerSeriesError ? true : undefined}
+                aria-describedby={shotsPerSeriesError ? "shotsPerSeries-error" : undefined}
               />
-              {fieldError("shotsPerSeries") && (
-                <p className="text-sm text-destructive">{fieldError("shotsPerSeries")}</p>
-              )}
+              <FieldError id="shotsPerSeries-error" message={shotsPerSeriesError} />
             </div>
           </div>
 

@@ -1,15 +1,12 @@
 "use client"
 
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 import type { SessionDetail } from "@/lib/sessions/actions"
-import { Card, CardContent } from "@/components/ui/card"
 import type { Discipline } from "@/generated/prisma/client"
 import type { GoalForSelection } from "@/lib/goals/actions"
-import { MeytonImportDialog } from "@/components/app/session-form/MeytonImportDialog"
-import { SessionFormFooter } from "@/components/app/session-form/SessionFormFooter"
-import { SessionGoalsSection } from "@/components/app/session-form/SessionGoalsSection"
-import { SessionMainFields } from "@/components/app/session-form/SessionMainFields"
-import { SessionSeriesSection } from "@/components/app/session-form/SessionSeriesSection"
+import { SessionFormBody } from "@/components/app/session-form/SessionFormBody"
+import { useSessionFormDirtyGuard } from "@/components/app/session-form/useSessionFormDirtyGuard"
 import { useSessionFormImportController } from "@/components/app/session-form/useSessionFormImportController"
 import { useSessionFormSubmit } from "@/components/app/session-form/useSessionFormSubmit"
 import { useSessionGoalSelectionState } from "@/components/app/session-form/useSessionGoalSelectionState"
@@ -38,6 +35,7 @@ export function SessionForm({
   sessionId,
   defaultDisciplineId,
 }: Props) {
+  const router = useRouter()
   const initialDisciplineId = initialData?.disciplineId ?? defaultDisciplineId ?? ""
   const [type, setType] = useState<string>(() => initialData?.type ?? "")
   const [dateValue, setDateValue] = useState<string>(() =>
@@ -84,7 +82,7 @@ export function SessionForm({
     applyImportedHitLocation,
   } = useSessionHitLocationState({ initialData })
 
-  const { pending, formError, showValidationHint, handleSubmit } = useSessionFormSubmit({
+  const { pending, submitted, formError, showValidationHint, handleSubmit } = useSessionFormSubmit({
     sessionId,
     dateValue,
     showShots,
@@ -92,6 +90,18 @@ export function SessionForm({
     hasValidationErrors,
     hasHitLocationValidationError,
   })
+
+  const { markDirty, nav } = useSessionFormDirtyGuard({ pending, submitted })
+  const cancelHref = sessionId ? `/sessions/${sessionId}` : "/sessions"
+
+  // Wickelt einen String-Handler so, dass jede Auswahl zusätzlich als ungespeichert gilt.
+  // Nötig für Radix-Selects/Toggles, die kein natives change-Event auf das <form> feuern.
+  function withDirty(fn: (value: string) => void): (value: string) => void {
+    return (value) => {
+      markDirty()
+      fn(value)
+    }
+  }
 
   // Import-Controller kapselt den Querbezug zwischen Typ/Disziplin/Serien/Datum,
   // damit SessionForm ein reiner Kompositions-Container bleibt.
@@ -122,91 +132,82 @@ export function SessionForm({
     setDateValue,
   })
 
+  const showSeries = Boolean(isMeytonButtonVisible && selectedDiscipline)
+
   return (
-    <form onSubmit={handleSubmit} noValidate className="space-y-6">
-      <Card>
-        <CardContent className="space-y-4 pt-6">
-          <SessionMainFields
-            model={{
-              type,
-              dateValue,
-              disciplineId,
-              disciplines,
-              pending,
-              hitLocation,
-              hasHitLocationValidationError,
-              initialLocation: initialData?.location ?? "",
-              initialTrainingGoal: initialData?.trainingGoal ?? "",
-            }}
-            actions={{
-              typeChange: handleTypeChange,
-              dateChange: setDateValue,
-              disciplineChange: handleDisciplineChange,
-              hitLocation: {
-                enable: handleEnableHitLocation,
-                clear: handleClearHitLocation,
-                change: handleHitLocationChange,
+    <SessionFormBody
+      form={{ onSubmit: handleSubmit, markDirty }}
+      main={{
+        model: {
+          type,
+          dateValue,
+          disciplineId,
+          disciplines,
+          pending,
+          hitLocation,
+          hasHitLocationValidationError,
+          initialLocation: initialData?.location ?? "",
+          initialTrainingGoal: initialData?.trainingGoal ?? "",
+        },
+        actions: {
+          typeChange: withDirty(handleTypeChange),
+          dateChange: setDateValue,
+          disciplineChange: withDirty(handleDisciplineChange),
+          hitLocation: {
+            enable: handleEnableHitLocation,
+            clear: handleClearHitLocation,
+            change: handleHitLocationChange,
+          },
+        },
+      }}
+      goals={{
+        model: { goals, selectedGoalIds, pending },
+        actions: { toggleGoal: withDirty(toggleGoal) },
+      }}
+      series={
+        showSeries && selectedDiscipline
+          ? {
+              model: {
+                selectedDiscipline,
+                sortedInitialSeries,
+                totalSeries,
+                showShots,
+                pending,
+                isImportPending,
+                hitLocation,
+                isHitLocationComplete,
+                seriesIsPractice,
+                seriesKeys,
+                shotCounts,
+                shots,
+                invalidShots,
+                invalidTotals,
+                seriesTotals,
               },
-            }}
-          />
-
-          <SessionGoalsSection
-            model={{
-              goals,
-              selectedGoalIds,
-              pending,
-            }}
-            actions={{
-              toggleGoal,
-            }}
-          />
-        </CardContent>
-      </Card>
-
-      {/* Serien — erscheinen erst wenn Disziplin gewählt */}
-      {isMeytonButtonVisible && selectedDiscipline && (
-        <SessionSeriesSection
-          model={{
-            selectedDiscipline,
-            sortedInitialSeries,
-            totalSeries,
-            showShots,
-            pending,
-            isImportPending,
-            hitLocation,
-            isHitLocationComplete,
-            seriesIsPractice,
-            seriesKeys,
-            shotCounts,
-            shots,
-            invalidShots,
-            invalidTotals,
-            seriesTotals,
-          }}
-          actions={{
-            openImportDialog,
-            toggleShowShots: handleShotToggle,
-            togglePractice: handleTogglePractice,
-            removeSeries: handleRemoveSeries,
-            shotCountChange: handleShotCountChange,
-            shotChange: handleShotChange,
-            totalChange: handleTotalChange,
-            addSeries: handleAddSeries,
-            addPracticeSeries: handleAddPracticeSeries,
-          }}
-        />
-      )}
-
-      {canRenderImportDialog && <MeytonImportDialog model={dialogModel} actions={dialogActions} />}
-
-      <SessionFormFooter
-        sessionId={sessionId}
-        pending={pending}
-        hasType={Boolean(type)}
-        formError={formError}
-        showValidationHint={showValidationHint}
-        hasHitLocationValidationError={hasHitLocationValidationError}
-      />
-    </form>
+              actions: {
+                openImportDialog,
+                toggleShowShots: handleShotToggle,
+                togglePractice: handleTogglePractice,
+                removeSeries: handleRemoveSeries,
+                shotCountChange: handleShotCountChange,
+                shotChange: handleShotChange,
+                totalChange: handleTotalChange,
+                addSeries: handleAddSeries,
+                addPracticeSeries: handleAddPracticeSeries,
+              },
+            }
+          : null
+      }
+      importDialog={canRenderImportDialog ? { model: dialogModel, actions: dialogActions } : null}
+      footer={{
+        sessionId,
+        pending,
+        formError,
+        showValidationHint,
+        submitDisabled: pending || !type || showValidationHint || hasHitLocationValidationError,
+        onCancel: () => nav.requestNavigation(() => router.push(cancelHref)),
+      }}
+      discard={{ open: nav.isConfirmOpen, onCancel: nav.cancel, onConfirm: nav.confirm }}
+    />
   )
 }

@@ -1,7 +1,9 @@
 "use client"
 
 import { useActionState, useState, useEffect } from "react"
+import { toast } from "sonner"
 import { savePrognosis, type ActionResult, type SerializedPrognosis } from "@/lib/sessions/actions"
+import { getGeneralError } from "@/lib/forms/fieldErrors"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
@@ -42,10 +44,17 @@ export function PrognosisForm({ sessionId, initialData, onSuccess, onCancel }: P
     equipment: initialData?.equipment ?? 50,
   })
 
+  const generalError = getGeneralError(state)
+
   useEffect(() => {
     // Gleiches Erfolgsverhalten wie Feedback/Reflection für einheitliche Section-UX.
-    if (state?.success) onSuccess?.()
-  }, [state?.success, onSuccess])
+    if (state?.success) {
+      toast.success("Prognose gespeichert.")
+      onSuccess?.()
+    } else if (generalError) {
+      toast.error(generalError)
+    }
+  }, [state?.success, generalError, onSuccess])
 
   return (
     <form action={formAction} className="space-y-4">

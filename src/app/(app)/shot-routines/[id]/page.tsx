@@ -3,6 +3,7 @@ import Link from "next/link"
 import { ArrowLeft, Pencil } from "lucide-react"
 import { getAuthSession } from "@/lib/auth-helpers"
 import { getShotRoutineById } from "@/lib/shot-routines/actions"
+import { DetailActionBar } from "@/components/app/shell/DetailActionBar"
 import { ShotRoutineView } from "@/components/app/shot-routines/ShotRoutineView"
 import { DeleteShotRoutineButton } from "@/components/app/shot-routines/DeleteShotRoutineButton"
 import type { RoutineStep } from "@/lib/shot-routines/actions"
@@ -28,7 +29,7 @@ export default async function ShotRoutineDetailPage({
     <div className="space-y-6">
       <div className="space-y-3">
         <div className="flex items-start justify-end">
-          <div className="flex w-full flex-wrap items-center justify-end gap-0.5 sm:w-auto sm:shrink-0 sm:gap-1">
+          <DetailActionBar>
             <Button variant="ghost" size="icon" asChild>
               <Link href={`/shot-routines/${id}/edit`} aria-label="Ablauf bearbeiten">
                 <Pencil className="h-4 w-4" />
@@ -41,7 +42,7 @@ export default async function ShotRoutineDetailPage({
                 <span className="hidden sm:inline">Zurück</span>
               </Link>
             </Button>
-          </div>
+          </DetailActionBar>
         </div>
         <div className="space-y-1">
           <h1 className="break-words text-2xl font-bold tracking-tight">{routine.name}</h1>

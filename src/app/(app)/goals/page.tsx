@@ -1,10 +1,12 @@
 import Link from "next/link"
 import { redirect } from "next/navigation"
+import { Goal } from "lucide-react"
 import { getAuthSession } from "@/lib/auth-helpers"
 import { getGoalsWithAssignments } from "@/lib/goals/actions"
 import { CreateItemLinkButton } from "@/components/app/sessions/CreateItemLinkButton"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
+import { EmptyState } from "@/components/ui/empty-state"
 
 const goalTypeLabels: Record<string, string> = {
   RESULT: "Ergebnisziel",
@@ -38,11 +40,13 @@ export default async function GoalsPage() {
       </div>
 
       {goals.length === 0 ? (
-        <Card>
-          <CardContent className="py-10 text-center text-muted-foreground">
-            Noch keine Saisonziele vorhanden.
-          </CardContent>
-        </Card>
+        <EmptyState
+          title="Noch keine Saisonziele vorhanden"
+          description="Lege dein erstes Ziel an."
+          icon={Goal}
+          actionLabel="Neues Ziel"
+          actionHref="/goals/new"
+        />
       ) : (
         <div className="space-y-4">
           {goals.map((goal) => (

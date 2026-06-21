@@ -1,7 +1,9 @@
 "use client"
 
 import { useActionState, useState, useEffect } from "react"
+import { toast } from "sonner"
 import { saveReflection, type ActionResult } from "@/lib/sessions/actions"
+import { getGeneralError } from "@/lib/forms/fieldErrors"
 import { Label } from "@/components/ui/label"
 import { SelectableRow } from "@/components/ui/selectable-row"
 import { Textarea } from "@/components/ui/textarea"
@@ -27,12 +29,17 @@ export function ReflectionForm({ sessionId, initialData, onSuccess, onCancel }: 
   // Lokaler State für Ablauf-Checkbox — bestimmt ob Abweichungsfeld angezeigt wird
   const [routineFollowed, setRoutineFollowed] = useState(initialData?.routineFollowed ?? true)
 
+  const generalError = getGeneralError(state)
+
   // Nach erfolgreichem Speichern Callback aufrufen (für Section-Wrapper)
   useEffect(() => {
     if (state?.success) {
+      toast.success("Reflexion gespeichert.")
       onSuccess?.()
+    } else if (generalError) {
+      toast.error(generalError)
     }
-  }, [state?.success, onSuccess])
+  }, [state?.success, generalError, onSuccess])
 
   return (
     <form action={formAction} className="space-y-4">

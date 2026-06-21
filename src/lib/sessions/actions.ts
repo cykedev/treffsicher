@@ -71,7 +71,7 @@ export async function updateSession(id: string, formData: FormData): Promise<Act
   return updateSessionAction(id, formData)
 }
 
-export async function toggleFavourite(sessionId: string): Promise<void> {
+export async function toggleFavourite(sessionId: string): Promise<ActionResult> {
   return toggleFavouriteAction(sessionId)
 }
 

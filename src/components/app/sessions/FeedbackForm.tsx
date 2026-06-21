@@ -1,7 +1,9 @@
 "use client"
 
 import { useActionState, useState, useEffect } from "react"
+import { toast } from "sonner"
 import { saveFeedback, type ActionResult } from "@/lib/sessions/actions"
+import { getGeneralError } from "@/lib/forms/fieldErrors"
 import { Label } from "@/components/ui/label"
 import { SelectableRow } from "@/components/ui/selectable-row"
 import { Textarea } from "@/components/ui/textarea"
@@ -44,10 +46,17 @@ export function FeedbackForm({ sessionId, initialData, onCancel, onSuccess }: Pr
   })
   const [goalAchieved, setGoalAchieved] = useState(initialData?.goalAchieved ?? false)
 
+  const generalError = getGeneralError(state)
+
   useEffect(() => {
     // Callback erst nach bestätigtem Server-Erfolg, damit Wrapper nur bei persistierten Daten schließt.
-    if (state?.success) onSuccess?.()
-  }, [state?.success, onSuccess])
+    if (state?.success) {
+      toast.success("Feedback gespeichert.")
+      onSuccess?.()
+    } else if (generalError) {
+      toast.error(generalError)
+    }
+  }, [state?.success, generalError, onSuccess])
 
   return (
     <form action={formAction} className="space-y-4">

@@ -7,7 +7,7 @@ import type { SessionHitLocation } from "@/components/app/session-form/types"
 import type { SerializedSeries } from "@/lib/sessions/actions"
 import type { Discipline } from "@/generated/prisma/client"
 
-interface Model {
+export interface SessionSeriesModel {
   selectedDiscipline: Discipline
   sortedInitialSeries: SerializedSeries[]
   totalSeries: number
@@ -25,7 +25,7 @@ interface Model {
   seriesTotals: string[]
 }
 
-interface Actions {
+export interface SessionSeriesActions {
   openImportDialog: () => void
   toggleShowShots: (enabled: boolean) => void
   togglePractice: (index: number) => void
@@ -38,8 +38,8 @@ interface Actions {
 }
 
 interface Props {
-  model: Model
-  actions: Actions
+  model: SessionSeriesModel
+  actions: SessionSeriesActions
 }
 
 export function SessionSeriesSection({ model, actions }: Props) {

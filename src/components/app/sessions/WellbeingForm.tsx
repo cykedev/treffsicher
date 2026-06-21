@@ -1,7 +1,9 @@
 "use client"
 
 import { useActionState, useState, useEffect } from "react"
+import { toast } from "sonner"
 import { saveWellbeing, type ActionResult } from "@/lib/sessions/actions"
+import { getGeneralError } from "@/lib/forms/fieldErrors"
 import { ActionFormFooter } from "@/components/app/sessions/shared/ActionFormFooter"
 import { ActionFormMessages } from "@/components/app/sessions/shared/ActionFormMessages"
 import { ScoreSliderRows } from "@/components/app/sessions/shared/ScoreSliderRows"
@@ -32,10 +34,17 @@ export function WellbeingForm({ sessionId, initialData, onSuccess, onCancel }: P
     motivation: initialData?.motivation ?? 50,
   })
 
+  const generalError = getGeneralError(state)
+
   useEffect(() => {
     // Section-Wrapper soll nur nach persistiertem Save schließen.
-    if (state?.success) onSuccess?.()
-  }, [state?.success, onSuccess])
+    if (state?.success) {
+      toast.success("Befinden gespeichert.")
+      onSuccess?.()
+    } else if (generalError) {
+      toast.error(generalError)
+    }
+  }, [state?.success, generalError, onSuccess])
 
   return (
     <form action={formAction} className="space-y-4">

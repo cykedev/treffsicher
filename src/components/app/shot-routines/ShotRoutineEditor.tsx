@@ -3,18 +3,21 @@
 import { useActionState, useState } from "react"
 import { useRouter } from "next/navigation"
 import { useEffect } from "react"
-import { Trash2 } from "lucide-react"
+import { toast } from "sonner"
 import {
   createShotRoutine,
   updateShotRoutine,
   type ActionResult,
   type RoutineStep,
 } from "@/lib/shot-routines/actions"
+import { getGeneralError } from "@/lib/forms/fieldErrors"
+import { useUnsavedChangesGuard } from "@/lib/hooks/useUnsavedChangesGuard"
+import { useNavigationConfirm } from "@/lib/hooks/useNavigationConfirm"
 import { Button } from "@/components/ui/button"
+import { DiscardChangesDialog } from "@/components/app/shell/DiscardChangesDialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { Card, CardContent } from "@/components/ui/card"
+import { ShotRoutineStepCard } from "@/components/app/shot-routines/ShotRoutineStepCard"
 
 interface Props {
   // Wenn gesetzt: Bearbeiten-Modus
@@ -33,19 +36,32 @@ export function ShotRoutineEditor({ initialName, initialSteps, routineId }: Prop
   const [state, formAction, pending] = useActionState<ActionResult | null, FormData>(action, null)
 
   const [steps, setSteps] = useState<RoutineStep[]>(initialSteps ?? [])
+  // Einfaches Dirty-Flag: jede Bearbeitung markiert das Formular als ungespeichert.
+  const [dirty, setDirty] = useState(false)
+  const generalError = getGeneralError(state)
 
-  // Nach erfolgreichem Update zur Liste weiterleiten
+  // Während des Speicherns/nach Erfolg darf der Guard den Redirect nicht blockieren.
+  const guardActive = dirty && !pending
+  useUnsavedChangesGuard({ enabled: guardActive })
+  const nav = useNavigationConfirm({ isDirty: guardActive })
+
+  // Nach erfolgreichem Update Toast zeigen und zur Liste weiterleiten
   useEffect(() => {
     if (state?.success) {
+      toast.success(routineId ? "Ablauf gespeichert." : "Ablauf erstellt.")
       router.push("/shot-routines")
+    } else if (generalError) {
+      toast.error(generalError)
     }
-  }, [state, router])
+  }, [state, generalError, routineId, router])
 
   function addStep() {
+    setDirty(true)
     setSteps((prev) => [...prev, { order: prev.length + 1, title: "", description: undefined }])
   }
 
   function removeStep(index: number) {
+    setDirty(true)
     setSteps((prev) => {
       const next = prev.filter((_, i) => i !== index)
       // Reihenfolge neu nummerieren
@@ -54,6 +70,7 @@ export function ShotRoutineEditor({ initialName, initialSteps, routineId }: Prop
   }
 
   function moveStep(index: number, direction: "up" | "down") {
+    setDirty(true)
     setSteps((prev) => {
       const next = [...prev]
       const targetIndex = direction === "up" ? index - 1 : index + 1
@@ -65,6 +82,7 @@ export function ShotRoutineEditor({ initialName, initialSteps, routineId }: Prop
   }
 
   function updateStepField(index: number, field: "title" | "description", value: string) {
+    setDirty(true)
     setSteps((prev) =>
       prev.map((s, i) => {
         if (i !== index) return s
@@ -78,7 +96,7 @@ export function ShotRoutineEditor({ initialName, initialSteps, routineId }: Prop
 
   return (
     <form action={formAction} className="space-y-6">
-      {state?.error && <p className="text-sm text-destructive">{state.error}</p>}
+      {generalError && <p className="text-sm text-destructive">{generalError}</p>}
 
       <div className="space-y-2">
         <Label htmlFor="name">Name des Ablaufs</Label>
@@ -87,6 +105,7 @@ export function ShotRoutineEditor({ initialName, initialSteps, routineId }: Prop
           name="name"
           placeholder="z.B. Luftpistole Standardablauf"
           defaultValue={initialName ?? ""}
+          onChange={() => setDirty(true)}
           required
           disabled={pending}
           className="max-w-sm"
@@ -104,67 +123,16 @@ export function ShotRoutineEditor({ initialName, initialSteps, routineId }: Prop
         )}
 
         {steps.map((step, i) => (
-          <Card key={i}>
-            <CardContent className="space-y-3 pt-4">
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-sm font-medium text-muted-foreground">
-                  Schritt {step.order}
-                </span>
-                <div className="flex items-center gap-1">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => moveStep(i, "up")}
-                    disabled={pending || i === 0}
-                    aria-label="Nach oben"
-                    className="h-7 w-7 p-0"
-                  >
-                    ↑
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => moveStep(i, "down")}
-                    disabled={pending || i === steps.length - 1}
-                    aria-label="Nach unten"
-                    className="h-7 w-7 p-0"
-                  >
-                    ↓
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon-xs"
-                    onClick={() => removeStep(i)}
-                    disabled={pending}
-                    aria-label="Schritt entfernen"
-                    // Gleiches destruktives Klein-Button-Muster wie beim Serien-Löschen:
-                    // so ist "Entfernen" in allen Formularen sofort wiedererkennbar.
-                    className="text-destructive hover:bg-destructive/10 hover:text-destructive"
-                  >
-                    <Trash2 className="h-3 w-3" />
-                  </Button>
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Input
-                  placeholder="Titel des Schritts"
-                  value={step.title}
-                  onChange={(e) => updateStepField(i, "title", e.target.value)}
-                  disabled={pending}
-                />
-                <Textarea
-                  placeholder="Beschreibung (optional)"
-                  value={step.description ?? ""}
-                  onChange={(e) => updateStepField(i, "description", e.target.value)}
-                  disabled={pending}
-                  rows={2}
-                />
-              </div>
-            </CardContent>
-          </Card>
+          <ShotRoutineStepCard
+            key={i}
+            step={step}
+            index={i}
+            total={steps.length}
+            pending={pending}
+            onMove={moveStep}
+            onRemove={removeStep}
+            onFieldChange={updateStepField}
+          />
         ))}
 
         <Button type="button" variant="outline" size="sm" onClick={addStep} disabled={pending}>
@@ -183,11 +151,17 @@ export function ShotRoutineEditor({ initialName, initialSteps, routineId }: Prop
           type="button"
           variant="outline"
           disabled={pending}
-          onClick={() => router.push("/shot-routines")}
+          onClick={() => nav.requestNavigation(() => router.push("/shot-routines"))}
         >
           Abbrechen
         </Button>
       </div>
+
+      <DiscardChangesDialog
+        open={nav.isConfirmOpen}
+        onCancel={nav.cancel}
+        onConfirm={nav.confirm}
+      />
     </form>
   )
 }

@@ -3,6 +3,7 @@
 import Link from "next/link"
 import { ArrowLeft, Pencil, Target, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { DetailActionBar } from "@/components/app/shell/DetailActionBar"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -28,7 +29,7 @@ export function GoalActions({ pending, backHref, onEditGoal, onEditAssignments, 
   return (
     <div className="flex items-start justify-end">
       {/* Mobile bekommt dieselben Aktionen als Icon/kurze Labels, damit nichts aus dem Header herausbricht. */}
-      <div className="flex w-full flex-wrap items-center justify-end gap-0.5 sm:w-auto sm:shrink-0 sm:gap-1">
+      <DetailActionBar>
         <Button
           size="icon"
           variant="ghost"
@@ -89,7 +90,7 @@ export function GoalActions({ pending, backHref, onEditGoal, onEditAssignments, 
             </Link>
           </Button>
         )}
-      </div>
+      </DetailActionBar>
     </div>
   )
 }

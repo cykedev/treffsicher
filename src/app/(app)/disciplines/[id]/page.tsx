@@ -8,6 +8,7 @@ import {
   getFavouriteDisciplineId,
   getHiddenDisciplineIds,
 } from "@/lib/disciplines/actions"
+import { DetailActionBar } from "@/components/app/shell/DetailActionBar"
 import { ArchiveDisciplineButton } from "@/components/app/disciplines/ArchiveDisciplineButton"
 import { DeleteDisciplineButton } from "@/components/app/disciplines/DeleteDisciplineButton"
 import { FavouriteDisciplineButton } from "@/components/app/disciplines/FavouriteDisciplineButton"
@@ -48,7 +49,7 @@ export default async function DisciplineDetailPage({
     <div className="space-y-6">
       <div className="space-y-3">
         <div className="flex items-start justify-end">
-          <div className="flex w-full flex-wrap items-center justify-end gap-0.5 sm:w-auto sm:shrink-0 sm:gap-1">
+          <DetailActionBar>
             {!discipline.isArchived && (
               <FavouriteDisciplineButton
                 disciplineId={discipline.id}
@@ -81,7 +82,7 @@ export default async function DisciplineDetailPage({
                 <span className="hidden sm:inline">Zurück</span>
               </Link>
             </Button>
-          </div>
+          </DetailActionBar>
         </div>
 
         <div className="space-y-1">

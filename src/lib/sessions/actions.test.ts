@@ -104,7 +104,7 @@ describe("sessions actions facade", () => {
     previewMeytonImportActionMock.mockResolvedValue({ data: { series: [] } })
     uploadAttachmentActionMock.mockResolvedValue({ success: true })
     deleteAttachmentActionMock.mockResolvedValue({ success: true })
-    toggleFavouriteActionMock.mockResolvedValue(undefined)
+    toggleFavouriteActionMock.mockResolvedValue({ success: true })
 
     expect(await createSession(formData)).toEqual({ success: true })
     expect(await updateSession("s1", formData)).toEqual({ success: true })
@@ -112,7 +112,7 @@ describe("sessions actions facade", () => {
     expect(await previewMeytonImport(formData)).toEqual({ data: { series: [] } })
     expect(await uploadAttachment("s1", formData)).toEqual({ success: true })
     expect(await deleteAttachment("a1")).toEqual({ success: true })
-    await toggleFavourite("s1")
+    expect(await toggleFavourite("s1")).toEqual({ success: true })
   })
 
   it("delegiert mentale Teilbereiche mit unveraenderten Parametern", async () => {

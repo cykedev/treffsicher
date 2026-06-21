@@ -2,7 +2,9 @@
 
 import { useActionState, useEffect, useState } from "react"
 import { signOut } from "next-auth/react"
+import { toast } from "sonner"
 import { changeOwnPassword, type AccountActionResult } from "@/lib/account/actions"
+import { getGeneralError } from "@/lib/forms/fieldErrors"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -16,9 +18,16 @@ export function AccountPasswordForm() {
     null
   )
 
+  const generalError = getGeneralError(state)
+
   useEffect(() => {
+    if (generalError) {
+      toast.error(generalError)
+      return
+    }
     if (!state?.success) return
 
+    toast.success("Passwort geändert.")
     let canceled = false
 
     async function finishPasswordChange() {
@@ -32,14 +41,14 @@ export function AccountPasswordForm() {
     return () => {
       canceled = true
     }
-  }, [state?.success])
+  }, [state?.success, generalError])
 
   const isBusy = pending || signingOut
   const inputType = showPasswords ? "text" : "password"
 
   return (
     <form action={formAction} className="max-w-xl space-y-4">
-      {state?.error && <p className="text-sm text-destructive">{state.error}</p>}
+      {generalError && <p className="text-sm text-destructive">{generalError}</p>}
       {state?.success && (
         <p className="text-sm text-muted-foreground">Passwort geändert. Abmeldung läuft...</p>
       )}

@@ -1,7 +1,7 @@
 import { getAuthSession } from "@/lib/auth-helpers"
 import { redirect } from "next/navigation"
 import Link from "next/link"
-import { Star } from "lucide-react"
+import { Star, Target } from "lucide-react"
 import {
   getDisciplinesForManagement,
   getFavouriteDisciplineId,
@@ -9,6 +9,7 @@ import {
 } from "@/lib/disciplines/actions"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
+import { EmptyState } from "@/components/ui/empty-state"
 import { CreateItemLinkButton } from "@/components/app/sessions/CreateItemLinkButton"
 
 const scoringTypeLabel: Record<string, string> = {
@@ -46,7 +47,13 @@ export default async function DisciplinesPage() {
       </div>
 
       {disciplines.length === 0 ? (
-        <p className="text-muted-foreground">Noch keine Disziplinen vorhanden.</p>
+        <EmptyState
+          title="Noch keine Disziplinen vorhanden"
+          description="Lege deine erste Disziplin an."
+          icon={Target}
+          actionLabel={isAdmin ? "Neue (System-)Disziplin" : "Neue Disziplin"}
+          actionHref="/disciplines/new"
+        />
       ) : (
         <div className="space-y-2">
           {disciplines.map((d) => (

@@ -1,6 +1,7 @@
 import Link from "next/link"
 import { ArrowLeft, Download, Pencil } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { DetailActionBar } from "@/components/app/shell/DetailActionBar"
 import { DeleteSessionButton } from "@/components/app/sessions/DeleteSessionButton"
 import { FavouriteButton } from "@/components/app/sessions/FavouriteButton"
 
@@ -12,7 +13,7 @@ interface Props {
 // Header-Aktionen bleiben icon-first, damit auf kleinen Breiten alle Kernaktionen sichtbar bleiben.
 export function SessionDetailHeaderActions({ sessionId, isFavourite }: Props) {
   return (
-    <div className="flex flex-wrap items-center justify-end gap-0.5 sm:gap-1">
+    <DetailActionBar>
       <FavouriteButton sessionId={sessionId} initialFavourite={isFavourite} />
       <Button variant="ghost" size="sm" className="px-2 sm:px-3" asChild>
         <Link
@@ -36,6 +37,6 @@ export function SessionDetailHeaderActions({ sessionId, isFavourite }: Props) {
           <span className="hidden sm:inline">Zurück</span>
         </Link>
       </Button>
-    </div>
+    </DetailActionBar>
   )
 }

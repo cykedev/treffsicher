@@ -1,10 +1,12 @@
 import { redirect } from "next/navigation"
 import Link from "next/link"
+import { ListChecks } from "lucide-react"
 import { getAuthSession } from "@/lib/auth-helpers"
 import { getShotRoutines } from "@/lib/shot-routines/actions"
 import type { RoutineStep } from "@/lib/shot-routines/actions"
 import { CreateItemLinkButton } from "@/components/app/sessions/CreateItemLinkButton"
 import { Card, CardContent } from "@/components/ui/card"
+import { EmptyState } from "@/components/ui/empty-state"
 
 function formatDate(date: Date): string {
   return new Intl.DateTimeFormat("de-CH", {
@@ -33,11 +35,13 @@ export default async function ShotRoutinesPage() {
       </div>
 
       {routines.length === 0 ? (
-        <Card>
-          <CardContent className="py-10 text-center text-muted-foreground">
-            Noch kein Ablauf vorhanden. Erstelle deinen ersten Schuss-Ablauf.
-          </CardContent>
-        </Card>
+        <EmptyState
+          title="Noch kein Ablauf vorhanden"
+          description="Erstelle deinen ersten Schuss-Ablauf."
+          icon={ListChecks}
+          actionLabel="Neuer Ablauf"
+          actionHref="/shot-routines/new"
+        />
       ) : (
         <div className="space-y-2">
           {routines.map((r) => {
