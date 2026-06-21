@@ -12,7 +12,7 @@ Diese Dateien MÜSSEN in beiden Repos identisch sein (Gate = fatal bei Abweichun
 
 - Configs: `components.json`, `eslint.config.mjs`, `.prettierrc`, `tsconfig.json`, `postcss.config.mjs`,
   `next.config.ts`, `Dockerfile`, `src/app/globals.css`
-- Error-Boundaries: `src/app/error.tsx`, `src/app/(app)/error.tsx`
+- Error-Boundaries: `src/app/error.tsx`, `src/app/(app)/error.tsx`, `src/app/not-found.tsx`
 - ui-Primitives: alle gemeinsamen `src/components/ui/*` (insb. `button`, `card`, `sonner`,
   `empty-state`, `field-error`, `dropdown-menu`)
 - Shell: `src/components/app/shell/{DetailActionBar,ConfirmDialog,PageHeader}.tsx`
