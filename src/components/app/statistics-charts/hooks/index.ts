@@ -4,6 +4,7 @@ export { useResultTrendChartState } from "@/components/app/statistics-charts/hoo
 export { useStatisticsFilteredData } from "@/components/app/statistics-charts/hooks/useStatisticsFilteredData"
 export { useStatisticsFilterState } from "@/components/app/statistics-charts/hooks/useStatisticsFilterState"
 export { useStatisticsChartPresentationState } from "@/components/app/statistics-charts/hooks/useStatisticsChartPresentationState"
+export { useStatisticsChartsModel } from "@/components/app/statistics-charts/hooks/useStatisticsChartsModel"
 export { useStatisticsFiltersCardState } from "@/components/app/statistics-charts/hooks/useStatisticsFiltersCardState"
 export { useStatisticsTabsModel } from "@/components/app/statistics-charts/hooks/useStatisticsTabsModel"
 export { useWellbeingQualityChartState } from "@/components/app/statistics-charts/hooks/useWellbeingQualityChartState"
