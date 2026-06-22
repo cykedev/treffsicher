@@ -79,6 +79,11 @@ Ganze Karte ist Link auf die Detailseite; keine „Details →"-Buttons. Ausnahm
 
 ## 8. Drift-Schutz (Prozess)
 
+- **Quality-Gates (vor jedem Commit, via `/check`):** `lint`, `format:check`, `test`, `tsc` **und
+  `next build`** — alle fünf grün. `next build` ist Pflicht und fängt Build-only-Fehler ab, die die
+  anderen Gates **nicht** sehen — z.B. die Next.js-Regel, dass eine `"use server"`-Datei nur direkt
+  deklarierte async-Funktionen exportieren darf (keine Re-Exports/Barrels). Bei jeder Änderung an
+  Server Actions zwingend.
 - **Gate:** `vereinsheim/scripts/consistency-check.sh` läuft vor jedem Release (in
   `build-and-push.sh`) und ist **fatal** bei Abweichung der Shared-Schicht/Configs, **warnend** bei
   Dependency-Drift und Anti-Pattern.

@@ -22,11 +22,14 @@ Self-hosted, Einzelnutzer bis Vereinsbetrieb, ausschliesslich Dark Mode, ausschl
 # Dev starten (DB + App mit Hot-Reload)
 docker compose -f docker-compose.dev.yml up --watch
 
-# Vor jedem Commit — alle vier müssen fehlerfrei sein
+# Vor jedem Commit — alle fünf müssen fehlerfrei sein
 docker compose -f docker-compose.dev.yml run --rm app npm run lint
 docker compose -f docker-compose.dev.yml run --rm app npm run format:check
 docker compose -f docker-compose.dev.yml run --rm app npm run test
 docker compose -f docker-compose.dev.yml run --rm app npx tsc --noEmit
+# next build: fängt Build-only-Fehler ab, die lint/tsc/test NICHT sehen
+# (z.B. "use server"-Dateien dürfen nur async-Funktionen exportieren, keine Re-Exports)
+docker compose -f docker-compose.dev.yml run --rm app npm run build
 
 # Formatierung auto-fix
 docker compose -f docker-compose.dev.yml run --rm app npm run format
